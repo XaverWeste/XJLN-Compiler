@@ -21,9 +21,9 @@ class Parser {
         lexer = new Lexer();
     }
 
-    public /*HashMap<String, XJLNClass>*/void parseFile(File file){
+    public /*HashMap<String, XJLNClass>*/void parseFile(File file) {
         //HashMap<String, XJLNClass> classes = new HashMap<>();
-        uses = new HashMap<>();
+        resetUse();
         try {
             sc = new Scanner(file);
         } catch (FileNotFoundException e) {
@@ -34,10 +34,10 @@ class Parser {
         path = path.substring(0, path.length() - 5);
 
         String line;
-        while(sc.hasNextLine()){
+        while (sc.hasNextLine()) {
             line = sc.nextLine().trim();
-            if(!line.equals("") && !line.startsWith("#")){
-                if(line.startsWith("use")) parseUseDef(line);
+            if (!line.equals("") && !line.startsWith("#")) {
+                if (line.startsWith("use")) parseUseDef(line);
                 else throw new RuntimeException("illegal argument in: " + line);
             }
         }
@@ -45,7 +45,44 @@ class Parser {
         //return classes;
     }
 
-    private void parseUseDef(String line){
+    private void resetUse(){
+        uses = new HashMap<>();
+        uses.put("boolean", "xjln/core/Boolean/boolean");
+        uses.put("byte", "xjln/core/Byte/byte");
+        uses.put("char", "xjln/core/Char/char");
+        uses.put("double", "xjln/core/Double/double");
+        uses.put("float", "xjln/core/Float/float");
+        uses.put("int", "xjln/core/Int/int");
+        uses.put("long", "xjln/core/Long/long");
+        uses.put("short", "xjln/core/Short/short");
+    }
 
+    private void parseUseDef(String line){
+        TokenHandler th = lexer.toToken(line);
+        th.assertToken("use");
+
+        StringBuilder use = new StringBuilder();
+        use.append(th.assertToken(Token.Type.IDENTIFIER).s());
+
+        while (th.hasNext() && th.assertToken(Token.Type.IDENTIFIER, Token.Type.SIMPLE).t().equals(Token.Type.SIMPLE)){
+            TokenHandler.assertToken(th.current(), "/");
+            use.append("/");
+            use.append(th.assertToken(Token.Type.IDENTIFIER));
+            th.assertHasNext();
+        }
+
+        String as = null;
+
+        if(use.toString().contains("/") || th.current().t() == Token.Type.IDENTIFIER){
+            TokenHandler.assertToken(th.current(), "as");
+            as = th.assertToken(Token.Type.IDENTIFIER).s();
+        }
+
+        if(as == null) as = use.toString().split("/")[use.toString().split("/").length - 1];
+
+        if(uses.containsKey(as)){
+            System.out.println("[WARNING] " + as + " is already defined in " + path);
+            uses.replace(as, use.toString());
+        }else uses.put(as, use.toString());
     }
 }

@@ -6,7 +6,7 @@ import java.util.Set;
 
 class Lexer {
 
-    public List<Token> getTokens(String line){
+    public TokenHandler toToken(String line){
         List<Token> tokens = new ArrayList<>();
         char[] chars = line.toCharArray();
         StringBuilder value;
@@ -80,7 +80,7 @@ class Lexer {
 
         }
 
-        return tokens;
+        return new TokenHandler(tokens);
     }
 
     private boolean isOperator(char c){

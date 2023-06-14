@@ -1,3 +1,4 @@
 use java/lang/Object as Object
 
 def boolean = true | false :: Object
+end
