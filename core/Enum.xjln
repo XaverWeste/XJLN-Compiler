@@ -1,0 +1,9 @@
+use java/lang/Class as Class
+
+def Enum[/] :: class
+
+    inner string name
+
+    predef ofString(string name) :: Enum
+
+end
