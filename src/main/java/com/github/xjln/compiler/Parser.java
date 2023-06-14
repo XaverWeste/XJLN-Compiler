@@ -1,6 +1,7 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.XJLNClass;
+import com.github.xjln.lang.XJLNEnum;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -110,6 +111,8 @@ class Parser {
             if(values.contains(th.assertToken(Token.Type.IDENTIFIER).s())) throw new RuntimeException("value " + th.current().s() + " already exist for enum " + path + "/" + className);
             values.add(th.current().s());
         }
+
+        current = new XJLNEnum(values);
     }
 
     private void parseClassDef(TokenHandler th){
