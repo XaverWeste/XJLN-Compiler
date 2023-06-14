@@ -1,0 +1,4 @@
+use java/lang/Object as Object
+
+def char[primitive:char value] :: Object
+end

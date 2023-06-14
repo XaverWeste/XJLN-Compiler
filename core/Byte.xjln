@@ -1,0 +1,4 @@
+use java/lang/Object as Object
+
+def byte[primitive:byte value] :: Object
+end

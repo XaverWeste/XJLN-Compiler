@@ -1,6 +1,6 @@
-use java/lang/Class as Class
+use java/lang/Object as Object
 
-def Enum[/] :: class
+def Enum[/] :: Object
 
     inner string name
 
