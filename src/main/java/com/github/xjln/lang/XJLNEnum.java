@@ -2,15 +2,11 @@ package com.github.xjln.lang;
 
 import java.util.ArrayList;
 
-public class XJLNEnum extends XJLNClass{
+public class XJLNEnum implements Compilable {
 
-    private final String[] values;
+    public final String[] values;
 
     public XJLNEnum(ArrayList<String> values){
         this.values = values.toArray(new String[0]);
-    }
-
-    public String[] getValues(){
-        return values;
     }
 }

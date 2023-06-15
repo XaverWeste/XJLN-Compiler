@@ -1,5 +1,6 @@
 package com.github.xjln.compiler;
 
+import com.github.xjln.lang.Compilable;
 import com.github.xjln.lang.XJLNClass;
 import com.github.xjln.lang.XJLNEnum;
 
@@ -15,7 +16,7 @@ class Parser {
     public final Lexer lexer;
 
     private HashMap<String, String> uses;
-    private XJLNClass current;
+    private Compilable current;
     private String path;
     private String className;
     private Scanner sc;
@@ -25,8 +26,8 @@ class Parser {
         lexer = new Lexer();
     }
 
-    public HashMap<String, XJLNClass> parseFile(File file) {
-        HashMap<String, XJLNClass> classes = new HashMap<>();
+    public HashMap<String, Compilable> parseFile(File file) {
+        HashMap<String, Compilable> classes = new HashMap<>();
         resetUse();
         try {
             sc = new Scanner(file);
@@ -117,6 +118,50 @@ class Parser {
     }
 
     private void parseClassDef(TokenHandler th){
+        TokenHandler parameterList = th.getInBracket();
+        if(th.hasNext()) th.assertToken("->", "=>");
+        //TODO
+    }
 
+    private ArrayList<String> parseParameterList(TokenHandler parameterList){
+        ArrayList<String> parameter = new ArrayList<>();
+
+        if(parameterList.hasNext() && parameterList.next().equals("/")){
+            parameterList.assertNull();
+            return null;
+        }else parameterList.toFirst();
+
+        String type, name, names = "", value = null;
+
+        while (parameterList.hasNext()){
+            type = parameterList.assertToken(Token.Type.IDENTIFIER).s();
+            type = validateType(type);
+
+            name = parameterList.assertToken(Token.Type.IDENTIFIER).s();
+            if(names.contains(" " + name + " ")) throw new RuntimeException(name + " is already defined in [" + parameterList.toString() + "]");
+            else names += " " + name + " ";
+
+            if(parameterList.hasNext()) {
+                if (parameterList.assertToken("=", ",").s().equals("=")) {
+                    value = parameterList.next().s();
+                    if(parameterList.hasNext()) parameterList.assertToken(",");
+                }
+
+                parameterList.assertHasNext();
+            }
+
+            parameter.add(type + " " + name + (value == null ? "" : " " + value));
+        }
+
+        return parameter;
+    }
+
+    private String validateType(String type){
+        if(type.startsWith("primitive:")){
+            if(primitives.contains(type.split(":")[0])) return type.split(":")[0];
+        }else{
+            if(uses.containsKey(type)) return uses.get(type);
+        }
+        throw new RuntimeException("illegal type " + type);
     }
 }

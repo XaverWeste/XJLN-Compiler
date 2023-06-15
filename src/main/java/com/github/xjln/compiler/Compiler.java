@@ -1,5 +1,6 @@
 package com.github.xjln.compiler;
 
+import com.github.xjln.lang.Compilable;
 import com.github.xjln.lang.XJLNClass;
 import com.github.xjln.lang.XJLNEnum;
 import javassist.CannotCompileException;
@@ -45,7 +46,7 @@ public class Compiler {
     }
 
     private void compileFolder(File folder){
-        HashMap<String, XJLNClass> classes = new HashMap<>();
+        HashMap<String, Compilable> classes = new HashMap<>();
         for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
             if(fileEntry.isDirectory()) compileFolder(fileEntry);
             else if(fileEntry.getName().endsWith(".xjln")) classes.putAll(parser.parseFile(fileEntry));
@@ -62,7 +63,7 @@ public class Compiler {
         }
     }
 
-    private ClassFile compileClass(XJLNClass clazz, String name){
+    private ClassFile compileClass(Compilable clazz, String name){
         if(clazz instanceof XJLNEnum) return compileEnum((XJLNEnum) clazz, name);
         else return null; // TODO
     }
@@ -71,7 +72,7 @@ public class Compiler {
         ClassFile cf = new ClassFile(false, name, null);
         cf.setAccessFlags(AccessFlag.setPublic(AccessFlag.ENUM));
 
-        String[] values = enumm.getValues();
+        String[] values = enumm.values;
 
         // enum values
         for(String value: values){
