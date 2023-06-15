@@ -19,16 +19,22 @@ public class Main {
         for(FieldInfo f:cf.getFields()) System.out.println(f.getAccessFlags() + " " + f.getDescriptor() + " " + f.getName());
 
         for(MethodInfo m:cf.getMethods()){
-            System.out.println(m.getAccessFlags() + " " + m.getDescriptor() + " " + m.getName());
+            System.out.print(m.getAccessFlags() + " " + m.getDescriptor() + " " + m.getName());
             CodeAttribute ca = m.getCodeAttribute();
 
             if(ca != null) {
                 CodeIterator ci = ca.iterator();
 
+                int last = -1;
+
                 while (ci.hasNext()) {
                     int index = ci.next();
+                    while(index > (last += 1)){
+                        System.out.print(" " + ci.byteAt(last));
+                    }
+                    System.out.println(" ");
                     int op = ci.byteAt(index);
-                    System.out.println("   " + index + " " + Mnemonic.OPCODE[op]);
+                    System.out.print("   " + index + " " + Mnemonic.OPCODE[op]);
                 }
             }
 

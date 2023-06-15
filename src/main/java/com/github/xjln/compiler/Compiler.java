@@ -52,6 +52,7 @@ public class Compiler {
         }
         ClassPool cp = ClassPool.getDefault();
         for(String name:classes.keySet()){
+            System.out.println(name);
             cp.makeClass(compileClass(classes.get(name), name));
             try{
                 cp.get(name).writeFile("compiled");
@@ -99,7 +100,8 @@ public class Compiler {
         code = new Bytecode(cf.getConstPool());
 
         for (String value : values) {
-            code.addNew(name);
+            code.addNew(toDesc(name));
+            code.add(89);
             code.addInvokespecial(name, "<init>", "()V");
             code.addPutstatic(name, value, toDesc(name));
         } //TODO fix

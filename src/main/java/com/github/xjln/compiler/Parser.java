@@ -97,6 +97,7 @@ class Parser {
         TokenHandler th = lexer.toToken(line);
         th.assertToken("def");
         className = th.assertToken(Token.Type.IDENTIFIER).s();
+        className = Compiler.validateName(path + "." + className);
 
         if(th.assertToken("=", "[").s().equals("=")) parseEnumDef(th);
         else parseClassDef(th);
