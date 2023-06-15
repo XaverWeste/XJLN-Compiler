@@ -129,13 +129,13 @@ class Parser {
                 superClasses.add(validateType(th.assertToken(Token.Type.IDENTIFIER).s()));
             }
             if(th.current().equals("->")){
-                current = new XJLNClass(parameter, superClasses.toArray(new String[0]), th.assertToken(Token.Type.IDENTIFIER).s());
+                current = new XJLNClass(parameter, superClasses.toArray(new String[0]), th.assertToken(Token.Type.IDENTIFIER).s() + " ()V");
                 th.assertToken("(");
                 th.assertToken(")");
                 th.assertNull();
             }
         }else{
-            current = new XJLNClass(parameter, new String[0], th.assertToken(Token.Type.IDENTIFIER).s());
+            current = new XJLNClass(parameter, new String[0], th.assertToken(Token.Type.IDENTIFIER).s() + " ()V");
             th.assertToken("(");
             th.assertToken(")");
             th.assertNull();
@@ -197,6 +197,7 @@ class Parser {
         }
 
         if(current instanceof XJLNClass){
+            name = name + " " + Compiler.toDesc(parameter, returnType);
             if(((XJLNClass) current).methods.containsKey(name)) throw new RuntimeException("method " + name + " already exists in " + className);
             ((XJLNClass) current).methods.put(name, new XJLNMethod(parameter, inner, returnType, code.toString()));
         }else throw new RuntimeException("internal Compiler error");

@@ -130,7 +130,7 @@ public class Compiler {
         }
 
         //<init>
-        MethodInfo m = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter) + "V");
+        MethodInfo m = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter, "void"));
         m.setAccessFlags(AccessFlag.PUBLIC);
         Bytecode code = new Bytecode(cf.getConstPool());
 
@@ -154,7 +154,7 @@ public class Compiler {
         if(clazz.constructor != null){
             if(!clazz.methods.containsKey(clazz.constructor)) throw new RuntimeException("method " + clazz.constructor + " does not exist");
             code.addAload(0);
-            code.addInvokevirtual(name, clazz.constructor, "()V");
+            code.addInvokevirtual(name, clazz.constructor.split(" ")[0], "()V");
         }
 
         code.addReturn(null);
@@ -164,7 +164,7 @@ public class Compiler {
         //methods
         for(String methodName: clazz.methods.keySet()){
             XJLNMethod method = clazz.methods.get(methodName);
-            m = new MethodInfo(cf.getConstPool(), methodName, toDesc(method.parameter) + toDesc(method.returnType));
+            m = new MethodInfo(cf.getConstPool(), methodName.split(" ")[0], toDesc(method.parameter, method.returnType));
             m.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
 
             code = new Bytecode(cf.getConstPool());
@@ -176,10 +176,11 @@ public class Compiler {
         return cf;
     }
 
-    private String toDesc(String[] parameters){
+    public static String toDesc(String[] parameters, String returnType){
         StringBuilder sb = new StringBuilder("(");
         for(String parameter:parameters) sb.append(toDesc(parameter.split(" ")[0]));
         sb.append(")");
+        sb.append(toDesc(returnType));
         return sb.toString();
     }
 
