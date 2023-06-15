@@ -65,7 +65,8 @@ public class Compiler {
 
     private ClassFile compileClass(Compilable clazz, String name){
         if(clazz instanceof XJLNEnum) return compileEnum((XJLNEnum) clazz, name);
-        else return null; // TODO
+        else if(clazz instanceof XJLNClass) return compileClass((XJLNClass) clazz, name);
+        else throw new RuntimeException("internal compiler error");
     }
 
     private ClassFile compileEnum(XJLNEnum enumm, String name){
@@ -105,7 +106,7 @@ public class Compiler {
             code.add(89);
             code.addInvokespecial(name, "<init>", "()V");
             code.addPutstatic(name, value, toDesc(name));
-        } //TODO fix
+        }
 
         code.addReturn(null);
 
@@ -113,6 +114,20 @@ public class Compiler {
         m.setAccessFlags(AccessFlag.STATIC);
         m.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(m);
+
+        return cf;
+    }
+
+    private ClassFile compileClass(XJLNClass clazz, String name){
+        ClassFile cf = new ClassFile(false, name, null);
+        cf.setAccessFlags(AccessFlag.PUBLIC);
+
+        //fields
+        for(String fieldName: clazz.fields.keySet()){
+            FieldInfo f = new FieldInfo(cf.getConstPool(), fieldName, toDesc(clazz.fields.get(fieldName)));
+            f.setAccessFlags(AccessFlag.PUBLIC);
+            cf.addField2(f);
+        }
 
         return cf;
     }
@@ -135,7 +150,6 @@ public class Compiler {
     public static String validateName(String name){
         name = name.replace("/", ".");
         name = name.replace("\\", ".");
-        //if(name.startsWith(srcFolder)) name = name.substring(srcFolder.length() + 1);
         return name;
     }
 }

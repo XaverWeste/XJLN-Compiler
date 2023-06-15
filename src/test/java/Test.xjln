@@ -1,7 +1,7 @@
 use java/lang/String as String
 use java/lang/Object as Object
 
-def class[String name, string alias = ""] => Object -> init()
+def clazz[String name, string alias = ""] => Object -> init()
 
     String name
 

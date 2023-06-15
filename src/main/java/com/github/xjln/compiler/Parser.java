@@ -73,10 +73,10 @@ class Parser {
         StringBuilder use = new StringBuilder();
         use.append(th.assertToken(Token.Type.IDENTIFIER).s());
 
-        while (th.hasNext() && th.assertToken(Token.Type.IDENTIFIER, Token.Type.SIMPLE).t().equals(Token.Type.SIMPLE)){
+        while (th.hasNext() && th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).t().equals(Token.Type.OPERATOR)){
             TokenHandler.assertToken(th.current(), "/");
             use.append("/");
-            use.append(th.assertToken(Token.Type.IDENTIFIER));
+            use.append(th.assertToken(Token.Type.IDENTIFIER).s());
             th.assertHasNext();
         }
 
@@ -111,7 +111,7 @@ class Parser {
 
         while (th.hasNext()){
             th.assertToken("|");
-            if(values.contains(th.assertToken(Token.Type.IDENTIFIER).s())) throw new RuntimeException("value " + th.current().s() + " already exist for enum " + path + "/" + className);
+            if(values.contains(th.assertToken(Token.Type.IDENTIFIER).s())) throw new RuntimeException("value " + th.current().s() + " already exist for enum " + className);
             values.add(th.current().s());
         }
 
@@ -144,7 +144,7 @@ class Parser {
         String line = "";
         while(sc.hasNextLine() && !line.equals("end")){
             line = sc.nextLine().trim();
-            if(!line.equals("") && !line.startsWith("#")){
+            if(!line.equals("") && !line.startsWith("#") && !line.equals("end")){
                 if(line.startsWith("def ")) parseMethodDef(line);
                 else parseFieldDef(line);
             }
@@ -153,7 +153,7 @@ class Parser {
 
     private void parseFieldDef(String line){
         TokenHandler th = lexer.toToken(line);
-        String type = th.assertToken(Token.Type.IDENTIFIER).s();
+        String type = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
         String value = null;
 
@@ -163,7 +163,8 @@ class Parser {
         }
 
         if(current instanceof XJLNClass){
-            ((XJLNClass) current).fields.add(type + " " + name + (value == null ? "" : " " + value));
+            if(((XJLNClass) current).fields.containsKey(name)) throw new RuntimeException("field " + name + " is already defined in " + className);
+            ((XJLNClass) current).fields.put(name, type); //TODO values
         }else throw new RuntimeException("internal Compiler error");
     }
 
