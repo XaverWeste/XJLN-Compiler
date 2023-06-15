@@ -3,6 +3,7 @@ package com.github.xjln.compiler;
 import com.github.xjln.lang.Compilable;
 import com.github.xjln.lang.XJLNClass;
 import com.github.xjln.lang.XJLNEnum;
+import com.github.xjln.lang.XJLNMethod;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.NotFoundException;
@@ -53,7 +54,6 @@ public class Compiler {
         }
         ClassPool cp = ClassPool.getDefault();
         for(String name:classes.keySet()){
-            System.out.println(name);
             cp.makeClass(compileClass(classes.get(name), name));
             try{
                 cp.get(name).writeFile("compiled");
@@ -129,7 +129,26 @@ public class Compiler {
             cf.addField2(f);
         }
 
+        //methods
+        for(String methodName: clazz.methods.keySet()){
+            XJLNMethod method = clazz.methods.get(methodName);
+            MethodInfo m = new MethodInfo(cf.getConstPool(), methodName, toDesc(method.parameter) + toDesc(method.returnType));
+            cf.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
+
+            Bytecode code = new Bytecode(cf.getConstPool());
+            code.addReturn(null);
+            m.setCodeAttribute(code.toCodeAttribute());
+            cf.addMethod2(m);
+        }
+
         return cf;
+    }
+
+    private String toDesc(String[] parameters){
+        StringBuilder sb = new StringBuilder("(");
+        for(String parameter:parameters) sb.append(toDesc(parameter.split(" ")[0]));
+        sb.append(")");
+        return sb.toString();
     }
 
     public static String toDesc(String type){

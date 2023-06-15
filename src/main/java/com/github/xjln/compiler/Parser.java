@@ -172,9 +172,18 @@ class Parser {
         TokenHandler th = lexer.toToken(line);
         th.assertToken("def");
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        boolean inner = name.equals("inner");
+        if(inner) name = th.assertToken(Token.Type.IDENTIFIER).s();
         th.assertToken("(");
         String[] parameter = parseParameterList(th.getInBracket());
         if(parameter == null) throw new RuntimeException("illegal argument in " + th);
+        String returnType = "void";
+        if(th.hasNext()){
+            th.assertToken(":");
+            th.assertToken(":");
+            returnType = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
+            th.assertNull();
+        }
 
         StringBuilder code = new StringBuilder();
         int i = 1;
@@ -188,7 +197,8 @@ class Parser {
         }
 
         if(current instanceof XJLNClass){
-            ((XJLNClass) current).methods.add(new XJLNMethod(parameter, name, code.toString()));
+            if(((XJLNClass) current).methods.containsKey(name)) throw new RuntimeException("method " + name + " already exists in " + className);
+            ((XJLNClass) current).methods.put(name, new XJLNMethod(parameter, inner, returnType, code.toString()));
         }else throw new RuntimeException("internal Compiler error");
     }
 

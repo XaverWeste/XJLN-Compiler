@@ -3,12 +3,14 @@ package com.github.xjln.lang;
 public class XJLNMethod {
 
     public final String[] parameter;
-    public final String name;
+    public final boolean inner;
+    public final String returnType;
     public final String code;
 
-    public XJLNMethod(String[] parameter, String name, String code){
+    public XJLNMethod(String[] parameter, boolean inner, String returnType, String code){
         this.parameter = parameter;
-        this.name = name;
+        this.inner = inner;
+        this.returnType = returnType;
         this.code = code;
     }
 }
