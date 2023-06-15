@@ -3,6 +3,7 @@ package com.github.xjln.compiler;
 import com.github.xjln.lang.Compilable;
 import com.github.xjln.lang.XJLNClass;
 import com.github.xjln.lang.XJLNEnum;
+import com.github.xjln.lang.XJLNMethod;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -89,7 +90,7 @@ class Parser {
         if(as == null) as = use.toString().split("/")[use.toString().split("/").length - 1];
 
         if(uses.containsKey(as)){
-            System.out.println("[WARNING] " + as + " is already defined in " + path);
+            System.out.println("[WARNING] alias " + as + " was already defined in " + path);
             uses.replace(as, use.toString());
         }else uses.put(as, use.toString());
     }
@@ -119,11 +120,78 @@ class Parser {
 
     private void parseClassDef(TokenHandler th){
         TokenHandler parameterList = th.getInBracket();
-        if(th.hasNext()) th.assertToken("->", "=>");
-        //TODO
+        String[] parameter = parseParameterList(parameterList);
+        ArrayList<String> superClasses = new ArrayList<>();
+
+        if(th.hasNext() && th.assertToken("->", "=>").equals("=>")){
+            superClasses.add(validateType(th.assertToken(Token.Type.IDENTIFIER).s()));
+            while (th.hasNext() && th.assertToken(",", "->").equals(",")){
+                superClasses.add(validateType(th.assertToken(Token.Type.IDENTIFIER).s()));
+            }
+            if(th.current().equals("->")){
+                current = new XJLNClass(parameter, superClasses.toArray(new String[0]), th.assertToken(Token.Type.IDENTIFIER).s());
+                th.assertToken("(");
+                th.assertToken(")");
+                th.assertNull();
+            }
+        }else{
+            current = new XJLNClass(parameter, new String[0], th.assertToken(Token.Type.IDENTIFIER).s());
+            th.assertToken("(");
+            th.assertToken(")");
+            th.assertNull();
+        }
+
+        String line = "";
+        while(sc.hasNextLine() && !line.equals("end")){
+            line = sc.nextLine().trim();
+            if(!line.equals("") && !line.startsWith("#")){
+                if(line.startsWith("def ")) parseMethodDef(line);
+                else parseFieldDef(line);
+            }
+        }
     }
 
-    private ArrayList<String> parseParameterList(TokenHandler parameterList){
+    private void parseFieldDef(String line){
+        TokenHandler th = lexer.toToken(line);
+        String type = th.assertToken(Token.Type.IDENTIFIER).s();
+        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        String value = null;
+
+        if(th.hasNext()){
+            th.assertToken("=");
+            value = th.next().s();
+        }
+
+        if(current instanceof XJLNClass){
+            ((XJLNClass) current).fields.add(type + " " + name + (value == null ? "" : " " + value));
+        }else throw new RuntimeException("internal Compiler error");
+    }
+
+    private void parseMethodDef(String line){
+        TokenHandler th = lexer.toToken(line);
+        th.assertToken("def");
+        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        th.assertToken("(");
+        String[] parameter = parseParameterList(th.getInBracket());
+        if(parameter == null) throw new RuntimeException("illegal argument in " + th);
+
+        StringBuilder code = new StringBuilder();
+        int i = 1;
+        while(sc.hasNextLine() && i > 0){
+            line = sc.nextLine().trim();
+            if(!line.equals("") && !line.startsWith("#")){
+                if(Set.of("if", "while", "for").contains(line.split(" ")[0])) i++;
+                if(line.equals("end")) i--;
+                if(i > 0) code.append(line).append("\n");
+            }
+        }
+
+        if(current instanceof XJLNClass){
+            ((XJLNClass) current).methods.add(new XJLNMethod(parameter, name, code.toString()));
+        }else throw new RuntimeException("internal Compiler error");
+    }
+
+    private String[] parseParameterList(TokenHandler parameterList){
         ArrayList<String> parameter = new ArrayList<>();
 
         if(parameterList.hasNext() && parameterList.next().equals("/")){
@@ -138,7 +206,7 @@ class Parser {
             type = validateType(type);
 
             name = parameterList.assertToken(Token.Type.IDENTIFIER).s();
-            if(names.contains(" " + name + " ")) throw new RuntimeException(name + " is already defined in [" + parameterList.toString() + "]");
+            if(names.contains(" " + name + " ")) throw new RuntimeException(name + " is already defined in [" + parameterList + "]");
             else names += " " + name + " ";
 
             if(parameterList.hasNext()) {
@@ -153,15 +221,10 @@ class Parser {
             parameter.add(type + " " + name + (value == null ? "" : " " + value));
         }
 
-        return parameter;
+        return parameter.toArray(new String[0]);
     }
 
     private String validateType(String type){
-        if(type.startsWith("primitive:")){
-            if(primitives.contains(type.split(":")[0])) return type.split(":")[0];
-        }else{
-            if(uses.containsKey(type)) return uses.get(type);
-        }
-        throw new RuntimeException("illegal type " + type);
+        return uses.getOrDefault(type, type);
     }
 }
