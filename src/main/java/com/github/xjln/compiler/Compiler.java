@@ -29,7 +29,7 @@ public class Compiler {
 
     private void validateFolders() throws RuntimeException{
         Path compiled = Paths.get("compiled");
-        if(!Files.exists(compiled)) throw new RuntimeException("compiled folder didn't exist");
+        if(!Files.exists(compiled) && !new File("compiled").mkdirs()) throw new RuntimeException("unable to validate compiled folder");
         else clearFolder(compiled.toFile(), false);
         if(!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder");
         srcFolder = srcFolder.replace("/", ".").replace("\\", ".");
