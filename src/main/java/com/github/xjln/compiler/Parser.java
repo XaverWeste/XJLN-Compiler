@@ -217,7 +217,7 @@ class Parser {
             type = validateType(type);
 
             name = parameterList.assertToken(Token.Type.IDENTIFIER).s();
-            if(names.contains(" " + name + " ")) throw new RuntimeException(name + " is already defined in [" + parameterList + "]");
+            if(names.contains(" " + name + " ")) throw new RuntimeException(name + " is already defined in (" + parameterList + ")");
             else names += " " + name + " ";
 
             if(parameterList.hasNext()) {

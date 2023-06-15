@@ -129,13 +129,45 @@ public class Compiler {
             cf.addField2(f);
         }
 
+        //<init>
+        MethodInfo m = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter) + "V");
+        m.setAccessFlags(AccessFlag.PUBLIC);
+        Bytecode code = new Bytecode(cf.getConstPool());
+
+        int i = 0;
+        for(String parameter:clazz.parameter){
+            String[] infos = parameter.split(" ");
+
+            if(clazz.fields.containsKey(infos[1])){
+                if(!clazz.fields.get(infos[1]).equals(infos[0])) throw new RuntimeException("type exception for class-parameter " + infos[1] + " in class " + name);
+            }else{
+                FieldInfo f = new FieldInfo(cf.getConstPool(), infos[1], toDesc(infos[0]));
+                f.setAccessFlags(AccessFlag.PUBLIC);
+                cf.addField2(f);
+            }
+
+            code.addAload(0);
+            code.addAload(i += 1);
+            code.addPutfield(name, infos[1], toDesc(infos[0]));
+        }
+
+        if(clazz.constructor != null){
+            if(!clazz.methods.containsKey(clazz.constructor)) throw new RuntimeException("method " + clazz.constructor + " does not exist");
+            code.addAload(0);
+            code.addInvokevirtual(name, clazz.constructor, "()V");
+        }
+
+        code.addReturn(null);
+        m.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(m);
+
         //methods
         for(String methodName: clazz.methods.keySet()){
             XJLNMethod method = clazz.methods.get(methodName);
-            MethodInfo m = new MethodInfo(cf.getConstPool(), methodName, toDesc(method.parameter) + toDesc(method.returnType));
-            cf.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
+            m = new MethodInfo(cf.getConstPool(), methodName, toDesc(method.parameter) + toDesc(method.returnType));
+            m.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
 
-            Bytecode code = new Bytecode(cf.getConstPool());
+            code = new Bytecode(cf.getConstPool());
             code.addReturn(null);
             m.setCodeAttribute(code.toCodeAttribute());
             cf.addMethod2(m);
