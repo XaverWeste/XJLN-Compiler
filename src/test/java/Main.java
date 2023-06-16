@@ -5,7 +5,13 @@ import javassist.bytecode.*;
 public class Main {
     public static void main(String[] args) throws Exception {
         new Compiler("src/test/java");
-        //printClass("Test");
+        //printClass("Main");
+    }
+
+    public int i;
+
+    public Main(int j){
+        i = j;
     }
 
     public static void printClass(String name) throws Exception{
@@ -17,6 +23,8 @@ public class Main {
         System.out.println(cf.getName() + " " + cf.getSuperclass());
 
         for(FieldInfo f:cf.getFields()) System.out.println(f.getAccessFlags() + " " + f.getDescriptor() + " " + f.getName());
+
+        System.out.print("\n");
 
         for(MethodInfo m:cf.getMethods()){
             System.out.print(m.getAccessFlags() + " " + m.getDescriptor() + " " + m.getName());
@@ -38,7 +46,7 @@ public class Main {
                 }
             }
 
-            System.out.println(" ");
+            System.out.print("\n\n");
         }
     }
 }

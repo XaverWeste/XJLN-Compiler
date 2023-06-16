@@ -1,9 +1,6 @@
 package com.github.xjln.compiler;
 
-import com.github.xjln.lang.Compilable;
-import com.github.xjln.lang.XJLNClass;
-import com.github.xjln.lang.XJLNEnum;
-import com.github.xjln.lang.XJLNMethod;
+import com.github.xjln.lang.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -145,22 +142,44 @@ class Parser {
     }
 
     private void parseFieldDef(String line){
-        TokenHandler th = lexer.toToken(line);
-        String type = th.assertToken(Token.Type.IDENTIFIER).s();
-        boolean inner = type.equals("inner");
-        if(inner) type = th.assertToken(Token.Type.IDENTIFIER).s();
-        type = validateType(type);
-        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        boolean inner = false, constant = false;
+        ArrayList<String> types = new ArrayList<>();
         String value = null;
+        String name;
 
-        if(th.hasNext()){
-            th.assertToken("=");
-            value = th.next().s();
+        TokenHandler th = lexer.toToken(line);
+        String latest = th.assertToken(Token.Type.IDENTIFIER, Token.Type.SIMPLE).s();
+
+        if(latest.equals("inner")){
+            inner = true;
+            latest = th.assertToken(Token.Type.IDENTIFIER, Token.Type.SIMPLE).s();
         }
 
+        if(latest.equals("const")){
+            constant = true;
+            latest = th.assertToken(Token.Type.IDENTIFIER, Token.Type.SIMPLE).s();
+        }
+
+        if(th.current().t() == Token.Type.SIMPLE){
+            TokenHandler.assertToken(th.current(), "{");
+            TokenHandler typedef = th.getInBracket();
+            while (typedef.hasNext()){
+                types.add(validateType(typedef.assertToken(Token.Type.IDENTIFIER).s()));
+                if(typedef.hasNext()){
+                    typedef.assertToken("|");
+                    typedef.assertHasNext();
+                }
+            }
+        }else types.add(validateType(latest));
+
+        name = th.assertToken(Token.Type.IDENTIFIER).s();
+        if(th.hasNext()){
+            //TODO
+        }
+
+
         if(current instanceof XJLNClass){
-            if(((XJLNClass) current).fields.containsKey(name)) throw new RuntimeException("field " + name + " is already defined in " + className);
-            ((XJLNClass) current).fields.put(name, inner ? "inner " + type : type); //TODO values
+            ((XJLNClass) current).fields.put(name, new XJLNVariable(inner, constant, types.toArray(new String[0]), null));
         }else throw new RuntimeException("internal Compiler error");
     }
 

@@ -8,7 +8,7 @@ public class XJLNClass implements Compilable {
     public final String[] superClasses;
     public final String constructor;
     public final HashMap<String, XJLNMethod> methods;
-    public final HashMap<String, String> fields;
+    public final HashMap<String, XJLNVariable> fields;
 
     public XJLNClass(String[] parameter, String[] superClasses, String constructor){
         this.parameter = parameter;

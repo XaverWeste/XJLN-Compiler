@@ -1,9 +1,6 @@
 package com.github.xjln.compiler;
 
-import com.github.xjln.lang.Compilable;
-import com.github.xjln.lang.XJLNClass;
-import com.github.xjln.lang.XJLNEnum;
-import com.github.xjln.lang.XJLNMethod;
+import com.github.xjln.lang.*;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.NotFoundException;
@@ -124,8 +121,12 @@ public class Compiler {
 
         //fields
         for(String fieldName: clazz.fields.keySet()){
-            FieldInfo f = new FieldInfo(cf.getConstPool(), fieldName, clazz.fields.get(fieldName).startsWith("inner ") ? toDesc(clazz.fields.get(fieldName).split(" ")[1]) : toDesc(clazz.fields.get(fieldName)));
-            f.setAccessFlags(clazz.fields.get(fieldName).startsWith("inner ") ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
+            XJLNVariable v = clazz.fields.get(fieldName);
+            FieldInfo f = new FieldInfo(cf.getConstPool(), fieldName, toDesc(v.types.length > 1 ? "java/lang/Object" : v.types[0]));
+            if(v.constant){
+                if(v.inner) f.setAccessFlags(AccessFlag.setPrivate(AccessFlag.FINAL));
+                else f.setAccessFlags(AccessFlag.setPublic(AccessFlag.FINAL));
+            }else f.setAccessFlags(v.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
             cf.addField2(f);
         }
 
@@ -138,15 +139,20 @@ public class Compiler {
         for(String parameter:clazz.parameter){
             String[] infos = parameter.split(" ");
 
-            if(clazz.fields.containsKey(infos[1])){
-                if(!infos[0].equals(clazz.fields.get(infos[1]).startsWith("inner ") ? clazz.fields.get(infos[1]).split(" ")[1] : clazz.fields.get(infos[1]))) throw new RuntimeException("type exception for class-parameter " + infos[1] + " in class " + name);
-            }else{
+            if(!clazz.fields.containsKey(infos[1])){
                 FieldInfo f = new FieldInfo(cf.getConstPool(), infos[1], toDesc(infos[0]));
                 f.setAccessFlags(AccessFlag.PUBLIC);
                 cf.addField2(f);
             }
 
             code.addAload(0);
+            switch(infos[0]){
+                case "int", "byte", "char", "short", "boolean" -> code.addIload(i += 1);
+                case "double" -> code.addDload(i += 1);
+                case "long" -> code.addLload(i += 1);
+                case "float" -> code.addFload(i += 1);
+                default -> code.addAload(i += 1);
+            }
             code.addAload(i += 1);
             code.addPutfield(name, infos[1], toDesc(infos[0]));
         }
