@@ -124,8 +124,8 @@ public class Compiler {
 
         //fields
         for(String fieldName: clazz.fields.keySet()){
-            FieldInfo f = new FieldInfo(cf.getConstPool(), fieldName, toDesc(clazz.fields.get(fieldName)));
-            f.setAccessFlags(AccessFlag.PUBLIC);
+            FieldInfo f = new FieldInfo(cf.getConstPool(), fieldName, clazz.fields.get(fieldName).startsWith("inner ") ? toDesc(clazz.fields.get(fieldName).split(" ")[1]) : toDesc(clazz.fields.get(fieldName)));
+            f.setAccessFlags(clazz.fields.get(fieldName).startsWith("inner ") ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
             cf.addField2(f);
         }
 
@@ -139,7 +139,7 @@ public class Compiler {
             String[] infos = parameter.split(" ");
 
             if(clazz.fields.containsKey(infos[1])){
-                if(!clazz.fields.get(infos[1]).equals(infos[0])) throw new RuntimeException("type exception for class-parameter " + infos[1] + " in class " + name);
+                if(!infos[0].equals(clazz.fields.get(infos[1]).startsWith("inner ") ? clazz.fields.get(infos[1]).split(" ")[1] : clazz.fields.get(infos[1]))) throw new RuntimeException("type exception for class-parameter " + infos[1] + " in class " + name);
             }else{
                 FieldInfo f = new FieldInfo(cf.getConstPool(), infos[1], toDesc(infos[0]));
                 f.setAccessFlags(AccessFlag.PUBLIC);
@@ -153,6 +153,7 @@ public class Compiler {
 
         if(clazz.constructor != null){
             if(!clazz.methods.containsKey(clazz.constructor)) throw new RuntimeException("method " + clazz.constructor + " does not exist");
+            if(!clazz.methods.get(clazz.constructor).returnType.equals("void")) throw new RuntimeException("method " + clazz.constructor + " must be ()V in " + name);
             code.addAload(0);
             code.addInvokevirtual(name, clazz.constructor.split(" ")[0], "()V");
         }

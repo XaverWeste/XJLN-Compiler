@@ -105,7 +105,7 @@ class TokenHandler {
     }
 
     public static void assertToken(Token token, String string) throws RuntimeException {
-        if(!token.s().equals(string)) throw new RuntimeException("expected " + string + " got " + token.s());
+        if(!token.equals(string)) throw new RuntimeException("expected " + string + " got " + token.s());
     }
 
     public static void assertToken(Token token, Token.Type type) throws RuntimeException {

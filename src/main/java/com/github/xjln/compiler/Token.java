@@ -6,11 +6,11 @@ record Token(String s, Type t){
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof Token && ((Token) obj).t == t && ((Token) obj).s.equals(s);
+        return obj instanceof Token && ((Token) obj).t == t && ((Token) obj).equals(s);
     }
 
     public boolean equals(Token token){
-        return token.s.equals(s);
+        return token.equals(s);
     }
 
     public boolean equals(String s){

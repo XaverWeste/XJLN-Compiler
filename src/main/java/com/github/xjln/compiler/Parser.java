@@ -56,14 +56,6 @@ class Parser {
 
     private void resetUse(){
         uses = new HashMap<>();
-        uses.put("boolean", "xjln/core/Boolean/boolean");
-        uses.put("byte", "xjln/core/Byte/byte");
-        uses.put("char", "xjln/core/Char/char");
-        uses.put("double", "xjln/core/Double/double");
-        uses.put("float", "xjln/core/Float/float");
-        uses.put("int", "xjln/core/Int/int");
-        uses.put("long", "xjln/core/Long/long");
-        uses.put("short", "xjln/core/Short/short");
     }
 
     private void parseUseDef(String line){
@@ -149,11 +141,15 @@ class Parser {
                 else parseFieldDef(line);
             }
         }
+        if(!line.equals("end")) throw new RuntimeException("class definition was not closed in class " + className);
     }
 
     private void parseFieldDef(String line){
         TokenHandler th = lexer.toToken(line);
-        String type = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
+        String type = th.assertToken(Token.Type.IDENTIFIER).s();
+        boolean inner = type.equals("inner");
+        if(inner) type = th.assertToken(Token.Type.IDENTIFIER).s();
+        type = validateType(type);
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
         String value = null;
 
@@ -164,7 +160,7 @@ class Parser {
 
         if(current instanceof XJLNClass){
             if(((XJLNClass) current).fields.containsKey(name)) throw new RuntimeException("field " + name + " is already defined in " + className);
-            ((XJLNClass) current).fields.put(name, type); //TODO values
+            ((XJLNClass) current).fields.put(name, inner ? "inner " + type : type); //TODO values
         }else throw new RuntimeException("internal Compiler error");
     }
 
@@ -195,6 +191,7 @@ class Parser {
                 if(i > 0) code.append(line).append("\n");
             }
         }
+        if(i > 0) throw new RuntimeException("method " + name + " was not closed in class " + className);
 
         if(current instanceof XJLNClass){
             name = name + " " + Compiler.toDesc(parameter, returnType);
@@ -222,12 +219,12 @@ class Parser {
             else names += " " + name + " ";
 
             if(parameterList.hasNext()) {
-                if (parameterList.assertToken("=", ",").s().equals("=")) {
+                if (parameterList.assertToken("=", ",").equals("=")) {
                     value = parameterList.next().s();
                     if(parameterList.hasNext()) parameterList.assertToken(",");
                 }
 
-                parameterList.assertHasNext();
+                if(parameterList.current().equals(",")) parameterList.assertHasNext();
             }
 
             parameter.add(type + " " + name + (value == null ? "" : " " + value));
@@ -237,6 +234,8 @@ class Parser {
     }
 
     private String validateType(String type){
+        if(primitives.contains(type)) return type;
+        if(type.equals("var")) return "java/lang/Object";
         return uses.getOrDefault(type, type);
     }
 }
