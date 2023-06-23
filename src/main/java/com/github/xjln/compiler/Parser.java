@@ -257,4 +257,34 @@ class Parser {
         if(type.equals("var")) return "java/lang/Object";
         return uses.getOrDefault(type, type);
     }
+
+    public AST[] parseCode(String code){
+        ArrayList<AST> ast = new ArrayList<>();
+        String[] lines = code.split("\n");
+
+        for(int j = 0;j < lines.length;j++){
+            String line = lines[j];
+            if(line.startsWith("if ") || line.startsWith("while ")){
+                boolean whil = line.startsWith("while ");
+                String condition = line.split(" ", 2)[1];
+
+                StringBuilder content = new StringBuilder();
+                int i = 1;
+                while(j < line.length() && i > 0){
+                    line = lines[j];
+                    if(!line.equals("") && !line.startsWith("#")){
+                        if(Set.of("if", "while", "for").contains(line.split(" ")[0])) i++;
+                        if(line.equals("end")) i--;
+                        if(i > 0) content.append(line).append("\n");
+                    }
+                }
+
+                if(i > 0) throw new RuntimeException("illegal argument");
+
+                ast.add(whil ? new AST.While(condition, parseCode(code)) : new AST.If(condition, parseCode(code)));
+            }else ast.add(new AST.Statement(line));
+        }
+
+        return ast.toArray(new AST[0]);
+    }
 }

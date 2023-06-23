@@ -8,10 +8,9 @@ public class Main {
         //printClass("Main");
     }
 
-    public int i;
-
-    public Main(int j){
-        i = j;
+    public Main(){
+        int a;
+        a = 0;
     }
 
     public static void printClass(String name) throws Exception{
