@@ -179,7 +179,7 @@ class Parser {
 
 
         if(current instanceof XJLNClass){
-            ((XJLNClass) current).fields.put(name, new XJLNVariable(inner, constant, types.toArray(new String[0]), null));
+            ((XJLNClass) current).fields.put(name, new XJLNVariable(inner, constant, types.toArray(new String[0]), null, null));
         }else throw new RuntimeException("internal Compiler error");
     }
 
