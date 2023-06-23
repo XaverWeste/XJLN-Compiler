@@ -215,7 +215,7 @@ class Parser {
         if(current instanceof XJLNClass){
             name = name + " " + Compiler.toDesc(parameter, returnType);
             if(((XJLNClass) current).methods.containsKey(name)) throw new RuntimeException("method " + name + " already exists in " + className);
-            ((XJLNClass) current).methods.put(name, new XJLNMethod(parameter, inner, returnType, code.toString()));
+            ((XJLNClass) current).methods.put(name, new XJLNMethod(parameter, inner, returnType, parseCode(code.toString())));
         }else throw new RuntimeException("internal Compiler error");
     }
 
@@ -286,5 +286,9 @@ class Parser {
         }
 
         return ast.toArray(new AST[0]);
+    }
+
+    public AST.Calculation parseCalculation(){
+        return null;
     }
 }

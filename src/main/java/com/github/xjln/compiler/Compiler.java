@@ -169,20 +169,30 @@ public class Compiler {
         cf.addMethod2(m);
 
         //methods
-        ByteCodeBuilder codeBuilder;
-
-        for(String methodName: clazz.methods.keySet()){
-            XJLNMethod method = clazz.methods.get(methodName);
-            m = new MethodInfo(cf.getConstPool(), methodName.split(" ")[0], toDesc(method.parameter, method.returnType));
-            m.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
-
-            codeBuilder = ByteCodeBuilder.foR(method, clazz, cf.getConstPool());
-
-            m.setCodeAttribute(codeBuilder.build());
-            cf.addMethod2(m);
-        }
+        for(String methodName: clazz.methods.keySet())
+            cf.addMethod2(parseMethod(clazz, name, methodName, clazz.methods.get(methodName), cf));
 
         return cf;
+    }
+
+    private MethodInfo parseMethod(XJLNClass clazz, String Classname, String methodName, XJLNMethod method, ClassFile cf){
+        ByteCodeBuilder codeBuilder = ByteCodeBuilder.foR(method, clazz, Classname, cf.getConstPool());
+
+        MethodInfo m = new MethodInfo(cf.getConstPool(), methodName.split(" ")[0], toDesc(method.parameter, method.returnType));
+        m.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
+
+        for(AST statement:method.code){
+            if(statement instanceof AST.If){
+
+            }else if(statement instanceof AST.While){
+
+            }else if(statement instanceof AST.Statement){
+
+            }
+        }
+
+        m.setCodeAttribute(codeBuilder.build());
+        return m;
     }
 
     public static String toDesc(String[] parameters, String returnType){

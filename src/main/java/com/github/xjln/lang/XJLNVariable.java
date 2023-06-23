@@ -8,24 +8,24 @@ public class XJLNVariable {
     public final String value;
     public String currentType;
 
-    public XJLNVariable(boolean inner, boolean constant, String[] types, String value){
+    public XJLNVariable(boolean inner, boolean constant, String[] types, String value, String currentType){
         this.inner = inner;
         this.constant = constant;
         this.types = types;
         this.value = value;
-        currentType = null;
-    }
+        this.currentType = currentType;
+    } //TODO type check
 
-    public XJLNVariable(String[] types, String value){
+    public XJLNVariable(String[] types, String value, String currentType){
         this.inner = false;
         this.constant = false;
         this.types = types;
         this.value = value;
-        currentType = null;
+        this.currentType = currentType;
     }
 
     public static XJLNVariable ofString(String variable){
         String[] args = variable.split(" ");
-        return new XJLNVariable(new String[]{args[0]}, args.length > 2 ? args[2] : null);
+        return new XJLNVariable(new String[]{args[0]}, args.length > 2 ? args[2] : null, null);
     }
 }
