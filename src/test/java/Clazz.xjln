@@ -11,4 +11,8 @@ def clazz[int i, int j] => Object -> init()
 
     end
 
+    def test(String s = "abc")
+
+    end
+
 end

@@ -169,14 +169,16 @@ public class Compiler {
         cf.addMethod2(m);
 
         //methods
+        ByteCodeBuilder codeBuilder;
+
         for(String methodName: clazz.methods.keySet()){
             XJLNMethod method = clazz.methods.get(methodName);
             m = new MethodInfo(cf.getConstPool(), methodName.split(" ")[0], toDesc(method.parameter, method.returnType));
             m.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
 
-            code = new Bytecode(cf.getConstPool());
-            code.addReturn(null);
-            m.setCodeAttribute(code.toCodeAttribute());
+            codeBuilder = ByteCodeBuilder.foR(method, clazz, cf.getConstPool());
+
+            m.setCodeAttribute(codeBuilder.build());
             cf.addMethod2(m);
         }
 
