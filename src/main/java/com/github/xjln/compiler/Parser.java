@@ -288,6 +288,23 @@ class Parser {
         return ast.toArray(new AST[0]);
     }
 
+    public AST.Calculation parseCalc(String statement){
+        TokenHandler th = lexer.toToken(statement);
+        AST.Calculation calc = new AST.Calculation();
+        StringBuilder sb = new StringBuilder();
+
+        while(th.hasNext()){
+            while (th.hasNext() && th.next().t() != Token.Type.OPERATOR) sb.append(th.current().s()).append(" ");
+            if(calc.content(null) != null){
+
+            }
+            calc.content(sb.toString());
+            sb = new StringBuilder();
+        }
+
+        return calc;
+    }
+
     public AST.Calculation parseCalculation(){
         return null;
     }

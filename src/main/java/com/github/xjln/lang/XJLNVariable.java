@@ -1,5 +1,7 @@
 package com.github.xjln.lang;
 
+import com.github.xjln.compiler.Compiler;
+
 public class XJLNVariable {
 
     public final boolean inner;
@@ -22,6 +24,10 @@ public class XJLNVariable {
         this.types = types;
         this.value = value;
         this.currentType = currentType;
+    }
+
+    public void validateTypes(){
+        for(String type:types) if(!Compiler.classExist(type)) throw new RuntimeException("Class " + type + " does not exist");
     }
 
     public static XJLNVariable ofString(String variable){

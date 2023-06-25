@@ -29,9 +29,9 @@ public sealed abstract class AST permits AST.Statement, AST.If, AST.While, AST.C
 
     public static final class Calculation extends AST{
         private Calculation left = null, right = null;
-        private Token content;
+        private String content = "";
 
-        public Token getContent(){
+        public String getContent(){
             return content;
         }
 
@@ -45,8 +45,20 @@ public sealed abstract class AST permits AST.Statement, AST.If, AST.While, AST.C
             return this.left;
         }
 
-        public Token calculate(){
+        public String content(String content){
+            if(content != null) this.content = content;
+            return this.content;
+        }
+
+        public String calculate(){
             return content;
+        }
+
+        public int size(){
+            int size = 1;
+            if(left != null) size += left.size();
+            if(right != null) size += right.size();
+            return size;
         }
     }
 }

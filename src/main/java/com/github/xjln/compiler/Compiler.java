@@ -13,14 +13,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.Set;
 
 public class Compiler {
 
     private final Parser parser;
     private static String srcFolder = "";
+    private static HashMap<String, Compilable> classes;
 
     public Compiler(String srcFolder){
         parser = new Parser();
+        classes = new HashMap<>();
         Compiler.srcFolder = srcFolder;
         validateFolders();
         compileFolder(new File(srcFolder));
@@ -44,7 +47,6 @@ public class Compiler {
     }
 
     private void compileFolder(File folder){
-        HashMap<String, Compilable> classes = new HashMap<>();
         for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
             if(fileEntry.isDirectory()) compileFolder(fileEntry);
             else if(fileEntry.getName().endsWith(".xjln")) classes.putAll(parser.parseFile(fileEntry));
@@ -122,6 +124,7 @@ public class Compiler {
         //fields
         for(String fieldName: clazz.fields.keySet()){
             XJLNVariable v = clazz.fields.get(fieldName);
+            v.validateTypes();
             FieldInfo f = new FieldInfo(cf.getConstPool(), fieldName, toDesc(v.types.length > 1 ? "java/lang/Object" : v.types[0]));
             if(v.constant){
                 if(v.inner) f.setAccessFlags(AccessFlag.setPrivate(AccessFlag.FINAL));
@@ -170,12 +173,12 @@ public class Compiler {
 
         //methods
         for(String methodName: clazz.methods.keySet())
-            cf.addMethod2(parseMethod(clazz, name, methodName, clazz.methods.get(methodName), cf));
+            cf.addMethod2(compileMethod(clazz, name, methodName, clazz.methods.get(methodName), cf));
 
         return cf;
     }
 
-    private MethodInfo parseMethod(XJLNClass clazz, String Classname, String methodName, XJLNMethod method, ClassFile cf){
+    private MethodInfo compileMethod(XJLNClass clazz, String Classname, String methodName, XJLNMethod method, ClassFile cf){
         ByteCodeBuilder codeBuilder = ByteCodeBuilder.foR(method, clazz, Classname, cf.getConstPool());
 
         MethodInfo m = new MethodInfo(cf.getConstPool(), methodName.split(" ")[0], toDesc(method.parameter, method.returnType));
@@ -186,13 +189,15 @@ public class Compiler {
 
             }else if(statement instanceof AST.While){
 
-            }else if(statement instanceof AST.Statement){
-
-            }
+            }else if(statement instanceof AST.Statement) compileStatement((AST.Statement) statement, codeBuilder);
         }
 
         m.setCodeAttribute(codeBuilder.build());
         return m;
+    }
+
+    private void compileStatement(AST.Statement statement, ByteCodeBuilder codeBuilder){
+
     }
 
     public static String toDesc(String[] parameters, String returnType){
@@ -222,5 +227,19 @@ public class Compiler {
         name = name.replace("/", ".");
         name = name.replace("\\", ".");
         return name;
+    }
+
+    public static boolean classExist(String validName){
+        if(Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short").contains(validName)) return true;
+        if(classes.containsKey(validName)) return true;
+        try {
+            Class.forName(validName);
+            return true;
+        }catch (ClassNotFoundException ignored){}
+        try {
+            ClassPool.getDefault().get(validName);
+            return true;
+        }catch (NotFoundException ignored){}
+        return false;
     }
 }
