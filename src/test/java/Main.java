@@ -1,5 +1,7 @@
 import com.github.xjln.compiler.Compiler;
 import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtNewMethod;
 import javassist.bytecode.*;
 
 public class Main {
@@ -8,9 +10,12 @@ public class Main {
         //printClass("Main");
     }
 
-    public Main(){
-        int a;
-        a = 0;
+    public Main() throws Exception{
+        ClassFile cf = new ClassFile(false, "compiled.test", null);
+        CtClass ct = ClassPool.getDefault().makeClass(cf);
+        ct.defrost();
+        ct.addMethod(CtNewMethod.make("public int test(){return 0;}", ct));
+        ct.writeFile();
     }
 
     public static void printClass(String name) throws Exception{

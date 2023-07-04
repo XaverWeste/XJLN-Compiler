@@ -1,9 +1,7 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.NotFoundException;
+import javassist.*;
 import javassist.bytecode.*;
 
 import java.io.File;
@@ -11,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
@@ -55,6 +54,8 @@ public class Compiler {
         for(String name:classes.keySet()){
             cp.makeClass(compileClass(classes.get(name), name));
             try{
+                if(classes.get(name) instanceof XJLNClass)
+                    compileMethods(name, (XJLNClass) classes.get(name), cp.get(name));
                 cp.get(name).writeFile("compiled");
             }catch (NotFoundException | IOException | CannotCompileException ignored){
                 throw new RuntimeException("internal compiler error");
@@ -171,13 +172,58 @@ public class Compiler {
         m.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(m);
 
+        /*
         //methods
         for(String methodName: clazz.methods.keySet())
             cf.addMethod2(compileMethod(clazz, name, methodName, clazz.methods.get(methodName), cf));
+         */
 
         return cf;
     }
 
+    private void compileMethods(String name, XJLNClass clazz, CtClass ct){
+        if(ct.isFrozen()) ct.defrost();
+
+        for(String methodName: clazz.methods.keySet()){
+            try {
+                ct.addMethod(compileMethod(ct, methodName.split(" ")[0], clazz.methods.get(methodName)));
+            }catch (CannotCompileException ignored){
+                throw new RuntimeException("unspecified syntax error");
+            }
+        }
+    }
+
+    private CtMethod compileMethod(CtClass clazz, String name, XJLNMethod method) throws CannotCompileException {
+        StringBuilder src = new StringBuilder();
+
+        src.append(method.inner ? "private " : "public ").append(method.returnType).append(" ").append(name).append("(");
+
+        for(String para:method.parameter){
+            src.append(para);
+        }
+
+        src.append("){");
+
+        String[] code = method.code;
+        for(int i = 0;i < code.length;i++){
+            String current = code[i];
+            if(current.startsWith("if "))
+                src.append("if(").append(current.split(" ", 2)[1]).append("){");
+            else if(current.startsWith("while "))
+                src.append("while(").append(current.split(" ", 1)[1]).append("){");
+            else if(current.equals("end"))
+                src.append("}");
+            else{
+                src.append(current).append(";");
+            }
+        }
+
+        src.append("}");
+
+        return CtNewMethod.make(src.toString(), clazz);
+    }
+
+    /*
     private MethodInfo compileMethod(XJLNClass clazz, String Classname, String methodName, XJLNMethod method, ClassFile cf){
         ByteCodeBuilder codeBuilder = ByteCodeBuilder.foR(method, clazz, Classname, cf.getConstPool());
 
@@ -185,20 +231,14 @@ public class Compiler {
         m.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
 
         for(AST statement:method.code){
-            if(statement instanceof AST.If){
-
-            }else if(statement instanceof AST.While){
-
-            }else if(statement instanceof AST.Statement) compileStatement((AST.Statement) statement, codeBuilder);
+            if(statement instanceof AST.If) compileIf((AST.If) statement, codeBuilder);
+            else if(statement instanceof AST.Statement) compileStatement((AST.Statement) statement, codeBuilder);
         }
 
         m.setCodeAttribute(codeBuilder.build());
-        return m;
+        return null;
     }
-
-    private void compileStatement(AST.Statement statement, ByteCodeBuilder codeBuilder){
-
-    }
+     */
 
     public static String toDesc(String[] parameters, String returnType){
         StringBuilder sb = new StringBuilder("(");

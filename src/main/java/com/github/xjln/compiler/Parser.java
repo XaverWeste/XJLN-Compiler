@@ -11,7 +11,6 @@ import java.util.Set;
 
 class Parser {
     private final Set<String> primitives;
-    public final Lexer lexer;
 
     private HashMap<String, String> uses;
     private Compilable current;
@@ -21,7 +20,6 @@ class Parser {
 
     public Parser(){
         primitives = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
-        lexer = new Lexer();
     }
 
     public HashMap<String, Compilable> parseFile(File file) {
@@ -56,7 +54,7 @@ class Parser {
     }
 
     private void parseUseDef(String line){
-        TokenHandler th = lexer.toToken(line);
+        TokenHandler th = Lexer.toToken(line);
         th.assertToken("use");
 
         StringBuilder use = new StringBuilder();
@@ -85,7 +83,7 @@ class Parser {
     }
 
     private void parseDef(String line){
-        TokenHandler th = lexer.toToken(line);
+        TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
         className = th.assertToken(Token.Type.IDENTIFIER).s();
         className = Compiler.validateName(path + "." + className);
@@ -147,7 +145,7 @@ class Parser {
         String value = null;
         String name;
 
-        TokenHandler th = lexer.toToken(line);
+        TokenHandler th = Lexer.toToken(line);
         String latest = th.assertToken(Token.Type.IDENTIFIER, Token.Type.SIMPLE).s();
 
         if(latest.equals("inner")){
@@ -184,7 +182,7 @@ class Parser {
     }
 
     private void parseMethodDef(String line){
-        TokenHandler th = lexer.toToken(line);
+        TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
         boolean inner = name.equals("inner");
@@ -200,14 +198,15 @@ class Parser {
             th.assertNull();
         }
 
-        StringBuilder code = new StringBuilder();
+        //StringBuilder code = new StringBuilder();
+        ArrayList<String> code = new ArrayList<>();
         int i = 1;
         while(sc.hasNextLine() && i > 0){
             line = sc.nextLine().trim();
             if(!line.equals("") && !line.startsWith("#")){
                 if(Set.of("if", "while", "for").contains(line.split(" ")[0])) i++;
                 if(line.equals("end")) i--;
-                if(i > 0) code.append(line).append("\n");
+                if(i > 0) code.add(line);
             }
         }
         if(i > 0) throw new RuntimeException("method " + name + " was not closed in class " + className);
@@ -215,7 +214,7 @@ class Parser {
         if(current instanceof XJLNClass){
             name = name + " " + Compiler.toDesc(parameter, returnType);
             if(((XJLNClass) current).methods.containsKey(name)) throw new RuntimeException("method " + name + " already exists in " + className);
-            ((XJLNClass) current).methods.put(name, new XJLNMethod(parameter, inner, returnType, parseCode(code.toString())));
+            ((XJLNClass) current).methods.put(name, new XJLNMethod(parameter, inner, returnType, code.toArray(new String[0])));
         }else throw new RuntimeException("internal Compiler error");
     }
 
@@ -264,48 +263,12 @@ class Parser {
 
         for(int j = 0;j < lines.length;j++){
             String line = lines[j];
-            if(line.startsWith("if ") || line.startsWith("while ")){
-                boolean whil = line.startsWith("while ");
-                String condition = line.split(" ", 2)[1];
+            if(line.startsWith("if ")){
 
-                StringBuilder content = new StringBuilder();
-                int i = 1;
-                while(j < line.length() && i > 0){
-                    line = lines[j];
-                    if(!line.equals("") && !line.startsWith("#")){
-                        if(Set.of("if", "while", "for").contains(line.split(" ")[0])) i++;
-                        if(line.equals("end")) i--;
-                        if(i > 0) content.append(line).append("\n");
-                    }
-                }
-
-                if(i > 0) throw new RuntimeException("illegal argument");
-
-                ast.add(whil ? new AST.While(condition, parseCode(code)) : new AST.If(condition, parseCode(code)));
             }else ast.add(new AST.Statement(line));
         }
 
         return ast.toArray(new AST[0]);
     }
 
-    public AST.Calculation parseCalc(String statement){
-        TokenHandler th = lexer.toToken(statement);
-        AST.Calculation calc = new AST.Calculation();
-        StringBuilder sb = new StringBuilder();
-
-        while(th.hasNext()){
-            while (th.hasNext() && th.next().t() != Token.Type.OPERATOR) sb.append(th.current().s()).append(" ");
-            if(calc.content(null) != null){
-
-            }
-            calc.content(sb.toString());
-            sb = new StringBuilder();
-        }
-
-        return calc;
-    }
-
-    public AST.Calculation parseCalculation(){
-        return null;
-    }
 }

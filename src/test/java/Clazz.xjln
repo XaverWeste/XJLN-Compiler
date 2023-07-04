@@ -11,8 +11,11 @@ def clazz[int i, int j] => Object -> init()
 
     end
 
-    def test(String s = "abc")
-
+    def test(int i)
+        i = 10
+        if i == 10
+            i = i / 2
+        end
     end
 
 end

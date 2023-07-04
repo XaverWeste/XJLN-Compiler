@@ -6,7 +6,7 @@ import java.util.Set;
 
 class Lexer {
 
-    public TokenHandler toToken(String line){
+    public static TokenHandler toToken(String line){
         List<Token> tokens = new ArrayList<>();
         char[] chars = line.toCharArray();
         StringBuilder value;
@@ -83,7 +83,7 @@ class Lexer {
         return new TokenHandler(tokens);
     }
 
-    private boolean isOperator(char c){
+    private static boolean isOperator(char c){
         return String.valueOf(c).matches("[-+*/!=<>%&|]");
     }
 }
