@@ -150,14 +150,15 @@ public class Compiler {
             }
 
             code.addAload(0);
+            i++;
             switch(infos[0]){
-                case "int", "byte", "char", "short", "boolean" -> code.addIload(i += 1);
-                case "double" -> code.addDload(i += 1);
-                case "long" -> code.addLload(i += 1);
-                case "float" -> code.addFload(i += 1);
-                default -> code.addAload(i += 1);
+                case "int", "byte", "char", "short", "boolean" -> code.addIload(i);
+                case "double" -> code.addDload(i);
+                case "long" -> code.addLload(i);
+                case "float" -> code.addFload(i);
+                default -> code.addAload(i);
             }
-            code.addAload(i += 1);
+            code.addAload(i);
             code.addPutfield(name, infos[1], toDesc(infos[0]));
         }
 
@@ -206,21 +207,48 @@ public class Compiler {
 
         String[] code = method.code;
         for(int i = 0;i < code.length;i++){
-            String current = code[i];
-            if(current.startsWith("if "))
-                src.append("if(").append(current.split(" ", 2)[1]).append("){");
-            else if(current.startsWith("while "))
-                src.append("while(").append(current.split(" ", 1)[1]).append("){");
-            else if(current.equals("end"))
-                src.append("}");
-            else{
-                src.append(current).append(";");
+            TokenHandler th = Lexer.toToken(code[i]);
+            switch (th.assertToken(Token.Type.IDENTIFIER).s()){
+                case "if" -> {
+                    src.append("if(").append(compileCalc(th)).append("){");
+                    if(th.current().equals("->"))
+                        src.append(compileMethodCall(th)).append("}");
+                }
+                case "else" -> {
+                    src.append("else");
+                    if(!th.hasNext())
+                        src.append("{");
+                    else {
+                        if(th.assertToken("if", "->").equals("if"))
+                            src.append(" if(").append(compileCalc(th)).append("){");
+                        if(th.current().equals("->"))
+                            src.append(compileMethodCall(th)).append(";}");
+                    }
+                }
+                case "while" -> {
+                    src.append("while(").append(compileCalc(th)).append("){");
+                    if(th.current().equals("->"))
+                        src.append(compileMethodCall(th)).append(";}");
+                }
+                case "end" -> src.append("}");
+                default -> {
+                    th.last();
+                    src.append(compileCalc(th)).append(";");
+                }
             }
         }
 
         src.append("}");
 
         return CtNewMethod.make(src.toString(), clazz);
+    }
+
+    private String compileCalc(TokenHandler th){
+        return null;
+    }
+
+    private String compileMethodCall(TokenHandler th){
+        return null;
     }
 
     /*

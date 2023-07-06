@@ -1,7 +1,7 @@
 use java/lang/String as String
 use java/lang/Object as Object
 
-def clazz[int i, int j] => Object -> init()
+def clazz[int i, int j] -> init()
 
     inner String s
     inner const var v
