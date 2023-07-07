@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
@@ -189,6 +189,7 @@ public class Compiler {
             try {
                 ct.addMethod(compileMethod(ct, methodName.split(" ")[0], clazz.methods.get(methodName)));
             }catch (CannotCompileException ignored){
+                ignored.printStackTrace();
                 throw new RuntimeException("unspecified syntax error");
             }
         }
@@ -212,7 +213,7 @@ public class Compiler {
                 case "if" -> {
                     src.append("if(").append(compileCalc(th)).append("){");
                     if(th.current().equals("->"))
-                        src.append(compileMethodCall(th)).append("}");
+                        src.append(compileParaMeterList(th)).append("}");
                 }
                 case "else" -> {
                     src.append("else");
@@ -222,13 +223,13 @@ public class Compiler {
                         if(th.assertToken("if", "->").equals("if"))
                             src.append(" if(").append(compileCalc(th)).append("){");
                         if(th.current().equals("->"))
-                            src.append(compileMethodCall(th)).append(";}");
+                            src.append(compileParaMeterList(th)).append(";}");
                     }
                 }
                 case "while" -> {
                     src.append("while(").append(compileCalc(th)).append("){");
                     if(th.current().equals("->"))
-                        src.append(compileMethodCall(th)).append(";}");
+                        src.append(compileParaMeterList(th)).append(";}");
                 }
                 case "end" -> src.append("}");
                 default -> src.append(compileArgument(th));
@@ -250,23 +251,45 @@ public class Compiler {
             case SIMPLE -> {
                 switch (th.current().s()){
                     case "(" -> {
-                        result.append(first).append(th.current()).append(compileMethodCall(th));
+                        result.append(first).append("(").append(compileParaMeterList(th));
                         TokenHandler.assertToken(th.current(), ")");
+                        th.assertNull();
                         result.append(");");
                     }
                     case ":" -> {
-                        //TODO
+                        result.append(first).append(":");
+                        th.assertHasNext();
+
+                        while (th.hasNext()){
+                            result.append(th.assertToken(Token.Type.IDENTIFIER));
+                            if(th.hasNext()){
+                                if(th.assertToken(":", "(").equals(":")) {
+                                    result.append(".");
+                                    th.assertHasNext();
+                                }else{
+                                    result.append("(").append(compileParaMeterList(th));
+                                    TokenHandler.assertToken(th.current(), ")");
+                                    result.append(")");
+                                    if(th.hasNext()){
+                                        th.assertToken(":");
+                                        th.assertHasNext();
+                                    }
+                                }
+                            }
+                        }
+
+                        result.append(";");
                     }
-                    default -> throw new RuntimeException("illegal argument in " + th);
+                    default -> throw new RuntimeException("illegal argument in: " + th);
                 }
             }
 
             case OPERATOR -> {
                 if (th.current().s().equals("="))
-                    result.append(first).append(th.current()).append(compileCalc(th));
+                    result.append(first).append(th.current()).append(compileCalc(th)).append(";");
                 else{
                     th.last();
-                    return compileCalc(th);
+                    return compileCalc(th) + ";";
                 }
             }
 
@@ -282,29 +305,64 @@ public class Compiler {
     }
 
     private String compileCalc(TokenHandler th){
-        return null;
-    }
+        ArrayList<String> calc = new ArrayList<>();
 
-    private String compileMethodCall(TokenHandler th){
-        return null;
-    }
+        while (th.hasNext()){
+            switch (th.next().t()){
+                case STRING, NUMBER -> calc.add(th.current().s());
+                case IDENTIFIER -> calc.add(compileNext(th));
+                case OPERATOR -> {
+                    if(th.current().equals("->"))
+                        return compileCalc(calc);
+                    else throw new RuntimeException("illegal argument in: " + th);
+                }
+                default -> throw new RuntimeException("illegal argument in: " + th);
+            }
 
-    /*
-    private MethodInfo compileMethod(XJLNClass clazz, String Classname, String methodName, XJLNMethod method, ClassFile cf){
-        ByteCodeBuilder codeBuilder = ByteCodeBuilder.foR(method, clazz, Classname, cf.getConstPool());
-
-        MethodInfo m = new MethodInfo(cf.getConstPool(), methodName.split(" ")[0], toDesc(method.parameter, method.returnType));
-        m.setAccessFlags(method.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
-
-        for(AST statement:method.code){
-            if(statement instanceof AST.If) compileIf((AST.If) statement, codeBuilder);
-            else if(statement instanceof AST.Statement) compileStatement((AST.Statement) statement, codeBuilder);
+            if(th.hasNext()){
+                calc.add(th.assertToken(Token.Type.OPERATOR).s());
+                th.assertHasNext();
+            }
         }
 
-        m.setCodeAttribute(codeBuilder.build());
-        return null;
+        return compileCalc(calc);
     }
-     */
+
+    private String compileCalc(ArrayList<String> calc){
+        StringBuilder sb = new StringBuilder();
+
+        if(calc.size() == 0)
+            throw new RuntimeException("unspecified syntax error");
+
+        if(calc.size() == 1)
+            return calc.get(0);
+
+        sb.append(calc.get(0));
+        for(int i = 1;i < calc.size();i+=2)
+            sb.append(".").append(calc.get(i)).append("(").append(calc.get(i + 1)).append(")");
+
+        return sb.toString();
+    }
+
+    private String compileNext(TokenHandler th){
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(th.current());
+
+        return sb.toString();
+    }
+
+    private String compileParaMeterList(TokenHandler th){
+        StringBuilder sb = new StringBuilder();
+
+        while (th.hasNext()){
+            sb.append(compileCalc(th));
+            if(th.current().equals("->")) throw new RuntimeException("illegal argument in: " + th);
+            if(th.current().equals(",")) th.assertHasNext();
+        }
+
+        return sb.toString();
+    }
 
     public static String toDesc(String[] parameters, String returnType){
         StringBuilder sb = new StringBuilder("(");

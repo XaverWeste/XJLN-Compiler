@@ -1,15 +1,7 @@
 use java/lang/String as String
 use java/lang/Object as Object
 
-def clazz[int i, int j] -> init()
-
-    inner String s
-    inner const var v
-    {String | char} s
-
-    def init()
-
-    end
+def clazz[]
 
     def test(int i)
         i = 10

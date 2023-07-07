@@ -15,19 +15,19 @@ class TokenHandler {
     }
 
     public Token next() throws RuntimeException {
-        if(!hasNext()) throw new RuntimeException("expected Token got nothing ");
+        if(!hasNext()) throw new RuntimeException("expected Token got nothing in: " + this);
         index++;
         return tokens[index];
     }
 
     public Token current() throws RuntimeException {
-        if(!isValid()) throw new RuntimeException("expected Token got nothing");
+        if(!isValid()) throw new RuntimeException("expected Token got nothing in: " + this);
         return tokens[index];
     }
 
     public Token last() throws RuntimeException {
         index--;
-        if(!isValid()) throw new RuntimeException("expected Token got nothing");
+        if(!isValid()) throw new RuntimeException("expected Token got nothing in: " + this);
         return tokens[index];
     }
 
@@ -52,9 +52,9 @@ class TokenHandler {
     }
 
     public TokenHandler getInBracket() throws RuntimeException {
-        if(!isValid()) throw new RuntimeException("expected left bracket got nothing");
+        if(!isValid()) throw new RuntimeException("expected left bracket got nothing in: " + this);
         Token current = tokens[index];
-        if(!Set.of("(", "[", "{").contains(current.s())) throw new RuntimeException("expected left bracket got " + tokens[index].s());
+        if(!Set.of("(", "[", "{").contains(current.s())) throw new RuntimeException("expected left bracket got " + tokens[index].s() + " in: " + this);
 
         String openingBracket = current.s();
         String closingBracket = openingBracket.equals("(") ? ")" : openingBracket.equals("[") ? "]" : "}";
@@ -68,40 +68,40 @@ class TokenHandler {
             if(i > 0) tokenList.add(current);
         }
 
-        if(i > 0) throw new RuntimeException("expected right bracket got nothing");
+        if(i > 0) throw new RuntimeException("expected right bracket got nothing in: " + this);
         return new TokenHandler(tokenList);
     }
 
     public Token assertToken(String string) throws RuntimeException {
-        if(!hasNext()) throw new RuntimeException("expected " + string + " got nothing");
+        if(!hasNext()) throw new RuntimeException("expected " + string + " got nothing in: " + this);
         Token token = next();
-        if(!token.s().equals(string)) throw new RuntimeException("expected " + string + " got " + token.s());
+        if(!token.s().equals(string)) throw new RuntimeException("expected " + string + " got " + token.s() + " in: " + this);
         return token;
     }
 
     public Token assertToken(String...strings) throws RuntimeException {
-        if(!hasNext()) throw new RuntimeException("expected one of " + arrayToString(strings) + " got nothing");
+        if(!hasNext()) throw new RuntimeException("expected one of " + arrayToString(strings) + " got nothing in: " + this);
         Token token = next();
 
         for(String str:strings) if(token.s().equals(str)) return token;
 
-        throw new RuntimeException("expected one of " + arrayToString(strings) + " got " + token.s());
+        throw new RuntimeException("expected one of " + arrayToString(strings) + " got " + token.s() + " in: " + this);
     }
 
     public Token assertToken(Token.Type type) throws RuntimeException {
-        if(!hasNext()) throw new RuntimeException("expected " + type.toString() + " got nothing");
+        if(!hasNext()) throw new RuntimeException("expected " + type.toString() + " got nothing in: " + this);
         Token token = next();
-        if(token.t() != type) throw new RuntimeException("expected " + type.toString() + " got " + token.t().toString());
+        if(token.t() != type) throw new RuntimeException("expected " + type.toString() + " got " + token.t().toString() + " in: " + this);
         return token;
     }
 
     public Token assertToken(Token.Type...types) throws RuntimeException {
-        if(!hasNext()) throw new RuntimeException("expected one of " + arrayToString(types) + " got nothing");
+        if(!hasNext()) throw new RuntimeException("expected one of " + arrayToString(types) + " got nothing in: " + this);
         Token token = next();
 
         for(Token.Type t:types) if(token.t() == t) return token;
 
-        throw new RuntimeException("expected one of " + arrayToString(types) + " got " + token.t().toString());
+        throw new RuntimeException("expected one of " + arrayToString(types) + " got " + token.t().toString() + " in: " + this);
     }
 
     public static void assertToken(Token token, String string) throws RuntimeException {
@@ -113,11 +113,11 @@ class TokenHandler {
     }
 
     public void assertHasNext() throws RuntimeException{
-        if(index >= tokens.length) throw new RuntimeException("expected Token, got Nothing");
+        if(index >= tokens.length) throw new RuntimeException("expected Token, got Nothing in: " + this);
     }
 
     public void assertNull() throws RuntimeException{
-        if(hasNext()) throw new RuntimeException("expected nothing, got " + tokens[index].t().toString());
+        if(hasNext()) throw new RuntimeException("expected nothing, got " + tokens[index].t().toString() + " in: " + this);
     }
 
     private String arrayToString(String[] sa){

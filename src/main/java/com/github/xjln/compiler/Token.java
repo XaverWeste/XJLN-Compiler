@@ -16,4 +16,9 @@ record Token(String s, Type t){
     public boolean equals(String s){
         return this.s.equals(s);
     }
+
+    @Override
+    public String toString() {
+        return s;
+    }
 }

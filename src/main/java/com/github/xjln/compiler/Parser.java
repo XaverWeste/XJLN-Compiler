@@ -122,10 +122,13 @@ class Parser {
                 th.assertNull();
             }
         }else{
-            current = new XJLNClass(parameter, new String[0], th.assertToken(Token.Type.IDENTIFIER).s() + " ()V");
-            th.assertToken("(");
-            th.assertToken(")");
-            th.assertNull();
+            if(th.hasNext()){
+                current = new XJLNClass(parameter, new String[0], th.assertToken(Token.Type.IDENTIFIER).s() + " ()V");
+                th.assertToken("(");
+                th.assertToken(")");
+                th.assertNull();
+            }else
+                current = new XJLNClass(parameter, new String[0], null);
         }
 
         String line = "";
