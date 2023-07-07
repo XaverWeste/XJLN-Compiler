@@ -231,16 +231,54 @@ public class Compiler {
                         src.append(compileMethodCall(th)).append(";}");
                 }
                 case "end" -> src.append("}");
-                default -> {
-                    th.last();
-                    src.append(compileCalc(th)).append(";");
-                }
+                default -> src.append(compileArgument(th));
             }
         }
 
         src.append("}");
 
         return CtNewMethod.make(src.toString(), clazz);
+    }
+
+    private String compileArgument(TokenHandler th){
+        th.toFirst();
+        Token first = th.assertToken(Token.Type.IDENTIFIER);
+
+        StringBuilder result = new StringBuilder();
+
+        switch (th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR, Token.Type.SIMPLE).t()){
+            case SIMPLE -> {
+                switch (th.current().s()){
+                    case "(" -> {
+                        result.append(first).append(th.current()).append(compileMethodCall(th));
+                        TokenHandler.assertToken(th.current(), ")");
+                        result.append(");");
+                    }
+                    case ":" -> {
+                        //TODO
+                    }
+                    default -> throw new RuntimeException("illegal argument in " + th);
+                }
+            }
+
+            case OPERATOR -> {
+                if (th.current().s().equals("="))
+                    result.append(first).append(th.current()).append(compileCalc(th));
+                else{
+                    th.last();
+                    return compileCalc(th);
+                }
+            }
+
+            case IDENTIFIER -> {
+                result.append(first).append(th.current());
+                th.assertToken("=");
+                result.append("=").append(compileCalc(th)).append(";");
+            }
+            default -> throw new RuntimeException("internal Compiler error");
+        }
+
+        return result.toString();
     }
 
     private String compileCalc(TokenHandler th){
