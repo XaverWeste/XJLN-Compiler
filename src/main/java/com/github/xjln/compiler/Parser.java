@@ -202,7 +202,7 @@ class Parser {
         while(sc.hasNextLine() && i > 0){
             line = sc.nextLine().trim();
             if(!line.equals("") && !line.startsWith("#")){
-                if(Set.of("if", "while", "for").contains(line.split(" ")[0])) i++;
+                if(Set.of("if", "while", "for").contains(line.split(" ")[0]) && !line.contains(" -> ")) i++;
                 if(line.equals("end")) i--;
                 if(i > 0) code.add(line);
             }

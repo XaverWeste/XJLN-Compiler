@@ -396,8 +396,8 @@ public class Compiler {
 
         while (th.hasNext()){
             sb.append(compileCalc(th));
-            if(th.current().equals("->")) throw new RuntimeException("illegal argument in: " + th);
-            if(th.current().equals(",")) th.assertHasNext();
+            if(th.assertToken(")", ",").equals(",")) th.assertHasNext();
+            else break;
         }
 
         return sb.toString();

@@ -1,17 +1,7 @@
 use java/lang/String as String
 use java/lang/Object as Object
 
-def clazz[]
+def Clazz[]
 
     #inner const [int] = [4, 3]
-
-    def test(int i)
-        while i < 3
-            if i > 10
-                i = 10
-            end
-            i = i - 1
-        end
-    end
-
 end
