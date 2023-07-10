@@ -188,9 +188,8 @@ public class Compiler {
         for(String methodName: clazz.methods.keySet()){
             try {
                 ct.addMethod(compileMethod(ct, methodName.split(" ")[0], clazz.methods.get(methodName)));
-            }catch (CannotCompileException ignored){
-                ignored.printStackTrace();
-                throw new RuntimeException("unspecified syntax error");
+            }catch (CannotCompileException e){
+                throw new RuntimeException(e);
             }
         }
     }
@@ -212,8 +211,10 @@ public class Compiler {
             switch (th.assertToken(Token.Type.IDENTIFIER).s()){
                 case "if" -> {
                     src.append("if(").append(compileCalc(th)).append("){");
-                    if(th.current().equals("->"))
-                        src.append(compileParaMeterList(th)).append("}");
+                    if(th.hasNext()) {
+                        th.assertToken("->");
+                        src.append(compileArgument(th)).append("}");
+                    }
                 }
                 case "else" -> {
                     src.append("else");
@@ -232,17 +233,21 @@ public class Compiler {
                         src.append(compileParaMeterList(th)).append(";}");
                 }
                 case "end" -> src.append("}");
-                default -> src.append(compileArgument(th));
+                default -> {
+                    th.toFirst();
+                    src.append(compileArgument(th));
+                }
             }
         }
 
         src.append("}");
 
+        System.out.println(src);
+
         return CtNewMethod.make(src.toString(), clazz);
     }
 
     private String compileArgument(TokenHandler th){
-        th.toFirst();
         Token first = th.assertToken(Token.Type.IDENTIFIER);
 
         StringBuilder result = new StringBuilder();
@@ -311,17 +316,17 @@ public class Compiler {
             switch (th.next().t()){
                 case STRING, NUMBER -> calc.add(th.current().s());
                 case IDENTIFIER -> calc.add(compileNext(th));
-                case OPERATOR -> {
-                    if(th.current().equals("->"))
-                        return compileCalc(calc);
-                    else throw new RuntimeException("illegal argument in: " + th);
-                }
                 default -> throw new RuntimeException("illegal argument in: " + th);
             }
 
             if(th.hasNext()){
-                calc.add(th.assertToken(Token.Type.OPERATOR).s());
-                th.assertHasNext();
+                if(th.assertToken(Token.Type.OPERATOR).equals("->")) {
+                    th.last();
+                    break;
+                } else {
+                    calc.add(th.current().s());
+                    th.assertHasNext();
+                }
             }
         }
 
@@ -348,6 +353,37 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         sb.append(th.current());
+        while (th.hasNext()){
+            if(th.next().equals("(")){
+                sb.append("(").append(compileParaMeterList(th));
+                TokenHandler.assertToken(th.current(), ")");
+                sb.append(");");
+            }else if(th.current().equals(":")){
+                sb.append(".");
+                th.assertHasNext();
+
+                while (th.hasNext()){ //TODO
+                    sb.append(th.assertToken(Token.Type.IDENTIFIER));
+                    if(th.hasNext()){
+                        if(th.assertToken(":", "(").equals(":")) {
+                            sb.append(".");
+                            th.assertHasNext();
+                        }else{
+                            sb.append("(").append(compileParaMeterList(th));
+                            TokenHandler.assertToken(th.current(), ")");
+                            sb.append(")");
+                            if(th.hasNext()){
+                                th.assertToken(":");
+                                th.assertHasNext();
+                            }
+                        }
+                    }
+                }
+            }else{
+                th.last();
+                break;
+            }
+        }
 
         return sb.toString();
     }

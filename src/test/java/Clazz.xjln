@@ -3,10 +3,14 @@ use java/lang/Object as Object
 
 def clazz[]
 
+    #inner const [int] = [4, 3]
+
     def test(int i)
-        i = 10
-        if i == 10
-            i = i / 2
+        while i < 3
+            if i > 10
+                i = 10
+            end
+            i = i - 1
         end
     end
 
