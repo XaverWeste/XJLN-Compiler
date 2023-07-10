@@ -16,6 +16,8 @@ import java.util.Set;
 
 public class Compiler {
 
+    public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
+
     private final Parser parser;
     private static String srcFolder = "";
     private static HashMap<String, Compilable> classes;
@@ -259,7 +261,7 @@ public class Compiler {
                         result.append(first).append("(").append(compileParaMeterList(th));
                         TokenHandler.assertToken(th.current(), ")");
                         th.assertNull();
-                        result.append(");");
+                        result.append(")");
                     }
                     case ":" -> {
                         result.append(first).append(":");
@@ -282,8 +284,6 @@ public class Compiler {
                                 }
                             }
                         }
-
-                        result.append(";");
                     }
                     default -> throw new RuntimeException("illegal argument in: " + th);
                 }
@@ -291,20 +291,23 @@ public class Compiler {
 
             case OPERATOR -> {
                 if (th.current().s().equals("="))
-                    result.append(first).append(th.current()).append(compileCalc(th)).append(";");
+                    result.append(first).append(th.current()).append(compileCalc(th));
                 else{
                     th.last();
-                    return compileCalc(th) + ";";
+                    result.append(compileCalc(th));
                 }
             }
 
             case IDENTIFIER -> {
                 result.append(first).append(th.current());
                 th.assertToken("=");
-                result.append("=").append(compileCalc(th)).append(";");
+                result.append("=").append(compileCalc(th));
             }
+
             default -> throw new RuntimeException("internal Compiler error");
         }
+
+        result.append(";");
 
         return result.toString();
     }
@@ -334,15 +337,15 @@ public class Compiler {
     }
 
     private String compileCalc(ArrayList<String> calc){
-        StringBuilder sb = new StringBuilder();
-
         if(calc.size() == 0)
             throw new RuntimeException("unspecified syntax error");
 
         if(calc.size() == 1)
             return calc.get(0);
 
+        StringBuilder sb = new StringBuilder();
         sb.append(calc.get(0));
+
         for(int i = 1;i < calc.size();i+=2)
             sb.append(".").append(calc.get(i)).append("(").append(calc.get(i + 1)).append(")");
 

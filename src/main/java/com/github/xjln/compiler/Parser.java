@@ -10,17 +10,12 @@ import java.util.Scanner;
 import java.util.Set;
 
 class Parser {
-    private final Set<String> primitives;
 
     private HashMap<String, String> uses;
     private Compilable current;
     private String path;
     private String className;
     private Scanner sc;
-
-    public Parser(){
-        primitives = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
-    }
 
     public HashMap<String, Compilable> parseFile(File file) {
         HashMap<String, Compilable> classes = new HashMap<>();
@@ -255,7 +250,7 @@ class Parser {
     }
 
     private String validateType(String type){
-        if(primitives.contains(type)) return type;
+        if(Compiler.PRIMITIVES.contains(type)) return type;
         if(type.equals("var")) return "java/lang/Object";
         return uses.getOrDefault(type, type);
     }

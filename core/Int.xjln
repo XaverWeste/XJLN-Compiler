@@ -1,4 +1,3 @@
-use java/lang/Object as Object
+def Int[int value]
 
-def int[primitive:int value] :: Object
 end

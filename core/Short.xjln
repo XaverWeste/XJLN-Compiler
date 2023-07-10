@@ -1,4 +1,3 @@
-use java/lang/Object as Object
+def Short[short value]
 
-def short[primitive:short value] :: Object
 end

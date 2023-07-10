@@ -1,4 +1,3 @@
-use java/lang/Object as Object
+def Long[long value]
 
-def long[primitive:long value] :: Object
 end

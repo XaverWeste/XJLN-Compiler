@@ -1,4 +1,3 @@
-use java/lang/Object as Object
+def Float[float value]
 
-def float[primitive:float value] :: Object
 end
