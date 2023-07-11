@@ -254,19 +254,4 @@ class Parser {
         if(type.equals("var")) return "java/lang/Object";
         return uses.getOrDefault(type, type);
     }
-
-    public AST[] parseCode(String code){
-        ArrayList<AST> ast = new ArrayList<>();
-        String[] lines = code.split("\n");
-
-        for(int j = 0;j < lines.length;j++){
-            String line = lines[j];
-            if(line.startsWith("if ")){
-
-            }else ast.add(new AST.Statement(line));
-        }
-
-        return ast.toArray(new AST[0]);
-    }
-
 }
