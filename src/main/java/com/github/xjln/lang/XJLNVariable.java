@@ -16,7 +16,7 @@ public class XJLNVariable {
         this.types = types;
         this.value = value;
         this.currentType = currentType;
-    } //TODO type check
+    }
 
     public XJLNVariable(String[] types, String value, String currentType){
         this.inner = false;

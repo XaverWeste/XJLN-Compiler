@@ -175,12 +175,6 @@ public class Compiler {
         m.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(m);
 
-        /*
-        //methods
-        for(String methodName: clazz.methods.keySet())
-            cf.addMethod2(compileMethod(clazz, name, methodName, clazz.methods.get(methodName), cf));
-         */
-
         return cf;
     }
 
@@ -346,7 +340,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
         sb.append(calc.get(0));
 
-        for(int i = 1;i < calc.size();i+=2)
+        for(int i = 1;i < calc.size();i += 2)
             sb.append(".").append(calc.get(i)).append("(").append(calc.get(i + 1)).append(")");
 
         return sb.toString();
@@ -354,37 +348,31 @@ public class Compiler {
 
     private String compileNext(TokenHandler th){
         StringBuilder sb = new StringBuilder();
+        th.last();
 
-        sb.append(th.current());
         while (th.hasNext()){
-            if(th.next().equals("(")){
-                sb.append("(").append(compileParaMeterList(th));
-                TokenHandler.assertToken(th.current(), ")");
-                sb.append(");");
-            }else if(th.current().equals(":")){
-                sb.append(".");
-                th.assertHasNext();
-
-                while (th.hasNext()){ //TODO
-                    sb.append(th.assertToken(Token.Type.IDENTIFIER));
+            sb.append(th.assertToken(Token.Type.IDENTIFIER).s());
+            if(th.hasNext()){
+                if(th.next().equals("(")){
+                    sb.append("(").append(compileParaMeterList(th));
+                    TokenHandler.assertToken(th.current(), ")");
+                    sb.append(")");
                     if(th.hasNext()){
-                        if(th.assertToken(":", "(").equals(":")) {
-                            sb.append(".");
+                        if(th.assertToken(":", ",", "->", ")").equals(":")) {
                             th.assertHasNext();
+                            sb.append(".");
                         }else{
-                            sb.append("(").append(compileParaMeterList(th));
-                            TokenHandler.assertToken(th.current(), ")");
-                            sb.append(")");
-                            if(th.hasNext()){
-                                th.assertToken(":");
-                                th.assertHasNext();
-                            }
+                            th.last();
+                            break;
                         }
                     }
+                }else if(th.current().equals(":")){
+                    sb.append(".");
+                    th.assertHasNext();
+                }else{
+                    th.last();
+                    break;
                 }
-            }else{
-                th.last();
-                break;
             }
         }
 
