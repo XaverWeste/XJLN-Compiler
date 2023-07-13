@@ -165,7 +165,38 @@ class Parser {
     }
 
     private void parseMethodDef(String line){
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("def");
+        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        th.assertToken("(");
+        SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
 
+        String returnType = "void";
+        if(th.hasNext()){
+            th.assertToken(":");
+            th.assertToken(":");
+            returnType = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
+            th.assertNull();
+        }
+
+        ArrayList<String> code = new ArrayList<>();
+        int i = 1;
+        while (i > 0 && sc.hasNextLine()) {
+            line = sc.nextLine().trim();
+            if (!line.equals("") && !line.startsWith("#")) {
+                if(line.equals("end")) i--;
+                if(line.startsWith("if ") || line.startsWith("while ")) i++;
+                if(i > 0) code.add(line);
+            }
+        }
+
+        if(i > 0)
+            throw new RuntimeException("method " + name + " in class " + path + "/" + className + " was not closed");
+
+        if(current instanceof XJLNClass){
+            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, false, returnType, code.toArray(new String[0])));
+        }else
+            throw new RuntimeException("internal compiler error at method " + name + " definition");
     }
 
     private SearchList<String, XJLNVariable> parseParameterList(TokenHandler th){

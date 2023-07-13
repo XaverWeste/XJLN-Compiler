@@ -21,7 +21,15 @@ public class XJLNClass implements Compilable {
     }
 
     public void addField(String name, XJLNVariable var){
+        if(fields.containsKey(name))
+            throw new RuntimeException("field " + name + " already exist");
+        fields.put(name, var);
+    }
 
+    public void addMethod(String name, XJLNMethod method){
+        if(methods.containsKey(name))
+            throw new RuntimeException("method " + name + " already exist");
+        methods.put(name, method);
     }
 
 }

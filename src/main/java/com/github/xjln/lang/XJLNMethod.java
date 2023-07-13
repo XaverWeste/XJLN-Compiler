@@ -1,13 +1,15 @@
 package com.github.xjln.lang;
 
+import com.github.xjln.utility.SearchList;
+
 public class XJLNMethod {
 
-    public final XJLNVariable[] parameter;
+    public final SearchList<String, XJLNVariable> parameter;
     public final boolean inner;
     public final String returnType;
     public final String[] code;
 
-    public XJLNMethod(XJLNVariable[] parameter, boolean inner, String returnType, String[] code){
+    public XJLNMethod(SearchList<String, XJLNVariable> parameter, boolean inner, String returnType, String[] code){
         this.parameter = parameter;
         this.inner = inner;
         this.returnType = returnType;
