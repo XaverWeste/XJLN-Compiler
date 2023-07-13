@@ -93,11 +93,11 @@ class Parser {
             th.assertNull();
 
         if(as != null)
-            uses.put(as, from + "." + use.get(0));
+            uses.put(as, from + "/" + use.get(0));
         else
             for(String s:use) {
                 if(uses.containsKey(s)) throw new RuntimeException("alias " + s + " already exist in: " + line);
-                uses.put(s, from + "." + s);
+                uses.put(s, from + "/" + s);
             }
     }
 
@@ -143,14 +143,29 @@ class Parser {
         String line = sc.nextLine().trim();
         while (!line.equals("end") && sc.hasNextLine()) {
             if (!line.equals("") && !line.startsWith("#")) {
-                if(line.startsWith("def ")){
-
-                }else{
-
-                }
+                if(line.startsWith("def "))
+                    parseMethodDef(line);
+                else
+                    parseFieldDef(line);
             }
             line = sc.nextLine().trim();
         }
+    }
+
+    private void parseFieldDef(String line){
+        TokenHandler th = Lexer.toToken(line);
+
+        String type = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
+        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+
+        if(current instanceof XJLNClass)
+            ((XJLNClass) current).addField(name, new XJLNVariable(type));
+        else
+            throw new RuntimeException("internal compiler error at: " + line);
+    }
+
+    private void parseMethodDef(String line){
+
     }
 
     private SearchList<String, XJLNVariable> parseParameterList(TokenHandler th){
@@ -182,6 +197,7 @@ class Parser {
     private String validateType(String type){
         if(Compiler.PRIMITIVES.contains(type)) return type;
         if(type.equals("var")) return "java/lang/Object";
-        return uses.getOrDefault(type, type);
+        if(uses.containsKey(type)) return uses.get(type);
+        return path + "/" + type;
     }
 }

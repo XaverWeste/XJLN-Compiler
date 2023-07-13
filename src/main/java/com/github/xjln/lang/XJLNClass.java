@@ -20,4 +20,8 @@ public class XJLNClass implements Compilable {
         fields = new HashMap<>();
     }
 
+    public void addField(String name, XJLNVariable var){
+
+    }
+
 }
