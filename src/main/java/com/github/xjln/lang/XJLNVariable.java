@@ -8,7 +8,7 @@ public class XJLNVariable {
     public final boolean constant;
     public final String[] types;
     public final String value;
-    public String currentType;
+    public String currentType; // TODO
 
     public XJLNVariable(boolean inner, boolean constant, String[] types, String value, String currentType){
         this.inner = inner;
@@ -28,10 +28,5 @@ public class XJLNVariable {
 
     public void validateTypes(){
         for(String type:types) if(!Compiler.classExist(type)) throw new RuntimeException("Class " + type + " does not exist");
-    }
-
-    public static XJLNVariable ofString(String variable){
-        String[] args = variable.split(" ");
-        return new XJLNVariable(new String[]{args[0]}, args.length > 2 ? args[2] : null, null);
     }
 }
