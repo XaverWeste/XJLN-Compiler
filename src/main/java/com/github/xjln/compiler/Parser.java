@@ -1,6 +1,7 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
+import com.github.xjln.utility.SearchList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -124,7 +125,58 @@ class Parser {
     }
 
     private void parseClassDef(TokenHandler th){
-        //TODO
+        SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
+        String constructor = null;
+        ArrayList<String> supers = new ArrayList<>();
+
+        if(th.hasNext()){
+            if(th.assertToken("->").equals("->")){
+                constructor = th.assertToken(Token.Type.IDENTIFIER).s();
+
+                th.assertToken("(");
+                th.assertToken(")");
+            }
+        }
+
+        current = new XJLNClass(parameter, supers.toArray(new String[0]), constructor);
+
+        String line = sc.nextLine().trim();
+        while (!line.equals("end") && sc.hasNextLine()) {
+            if (!line.equals("") && !line.startsWith("#")) {
+                if(line.startsWith("def ")){
+
+                }else{
+
+                }
+            }
+            line = sc.nextLine().trim();
+        }
+    }
+
+    private SearchList<String, XJLNVariable> parseParameterList(TokenHandler th){
+        SearchList<String, XJLNVariable> paraList = new SearchList<>();
+
+        if(th.length() == 0)
+            return paraList;
+
+        if(th.length() == 1)
+            throw new RuntimeException("illegal argument in definition of class " + className);
+
+        String type, name;
+
+        while (th.hasNext()){
+            type = th.assertToken(Token.Type.IDENTIFIER).s();
+            name = th.assertToken(Token.Type.IDENTIFIER).s();
+
+            paraList.add(name, new XJLNVariable(type));
+
+            if(th.hasNext()){
+                th.assertToken(",");
+                th.assertHasNext();
+            }
+        }
+
+        return paraList;
     }
 
     private String validateType(String type){

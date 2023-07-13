@@ -124,7 +124,7 @@ public class Compiler {
 
     public static String toDesc(XJLNVariable[] parameters, String returnType){
         StringBuilder sb = new StringBuilder("(");
-        for(XJLNVariable parameter:parameters) sb.append(toDesc(parameter.types[0]));
+        for(XJLNVariable parameter:parameters) sb.append(toDesc(parameter.type));
         sb.append(")");
         sb.append(toDesc(returnType));
         return sb.toString();
