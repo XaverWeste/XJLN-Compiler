@@ -45,6 +45,9 @@ public class Compiler {
                 if(delete && Objects.requireNonNull(folder.listFiles()).length == 0) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
             }else if(fileEntry.getName().endsWith(".class")) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
         }
+        if(delete)
+            if(!folder.delete())
+                throw new RuntimeException("unable to clear out folders");
     }
 
     private void compileFolder(File folder){
@@ -67,10 +70,6 @@ public class Compiler {
         if(clazz instanceof XJLNEnum) return compileEnum((XJLNEnum) clazz, name);
         else if(clazz instanceof XJLNClass) return compileClass((XJLNClass) clazz, name);
         else throw new RuntimeException("internal compiler error");
-    }
-
-    private ClassFile compileClass(XJLNClass clazz, String name){
-        return null; //TODO
     }
 
     private ClassFile compileEnum(XJLNEnum enumm, String name){
@@ -122,7 +121,35 @@ public class Compiler {
         return cf;
     }
 
-    public static String toDesc(XJLNVariable[] parameters, String returnType){
+    private ClassFile compileClass(XJLNClass clazz, String name){
+        ClassFile cf = new ClassFile(false, name, null);
+        cf.setAccessFlags(AccessFlag.setPublic(AccessFlag.PUBLIC));
+
+        //Fields
+        for(String n:clazz.fields.keySet())
+            addField(cf, clazz.fields.get(n), n);
+        for(String n:clazz.parameter.getKeys())
+            addField(cf, clazz.fields.get(n), n);
+
+        //Constructor
+        MethodInfo method = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter.getValues(), "void"));
+        method.setAccessFlags(AccessFlag.PUBLIC);
+
+        cf.addMethod2(method);
+
+        return cf;
+    }
+
+    private void addField(ClassFile cf, XJLNVariable v, String name){
+        FieldInfo field = new FieldInfo(cf.getConstPool(), name, toDesc(v.type));
+        field.setAccessFlags(v.constant ? v.inner ? AccessFlag.setPrivate(AccessFlag.FINAL) : AccessFlag.setPublic(AccessFlag.FINAL) : v.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
+
+        try{
+            cf.addField(field);
+        }catch (DuplicateMemberException ignored){}
+    }
+
+    public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){
         StringBuilder sb = new StringBuilder("(");
         for(XJLNVariable parameter:parameters) sb.append(toDesc(parameter.type));
         sb.append(")");

@@ -141,13 +141,15 @@ class Parser {
         current = new XJLNClass(parameter, supers.toArray(new String[0]), constructor);
 
         String line = sc.nextLine().trim();
-        while (!line.equals("end") && sc.hasNextLine()) {
+        while (!line.equals("end")) {
             if (!line.equals("") && !line.startsWith("#")) {
                 if(line.startsWith("def "))
                     parseMethodDef(line);
                 else
                     parseFieldDef(line);
             }
+            if(!sc.hasNextLine())
+                throw new RuntimeException("class " + path + "/" + className + " was not class");
             line = sc.nextLine().trim();
         }
     }

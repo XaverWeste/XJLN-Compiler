@@ -20,4 +20,12 @@ public class SearchList <Key, Value>{
     public Value get(Key key){
         return values.get(keys.indexOf(key));
     }
+
+    public ArrayList<Key> getKeys(){
+        return keys;
+    }
+
+    public ArrayList<Value> getValues(){
+        return values;
+    }
 }
