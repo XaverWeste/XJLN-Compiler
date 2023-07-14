@@ -177,7 +177,7 @@ class Parser {
             line = sc.nextLine().trim();
             if (!line.equals("") && !line.startsWith("#")) {
                 if(line.equals("end")) i--;
-                if(line.startsWith("if ") || line.startsWith("while ")) i++;
+                if((line.startsWith("if ") || line.startsWith("while ")) && !line.contains("->")) i++;
                 if(i > 0) code.add(line);
             }
         }

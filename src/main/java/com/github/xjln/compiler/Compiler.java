@@ -59,6 +59,8 @@ public class Compiler {
         for(String name:classes.keySet()){
             cp.makeClass(compileClass(classes.get(name), name));
             try{
+                if(classes.get(name) instanceof XJLNClass)
+                    compileMethods(name, (XJLNClass) classes.get(name), cp.get(name));
                 cp.get(name).writeFile("compiled");
             }catch (NotFoundException | IOException | CannotCompileException ignored){
                 throw new RuntimeException("internal compiler error");
@@ -164,6 +166,78 @@ public class Compiler {
         try{
             cf.addField(field);
         }catch (DuplicateMemberException ignored){}
+    }
+
+    private void compileMethods(String className, XJLNClass clazz, CtClass ct){
+        if(ct.isFrozen())
+            ct.defrost();
+
+        for(String methodName: clazz.methods.keySet()){
+            try {
+                ct.addMethod(compileMethod(ct, methodName, clazz.methods.get(methodName)));
+            }catch (CannotCompileException e){
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private CtMethod compileMethod(CtClass clazz, String name, XJLNMethod method) throws CannotCompileException{
+        StringBuilder src = new StringBuilder();
+
+        for(String statement:method.code){
+            switch(statement.split(" ")[0]){
+                case "if" -> src.append(compileIf(statement));
+                case "while" -> src.append(compileWhile(statement));
+                case "end" -> {
+                    if(!statement.equals("end"))
+                        throw new RuntimeException("illegal argument in: " + statement);
+                    src.append("}");
+                }
+                default -> src.append(compileStatement(Lexer.toToken(statement)));
+            }
+        }
+
+        return CtMethod.make(src.toString(), clazz);
+    }
+
+    private String compileIf(String statement){
+        TokenHandler th = Lexer.toToken(statement);
+        StringBuilder sb = new StringBuilder();
+
+        th.assertToken("if");
+        sb.append("if(").append(compileCalc(th)).append("){");
+
+        if(th.hasNext()){
+            th.assertToken("->");
+            th.assertHasNext();
+            sb.append(compileStatement(th)).append("}");
+        }
+
+        return sb.toString();
+    }
+
+    private String compileWhile(String statement){
+        TokenHandler th = Lexer.toToken(statement);
+        StringBuilder sb = new StringBuilder();
+
+        th.assertToken("while");
+        sb.append("while(").append(compileCalc(th)).append("){");
+
+        if(th.hasNext()){
+            th.assertToken("->");
+            th.assertHasNext();
+            sb.append(compileStatement(th)).append("}");
+        }
+
+        return sb.toString();
+    }
+
+    private String compileStatement(TokenHandler th){
+        return null;
+    }
+
+    private String compileCalc(TokenHandler th){
+        return null;
     }
 
     public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){
