@@ -126,19 +126,9 @@ class Parser {
 
     private void parseClassDef(TokenHandler th){
         SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
-        String constructor = null;
         ArrayList<String> supers = new ArrayList<>();
 
-        if(th.hasNext()){
-            if(th.assertToken("->").equals("->")){
-                constructor = th.assertToken(Token.Type.IDENTIFIER).s();
-
-                th.assertToken("(");
-                th.assertToken(")");
-            }
-        }
-
-        current = new XJLNClass(parameter, supers.toArray(new String[0]), constructor);
+        current = new XJLNClass(parameter, supers.toArray(new String[0]));
 
         String line = sc.nextLine().trim();
         while (!line.equals("end")) {

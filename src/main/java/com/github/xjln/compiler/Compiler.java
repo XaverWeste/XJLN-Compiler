@@ -134,7 +134,24 @@ public class Compiler {
         //Constructor
         MethodInfo method = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter.getValues(), "void"));
         method.setAccessFlags(AccessFlag.PUBLIC);
-
+        Bytecode code = new Bytecode(cf.getConstPool());
+        int i = 0;
+        for(String n:clazz.parameter.getKeys()){
+            XJLNVariable v = clazz.parameter.get(n);
+            code.addAload(0);
+            i += 1;
+            switch(v.type){
+                case "int", "byte", "char", "short", "boolean" -> code.addIload(i);
+                case "double" -> code.addDload(i);
+                case "long" -> code.addLload(i);
+                case "float" -> code.addFload(i);
+                default -> code.addAload(i);
+            }
+            code.addAload(i);
+            code.addPutfield(name, n, toDesc(v.type));
+        }
+        code.addReturn(null);
+        method.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(method);
 
         return cf;
