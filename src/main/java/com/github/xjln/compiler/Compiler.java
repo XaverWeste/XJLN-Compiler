@@ -306,11 +306,69 @@ public class Compiler {
     }
 
     private String compileCurrent(TokenHandler th){
-        return null; //TODO
+        StringBuilder sb = new StringBuilder();
+        String lastType = currentClassName;
+        th.last();
+
+        while (th.hasNext()){
+            if(th.next().t() == Token.Type.IDENTIFIER){
+                String name = th.current().s();
+                if(th.hasNext()){
+                    switch(th.next().s()){
+                        case ":" -> {
+                            sb.append(".");
+                            th.assertToken(Token.Type.IDENTIFIER);
+                            th.last();
+                            lastType = getType(lastType, null, name);
+                        }
+                        case "(" -> {
+                            sb.append("(");
+                            th.assertHasNext();
+                            while(th.hasNext()){
+                                if(th.next().equals(")")){
+                                    sb.append(")");
+                                    break;
+                                }
+                                sb.append(compileCalc(th));
+                                th.assertToken(",", ")");
+                                if(th.current().equals(")"))
+                                    th.last();
+                                else
+                                    sb.append(",");
+                                th.assertHasNext();
+                            } //TODO check type
+                        }
+                        case "->", ",",")" -> {
+                            th.last();
+                            return sb.toString();
+                        }
+                        default -> throw new RuntimeException("illegal argument in: " + th);
+                    }
+                }else
+                    sb.append(name);
+            }else
+                break;
+        }
+
+        th.last();
+        return sb.toString();
     }
 
     private String getType(String of){
         return null; //TODO
+    }
+
+    private String getType(String clazz, String method, String var){
+        if(classes.get(clazz) instanceof XJLNClass){
+            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var) != null)
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var).type;
+            if(((XJLNClass) classes.get(clazz)).fields.get(var) != null)
+                return ((XJLNClass) classes.get(clazz)).fields.get(var).type;
+            if(((XJLNClass) classes.get(clazz)).parameter.get(var) != null)
+                return ((XJLNClass) classes.get(clazz)).parameter.get(var).type;
+        }else if(classes.get(clazz) instanceof XJLNEnum)
+            return clazz;
+        return null;
     }
 
     public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){
