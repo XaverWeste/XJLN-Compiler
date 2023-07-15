@@ -44,16 +44,27 @@ public class Compiler {
         srcFolder = srcFolder.replace("/", ".").replace("\\", ".");
     }
 
-    private void clearFolder(File folder, boolean delete) throws RuntimeException{
+    /*
+    private void clearFolder(File folder, boolean delete){
         for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
             if(fileEntry.isDirectory()){
                 clearFolder(fileEntry, true);
-                if(delete && Objects.requireNonNull(folder.listFiles()).length == 0) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
+                if(delete && folder.listFiles().length == 0) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
             }else if(fileEntry.getName().endsWith(".class")) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
         }
         if(delete)
-            if(!folder.delete())
-                throw new RuntimeException("unable to clear out folders");
+            folder.delete();
+    }
+
+     */
+
+    private void clearFolder(File folder, boolean delete){
+        for(File file:folder.listFiles())
+            if(file.isDirectory())
+                clearFolder(file, true);
+            else if(file.getName().endsWith(".class")) file.delete();
+        if(delete && folder.listFiles().length == 0)
+            folder.delete();
     }
 
     private void compileFolder(File folder){
@@ -206,6 +217,8 @@ public class Compiler {
             }
         }
 
+        System.out.println(src); //TODO
+
         return CtMethod.make(src.toString(), clazz);
     }
 
@@ -242,7 +255,15 @@ public class Compiler {
     }
 
     private String compileStatement(TokenHandler th){
-        return null;
+        Token first = th.assertToken(Token.Type.IDENTIFIER);
+        if(th.next().equals(Token.Type.IDENTIFIER)){
+            th.last();
+            return first.toString() + " " + compileCalc(th);
+        }else {
+            th.last();
+            th.last();
+            return compileCalc(th);
+        }
     }
 
     private String compileCalc(TokenHandler th){
@@ -253,8 +274,8 @@ public class Compiler {
             case NUMBER -> sb.append(th.current());
             case IDENTIFIER -> {
                 String current = compileCurrent(th);
-                type = getType(current);
-                sb.append(current);
+                type = current.split(" ", 2)[0];
+                sb.append(current.split(" ", 2)[1]);
             }
             default -> throw new RuntimeException("illegal argument in: " + th);
         }
@@ -287,8 +308,8 @@ public class Compiler {
                 }
                 case IDENTIFIER -> {
                     String current = compileCurrent(th);
-                    currentType = getType(current);
-                    sb.append(current);
+                    currentType = current.split(" ", 2)[0];
+                    sb.append(current.split(" ", 2)[1]);
                 }
                 default -> throw new RuntimeException("illegal argument in: " + th);
             }
@@ -336,7 +357,8 @@ public class Compiler {
                                 else
                                     sb.append(",");
                                 th.assertHasNext();
-                            } //TODO check type
+                            }
+                            lastType = getType(lastType, name, null);
                         }
                         case "->", ",",")" -> {
                             th.last();
@@ -354,12 +376,13 @@ public class Compiler {
         return sb.toString();
     }
 
-    private String getType(String of){
-        return null; //TODO
-    }
-
     private String getType(String clazz, String method, String var){
-        if(classes.get(clazz) instanceof XJLNClass){
+        if(var == null){
+            if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method)){
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType;
+            }else
+                throw new RuntimeException("illegal argument");
+        }else if(classes.get(clazz) instanceof XJLNClass){
             if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var) != null)
                 return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var).type;
             if(((XJLNClass) classes.get(clazz)).fields.get(var) != null)

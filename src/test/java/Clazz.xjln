@@ -1,7 +1,7 @@
 use java/lang/String as String
 use java/lang/Object as Object
 
-def Clazz[]
+def Clazz[int i, double d]
 
     #inner const [int] = [4, 3]
 end
