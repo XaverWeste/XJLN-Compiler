@@ -148,7 +148,7 @@ public class Compiler {
         for(String n:clazz.fields.keySet())
             addField(cf, clazz.fields.get(n), n);
         for(String n:clazz.parameter.getKeys())
-            addField(cf, clazz.fields.get(n), n);
+            addField(cf, clazz.parameter.get(n), n);
 
         //Constructor
         MethodInfo method = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter.getValues(), "void"));
@@ -204,10 +204,21 @@ public class Compiler {
     private CtMethod compileMethod(CtClass clazz, String name, XJLNMethod method) throws CannotCompileException{
         StringBuilder src = new StringBuilder();
 
+        src.append(method.inner ? "private " : "public ").append(method.returnType).append(" ").append(name).append("(");
+
+        for(String para:method.parameter.getKeys())
+            src.append(method.parameter.get(para).type).append(" ").append(para).append(",");
+
+        if(src.toString().endsWith(","))
+            src.deleteCharAt(src.length() - 1);
+
+        src.append("){");
+
         for(String statement:method.code){
             switch(statement.split(" ")[0]){
                 case "if" -> src.append(compileIf(statement));
                 case "while" -> src.append(compileWhile(statement));
+                case "return" -> src.append(compileReturn(statement));
                 case "end" -> {
                     if(!statement.equals("end"))
                         throw new RuntimeException("illegal argument in: " + statement);
@@ -217,7 +228,7 @@ public class Compiler {
             }
         }
 
-        System.out.println(src); //TODO
+        src.append("}");
 
         return CtMethod.make(src.toString(), clazz);
     }
@@ -254,15 +265,21 @@ public class Compiler {
         return sb.toString();
     }
 
+    private String compileReturn(String statement){
+        TokenHandler th = Lexer.toToken(statement);
+        th.assertToken("return");
+        return "return " + compileCalc(th) + ";";
+    }
+
     private String compileStatement(TokenHandler th){
         Token first = th.assertToken(Token.Type.IDENTIFIER);
         if(th.next().equals(Token.Type.IDENTIFIER)){
             th.last();
-            return first.toString() + " " + compileCalc(th);
+            return first.toString() + " " + compileCalc(th) + ";";
         }else {
             th.last();
             th.last();
-            return compileCalc(th);
+            return compileCalc(th) + ";";
         }
     }
 
@@ -438,7 +455,7 @@ public class Compiler {
     }
 
     public static boolean hasMethod(String clazz, String method, String...types){
-        if(Set.of("int", "double", "long", "short").contains(clazz)) return PRIMITIVE_NUMBER_OPERATORS.contains(method) && types.length == 1 && Set.of("int", "double", "long", "short").contains(types[0]);
+        if(Set.of("NUMBER", "int", "double", "long", "short").contains(clazz)) return PRIMITIVE_NUMBER_OPERATORS.contains(method) && types.length == 1 && Set.of("int", "double", "long", "short", "NUMBER").contains(types[0]);
         if(classes.containsKey(clazz)){
             if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method))
                 return ((XJLNClass) classes.get(clazz)).methods.get(method).matches(types);

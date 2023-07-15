@@ -1,7 +1,12 @@
-use java/lang/String as String
-use java/lang/Object as Object
+use {String, Object} from java/lang
 
-def Clazz[int i, double d]
+def Class[int i, double d]
+
+    long l
+
+    def Method() :: int
+        return 0
+    end
 
     #inner const [int] = [4, 3]
 end
