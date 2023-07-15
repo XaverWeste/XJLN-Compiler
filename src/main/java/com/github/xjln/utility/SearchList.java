@@ -17,6 +17,10 @@ public class SearchList <Key, Value>{
         values.add(value);
     }
 
+    public Value get(int index){
+        return values.get(index);
+    }
+
     public Value get(Key key){
         return values.get(keys.indexOf(key));
     }
@@ -27,5 +31,9 @@ public class SearchList <Key, Value>{
 
     public ArrayList<Value> getValues(){
         return values;
+    }
+
+    public int size(){
+        return keys.size();
     }
 }

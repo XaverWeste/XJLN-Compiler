@@ -15,4 +15,13 @@ public class XJLNMethod {
         this.returnType = returnType;
         this.code = code;
     }
+
+    public boolean matches(String...types){
+        if(types.length != parameter.size())
+            return false;
+        for(int i = 0;i < types.length;i++)
+            if(!parameter.get(i).type.equals(types[i]))
+                return false;
+        return true;
+    }
 }

@@ -17,10 +17,16 @@ import java.util.Set;
 public class Compiler {
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
+    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/");
 
-    private final Parser parser;
     private static String srcFolder = "";
     private static HashMap<String, Compilable> classes;
+
+    private final Parser parser;
+
+    private XJLNClass currentClass;
+    private String currentClassName;
+    private XJLNMethod currentMethod;
 
     public Compiler(String srcFolder){
         parser = new Parser();
@@ -169,6 +175,9 @@ public class Compiler {
     }
 
     private void compileMethods(String className, XJLNClass clazz, CtClass ct){
+        currentClass = clazz;
+        currentClassName = className;
+
         if(ct.isFrozen())
             ct.defrost();
 
@@ -237,7 +246,71 @@ public class Compiler {
     }
 
     private String compileCalc(TokenHandler th){
-        return null;
+        StringBuilder sb = new StringBuilder();
+        String type = th.next().t().toString();
+
+        switch (th.current().t()) {
+            case NUMBER -> sb.append(th.current());
+            case IDENTIFIER -> {
+                String current = compileCurrent(th);
+                type = getType(current);
+                sb.append(current);
+            }
+            default -> throw new RuntimeException("illegal argument in: " + th);
+        }
+
+        while (th.hasNext()) {
+            Token operator = th.assertToken(Token.Type.OPERATOR, Token.Type.SIMPLE);
+
+            if(operator.equals(Token.Type.SIMPLE) || operator.equals("->"))
+                return sb.toString();
+
+            switch (type){
+                case "NUMBER", "int", "double", "long", "short" -> {
+                    if(!PRIMITIVE_NUMBER_OPERATORS.contains(operator.s()))
+                           throw new RuntimeException("illegal operator");
+                    sb.append(operator.s());
+                }
+                default -> {
+                    if(!classExist(type))
+                        throw new RuntimeException("class " + type + " does not exist in: " + th);
+                    sb.append(".").append(operator.s()).append("(");
+                }
+            }
+
+            String currentType;
+
+            switch (th.next().t()) {
+                case NUMBER -> {
+                    sb.append(th.current());
+                    currentType = "NUMBER";
+                }
+                case IDENTIFIER -> {
+                    String current = compileCurrent(th);
+                    currentType = getType(current);
+                    sb.append(current);
+                }
+                default -> throw new RuntimeException("illegal argument in: " + th);
+            }
+
+            if(!hasMethod(type, operator.s(), currentType))
+                throw new RuntimeException("operator " + operator + " is not defined for " + type + " and " + currentType);
+
+            if(!PRIMITIVES.contains(type))
+                sb.append(")");
+
+            type = currentType;
+        }
+
+        return sb.toString();
+    }
+
+    private String compileCurrent(TokenHandler th){
+        return null; //TODO
+    }
+
+    private String getType(String of){
+        return null; //TODO
     }
 
     public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){
@@ -270,7 +343,7 @@ public class Compiler {
     }
 
     public static boolean classExist(String validName){
-        if(Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short").contains(validName)) return true;
+        if(PRIMITIVES.contains(validName)) return true;
         if(classes.containsKey(validName)) return true;
         try {
             Class.forName(validName);
@@ -280,6 +353,17 @@ public class Compiler {
             ClassPool.getDefault().get(validName);
             return true;
         }catch (NotFoundException ignored){}
+        return false;
+    }
+
+    public static boolean hasMethod(String clazz, String method, String...types){
+        if(Set.of("int", "double", "long", "short").contains(clazz)) return PRIMITIVE_NUMBER_OPERATORS.contains(method) && types.length == 1 && Set.of("int", "double", "long", "short").contains(types[0]);
+        if(classes.containsKey(clazz)){
+            if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method))
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).matches(types);
+            else
+                return false;
+        }
         return false;
     }
 }
