@@ -17,10 +17,17 @@ import java.util.Set;
 public class Compiler {
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
+    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
 
-    private final Parser parser;
     private static String srcFolder = "";
     private static HashMap<String, Compilable> classes;
+
+    private final Parser parser;
+
+    private XJLNClass currentClass;
+    private String currentClassName;
+    private XJLNMethod currentMethod;
+    private String currentMethodName;
 
     public Compiler(String srcFolder){
         parser = new Parser();
@@ -38,13 +45,27 @@ public class Compiler {
         srcFolder = srcFolder.replace("/", ".").replace("\\", ".");
     }
 
-    private void clearFolder(File folder, boolean delete) throws RuntimeException{
+    /*
+    private void clearFolder(File folder, boolean delete){
         for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
             if(fileEntry.isDirectory()){
                 clearFolder(fileEntry, true);
-                if(delete && Objects.requireNonNull(folder.listFiles()).length == 0) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
+                if(delete && folder.listFiles().length == 0) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
             }else if(fileEntry.getName().endsWith(".class")) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
         }
+        if(delete)
+            folder.delete();
+    }
+
+     */
+
+    private void clearFolder(File folder, boolean delete){
+        for(File file:folder.listFiles())
+            if(file.isDirectory())
+                clearFolder(file, true);
+            else if(file.getName().endsWith(".class")) file.delete();
+        if(delete && folder.listFiles().length == 0)
+            folder.delete();
     }
 
     private void compileFolder(File folder){
@@ -122,38 +143,24 @@ public class Compiler {
 
     private ClassFile compileClass(XJLNClass clazz, String name){
         ClassFile cf = new ClassFile(false, name, null);
-        cf.setAccessFlags(AccessFlag.PUBLIC);
+        cf.setAccessFlags(AccessFlag.setPublic(AccessFlag.PUBLIC));
 
-        //fields
-        for(String fieldName: clazz.fields.keySet()){
-            XJLNVariable v = clazz.fields.get(fieldName);
-            v.validateTypes();
-            FieldInfo f = new FieldInfo(cf.getConstPool(), fieldName, toDesc(v.types.length > 1 ? "java/lang/Object" : v.types[0]));
-            if(v.constant){
-                if(v.inner) f.setAccessFlags(AccessFlag.setPrivate(AccessFlag.FINAL));
-                else f.setAccessFlags(AccessFlag.setPublic(AccessFlag.FINAL));
-            }else f.setAccessFlags(v.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
-            cf.addField2(f);
-        }
+        //Fields
+        for(String n:clazz.fields.keySet())
+            addField(cf, clazz.fields.get(n), n);
+        for(String n:clazz.parameter.getKeys())
+            addField(cf, clazz.parameter.get(n), n);
 
-        //<init>
-        MethodInfo m = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter, "void"));
-        m.setAccessFlags(AccessFlag.PUBLIC);
+        //Constructor
+        MethodInfo method = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter.getValues(), "void"));
+        method.setAccessFlags(AccessFlag.PUBLIC);
         Bytecode code = new Bytecode(cf.getConstPool());
-
         int i = 0;
-        for(String parameter:clazz.parameter){
-            String[] infos = parameter.split(" ");
-
-            if(!clazz.fields.containsKey(infos[1])){
-                FieldInfo f = new FieldInfo(cf.getConstPool(), infos[1], toDesc(infos[0]));
-                f.setAccessFlags(AccessFlag.PUBLIC);
-                cf.addField2(f);
-            }
-
+        for(String n:clazz.parameter.getKeys()){
+            XJLNVariable v = clazz.parameter.get(n);
             code.addAload(0);
-            i++;
-            switch(infos[0]){
+            i += 1;
+            switch(v.type){
                 case "int", "byte", "char", "short", "boolean" -> code.addIload(i);
                 case "double" -> code.addDload(i);
                 case "long" -> code.addLload(i);
@@ -161,239 +168,289 @@ public class Compiler {
                 default -> code.addAload(i);
             }
             code.addAload(i);
-            code.addPutfield(name, infos[1], toDesc(infos[0]));
+            code.addPutfield(name, n, toDesc(v.type));
         }
-
-        if(clazz.constructor != null){
-            if(!clazz.methods.containsKey(clazz.constructor)) throw new RuntimeException("method " + clazz.constructor + " does not exist");
-            if(!clazz.methods.get(clazz.constructor).returnType.equals("void")) throw new RuntimeException("method " + clazz.constructor + " must be ()V in " + name);
-            code.addAload(0);
-            code.addInvokevirtual(name, clazz.constructor.split(" ")[0], "()V");
-        }
-
         code.addReturn(null);
-        m.setCodeAttribute(code.toCodeAttribute());
-        cf.addMethod2(m);
+        method.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(method);
 
         return cf;
     }
 
-    private void compileMethods(String name, XJLNClass clazz, CtClass ct){
-        if(ct.isFrozen()) ct.defrost();
+    private void addField(ClassFile cf, XJLNVariable v, String name){
+        FieldInfo field = new FieldInfo(cf.getConstPool(), name, toDesc(v.type));
+        field.setAccessFlags(v.constant ? v.inner ? AccessFlag.setPrivate(AccessFlag.FINAL) : AccessFlag.setPublic(AccessFlag.FINAL) : v.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
+
+        try{
+            cf.addField(field);
+        }catch (DuplicateMemberException ignored){}
+    }
+
+    private void compileMethods(String className, XJLNClass clazz, CtClass ct){
+        currentClass = clazz;
+        currentClassName = className;
+
+        if(ct.isFrozen())
+            ct.defrost();
 
         for(String methodName: clazz.methods.keySet()){
+            currentMethod = clazz.methods.get(methodName);
+            currentMethodName = methodName;
             try {
-                ct.addMethod(compileMethod(ct, methodName.split(" ")[0], clazz.methods.get(methodName)));
+                ct.addMethod(compileMethod(ct));
             }catch (CannotCompileException e){
                 throw new RuntimeException(e);
             }
         }
     }
 
-    private CtMethod compileMethod(CtClass clazz, String name, XJLNMethod method) throws CannotCompileException {
+    private CtMethod compileMethod(CtClass clazz) throws CannotCompileException{
         StringBuilder src = new StringBuilder();
 
-        src.append(method.inner ? "private " : "public ").append(method.returnType).append(" ").append(name).append("(");
+        src.append(currentMethod.inner ? "private " : "public ").append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
-        for(String para:method.parameter){
-            src.append(para);
-        }
+        for(String para:currentMethod.parameter.getKeys())
+            src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
+
+        if(src.toString().endsWith(","))
+            src.deleteCharAt(src.length() - 1);
 
         src.append("){");
 
-        String[] code = method.code;
-        for(int i = 0;i < code.length;i++){
-            TokenHandler th = Lexer.toToken(code[i]);
-            switch (th.assertToken(Token.Type.IDENTIFIER).s()){
-                case "if" -> {
-                    src.append("if(").append(compileCalc(th)).append("){");
-                    if(th.hasNext()) {
-                        th.assertToken("->");
-                        src.append(compileArgument(th)).append("}");
-                    }
+        for(String statement:currentMethod.code){
+            switch(statement.split(" ")[0]){
+                case "if" -> src.append(compileIf(statement));
+                case "while" -> src.append(compileWhile(statement));
+                case "return" -> src.append(compileReturn(statement));
+                case "end" -> {
+                    if(!statement.equals("end"))
+                        throw new RuntimeException("illegal argument in: " + statement);
+                    src.append("}");
                 }
-                case "else" -> {
-                    src.append("else");
-                    if(!th.hasNext())
-                        src.append("{");
-                    else {
-                        if(th.assertToken("if", "->").equals("if"))
-                            src.append(" if(").append(compileCalc(th)).append("){");
-                        if(th.current().equals("->"))
-                            src.append(compileParaMeterList(th)).append(";}");
-                    }
-                }
-                case "while" -> {
-                    src.append("while(").append(compileCalc(th)).append("){");
-                    if(th.current().equals("->"))
-                        src.append(compileParaMeterList(th)).append(";}");
-                }
-                case "end" -> src.append("}");
-                default -> {
-                    th.toFirst();
-                    src.append(compileArgument(th));
-                }
+                default -> src.append(compileStatement(Lexer.toToken(statement)));
             }
         }
 
         src.append("}");
 
-        System.out.println(src);
-
-        return CtNewMethod.make(src.toString(), clazz);
+        return CtMethod.make(src.toString(), clazz);
     }
 
-    private String compileArgument(TokenHandler th){
-        Token first = th.assertToken(Token.Type.IDENTIFIER);
+    private String compileIf(String statement){
+        TokenHandler th = Lexer.toToken(statement);
+        StringBuilder sb = new StringBuilder();
 
-        StringBuilder result = new StringBuilder();
+        th.assertToken("if");
+        sb.append("if(").append(compileCalc(th)).append("){");
 
-        switch (th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR, Token.Type.SIMPLE).t()){
-            case SIMPLE -> {
-                switch (th.current().s()){
-                    case "(" -> {
-                        result.append(first).append("(").append(compileParaMeterList(th));
-                        TokenHandler.assertToken(th.current(), ")");
-                        th.assertNull();
-                        result.append(")");
-                    }
-                    case ":" -> {
-                        result.append(first).append(":");
-                        th.assertHasNext();
-
-                        while (th.hasNext()){
-                            result.append(th.assertToken(Token.Type.IDENTIFIER));
-                            if(th.hasNext()){
-                                if(th.assertToken(":", "(").equals(":")) {
-                                    result.append(".");
-                                    th.assertHasNext();
-                                }else{
-                                    result.append("(").append(compileParaMeterList(th));
-                                    TokenHandler.assertToken(th.current(), ")");
-                                    result.append(")");
-                                    if(th.hasNext()){
-                                        th.assertToken(":");
-                                        th.assertHasNext();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    default -> throw new RuntimeException("illegal argument in: " + th);
-                }
-            }
-
-            case OPERATOR -> {
-                if (th.current().s().equals("="))
-                    result.append(first).append(th.current()).append(compileCalc(th));
-                else{
-                    th.last();
-                    result.append(compileCalc(th));
-                }
-            }
-
-            case IDENTIFIER -> {
-                result.append(first).append(th.current());
-                th.assertToken("=");
-                result.append("=").append(compileCalc(th));
-            }
-
-            default -> throw new RuntimeException("internal Compiler error");
+        if(th.hasNext()){
+            th.assertToken("->");
+            th.assertHasNext();
+            sb.append(compileStatement(th)).append("}");
         }
 
-        result.append(";");
+        return sb.toString();
+    }
 
-        return result.toString();
+    private String compileWhile(String statement){
+        TokenHandler th = Lexer.toToken(statement);
+        StringBuilder sb = new StringBuilder();
+
+        th.assertToken("while");
+        sb.append("while(").append(compileCalc(th)).append("){");
+
+        if(th.hasNext()){
+            th.assertToken("->");
+            th.assertHasNext();
+            sb.append(compileStatement(th)).append("}");
+        }
+
+        return sb.toString();
+    }
+
+    private String compileReturn(String statement){
+        TokenHandler th = Lexer.toToken(statement);
+        th.assertToken("return");
+        return "return " + compileCalc(th) + ";";
+    }
+
+    private String compileStatement(TokenHandler th){
+        Token first = th.assertToken(Token.Type.IDENTIFIER);
+        if(th.next().equals(Token.Type.IDENTIFIER)){
+            th.last();
+            return first.toString() + " " + compileCalc(th) + ";";
+        }else {
+            th.last();
+            th.last();
+            return compileCalc(th) + ";";
+        }
     }
 
     private String compileCalc(TokenHandler th){
-        ArrayList<String> calc = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        String type = th.next().t().toString();
 
-        while (th.hasNext()){
-            switch (th.next().t()){
-                case STRING, NUMBER -> calc.add(th.current().s());
-                case IDENTIFIER -> calc.add(compileNext(th));
+        switch (th.current().t()) {
+            case NUMBER -> sb.append(th.current());
+            case IDENTIFIER -> {
+                String current = compileCurrent(th);
+                type = current.split(" ", 2)[0];
+                sb.append(current.split(" ", 2)[1]);
+            }
+            default -> throw new RuntimeException("illegal argument in: " + th);
+        }
+
+        while (th.hasNext()) {
+            Token operator = th.assertToken(Token.Type.OPERATOR, Token.Type.SIMPLE);
+
+            if(operator.equals(Token.Type.SIMPLE) || operator.equals("->")) {
+                th.last();
+                return sb.toString();
+            }
+
+            switch (type){
+                case "NUMBER", "int", "double", "long", "short" -> {
+                    if(!PRIMITIVE_NUMBER_OPERATORS.contains(operator.s()))
+                           throw new RuntimeException("illegal operator");
+                    sb.append(operator.s());
+                }
+                default -> {
+                    if(!classExist(type))
+                        throw new RuntimeException("class " + type + " does not exist in: " + th);
+                    sb.append(".").append(operator.s()).append("(");
+                }
+            }
+
+            String currentType;
+
+            switch (th.next().t()) {
+                case NUMBER -> {
+                    sb.append(th.current());
+                    currentType = "NUMBER";
+                }
+                case IDENTIFIER -> {
+                    String current = compileCurrent(th);
+                    currentType = current.split(" ", 2)[0];
+                    sb.append(current.split(" ", 2)[1]);
+                }
                 default -> throw new RuntimeException("illegal argument in: " + th);
             }
 
-            if(th.hasNext()){
-                if(th.assertToken(Token.Type.OPERATOR).equals("->")) {
-                    th.last();
-                    break;
-                } else {
-                    calc.add(th.current().s());
-                    th.assertHasNext();
-                }
-            }
+            if(!hasMethod(type, operator.s(), currentType))
+                throw new RuntimeException("operator " + operator + " is not defined for " + type + " and " + currentType);
+
+            if(!PRIMITIVES.contains(type))
+                sb.append(")");
+
+            type = currentType;
         }
-
-        return compileCalc(calc);
-    }
-
-    private String compileCalc(ArrayList<String> calc){
-        if(calc.size() == 0)
-            throw new RuntimeException("unspecified syntax error");
-
-        if(calc.size() == 1)
-            return calc.get(0);
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(calc.get(0));
-
-        for(int i = 1;i < calc.size();i += 2)
-            sb.append(".").append(calc.get(i)).append("(").append(calc.get(i + 1)).append(")");
 
         return sb.toString();
     }
 
-    private String compileNext(TokenHandler th){
+    private String compileCurrent(TokenHandler th){
         StringBuilder sb = new StringBuilder();
-        th.last();
+        String lastType = currentClassName;
+        String call = th.current().s();
+        sb.append(call);
 
-        while (th.hasNext()){
-            sb.append(th.assertToken(Token.Type.IDENTIFIER).s());
-            if(th.hasNext()){
-                if(th.next().equals("(")){
-                    sb.append("(").append(compileParaMeterList(th));
-                    TokenHandler.assertToken(th.current(), ")");
-                    sb.append(")");
-                    if(th.hasNext()){
-                        if(th.assertToken(":", ",", "->", ")").equals(":")) {
-                            th.assertHasNext();
-                            sb.append(".");
-                        }else{
-                            th.last();
-                            break;
-                        }
+        switch (th.next().s()){
+            case "(" -> {
+                sb.append("(");
+                th.assertHasNext();
+                while(th.hasNext()){
+                    if(th.next().equals(")")){
+                        sb.append(")");
+                        break;
                     }
-                }else if(th.current().equals(":")){
-                    sb.append(".");
-                    th.assertHasNext();
-                }else{
                     th.last();
-                    break;
+                    sb.append(compileCalc(th));
+                    th.assertToken(",", ")");
+                    if(th.current().equals(")"))
+                        sb.append(")");
+                    else {
+                        sb.append(",");
+                        th.assertHasNext();
+                    }
                 }
+                lastType = getType(lastType, call, null);
+            }
+            case ":" -> {
+                th.last();
+                lastType = getType(lastType, currentMethodName, call);
+            }
+            default -> {
+                th.last();
+                return getType(lastType, currentMethodName, call) + " " + call;
             }
         }
 
-        return sb.toString();
-    }
-
-    private String compileParaMeterList(TokenHandler th){
-        StringBuilder sb = new StringBuilder();
-
         while (th.hasNext()){
-            sb.append(compileCalc(th));
-            if(th.assertToken(")", ",").equals(",")) th.assertHasNext();
-            else break;
+            if(th.next().equals(":")){
+                call = th.current().s();
+                sb.append(call);
+
+                switch (th.next().s()){
+                    case ":" -> {
+                        th.last();
+                        lastType = getType(lastType, null, call);
+                    }
+                    case "(" -> {
+                        sb.append("(");
+                        th.assertHasNext();
+                        while(th.hasNext()){
+                            if(th.next().equals(")")){
+                                sb.append(")");
+                                break;
+                            }
+                            sb.append(compileCalc(th));
+                            th.assertToken(",", ")");
+                            if(th.current().equals(")")) {
+                                sb.append(")");
+                                th.last();
+                            }else {
+                                sb.append(",");
+                                th.assertHasNext();
+                            }
+                        }
+                        lastType = getType(lastType, call, null);
+                    }
+                    default -> {
+                        th.last();
+                        return lastType + " " + sb;
+                    }
+                }
+            }else{
+                th.last();
+                break;
+            }
         }
 
-        return sb.toString();
+        th.last();
+        return lastType + " " + sb;
     }
 
-    public static String toDesc(String[] parameters, String returnType){
+    private String getType(String clazz, String method, String var){
+        if(var == null){
+            if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method)){
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType;
+            }else
+                throw new RuntimeException("illegal argument");
+        }else if(classes.get(clazz) instanceof XJLNClass){
+            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var) != null)
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var).type;
+            if(((XJLNClass) classes.get(clazz)).fields.get(var) != null)
+                return ((XJLNClass) classes.get(clazz)).fields.get(var).type;
+            if(((XJLNClass) classes.get(clazz)).parameter.get(var) != null)
+                return ((XJLNClass) classes.get(clazz)).parameter.get(var).type;
+        }else if(classes.get(clazz) instanceof XJLNEnum)
+            return clazz;
+        return null;
+    }
+
+    public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){
         StringBuilder sb = new StringBuilder("(");
-        for(String parameter:parameters) sb.append(toDesc(parameter.split(" ")[0]));
+        for(XJLNVariable parameter:parameters) sb.append(toDesc(parameter.type));
         sb.append(")");
         sb.append(toDesc(returnType));
         return sb.toString();
@@ -421,7 +478,7 @@ public class Compiler {
     }
 
     public static boolean classExist(String validName){
-        if(Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short").contains(validName)) return true;
+        if(PRIMITIVES.contains(validName)) return true;
         if(classes.containsKey(validName)) return true;
         try {
             Class.forName(validName);
@@ -431,6 +488,17 @@ public class Compiler {
             ClassPool.getDefault().get(validName);
             return true;
         }catch (NotFoundException ignored){}
+        return false;
+    }
+
+    public static boolean hasMethod(String clazz, String method, String...types){
+        if(Set.of("NUMBER", "int", "double", "long", "short").contains(clazz)) return PRIMITIVE_NUMBER_OPERATORS.contains(method) && types.length == 1 && Set.of("int", "double", "long", "short", "NUMBER").contains(types[0]);
+        if(classes.containsKey(clazz)){
+            if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method))
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).matches(types);
+            else
+                return false;
+        }
         return false;
     }
 }

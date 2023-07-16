@@ -27,8 +27,7 @@ class TokenHandler {
 
     public Token last() throws RuntimeException {
         index--;
-        if(!isValid()) throw new RuntimeException("expected Token got nothing in: " + this);
-        return tokens[index];
+        return index >= 0 ? tokens[index] : null;
     }
 
     public boolean hasNext(){

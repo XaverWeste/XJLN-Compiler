@@ -1,21 +1,33 @@
 package com.github.xjln.lang;
 
+import com.github.xjln.utility.SearchList;
+
 import java.util.HashMap;
 
 public class XJLNClass implements Compilable {
 
-    public final String[] parameter;
+    public final SearchList<String, XJLNVariable> parameter;
     public final String[] superClasses;
-    public final String constructor;
     public final HashMap<String, XJLNMethod> methods;
     public final HashMap<String, XJLNVariable> fields;
 
-    public XJLNClass(String[] parameter, String[] superClasses, String constructor){
+    public XJLNClass(SearchList<String, XJLNVariable> parameter, String[] superClasses){
         this.parameter = parameter;
         this.superClasses = superClasses;
-        this.constructor = constructor;
         methods = new HashMap<>();
         fields = new HashMap<>();
+    }
+
+    public void addField(String name, XJLNVariable var){
+        if(fields.containsKey(name))
+            throw new RuntimeException("field " + name + " already exist");
+        fields.put(name, var);
+    }
+
+    public void addMethod(String name, XJLNMethod method){
+        if(methods.containsKey(name))
+            throw new RuntimeException("method " + name + " already exist");
+        methods.put(name, method);
     }
 
 }
