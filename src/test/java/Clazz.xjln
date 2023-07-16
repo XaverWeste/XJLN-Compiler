@@ -4,7 +4,11 @@ def Class[int i, double d]
 
     long l
 
-    def Method() :: int
+    def Method(short s) :: int
+        while s > 0
+            if s > 5 -> s = s / 2
+            s = s - 1
+        end
         return 0
     end
 

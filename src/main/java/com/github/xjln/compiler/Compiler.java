@@ -17,7 +17,7 @@ import java.util.Set;
 public class Compiler {
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
-    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/");
+    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
 
     private static String srcFolder = "";
     private static HashMap<String, Compilable> classes;
@@ -27,6 +27,7 @@ public class Compiler {
     private XJLNClass currentClass;
     private String currentClassName;
     private XJLNMethod currentMethod;
+    private String currentMethodName;
 
     public Compiler(String srcFolder){
         parser = new Parser();
@@ -193,28 +194,30 @@ public class Compiler {
             ct.defrost();
 
         for(String methodName: clazz.methods.keySet()){
+            currentMethod = clazz.methods.get(methodName);
+            currentMethodName = methodName;
             try {
-                ct.addMethod(compileMethod(ct, methodName, clazz.methods.get(methodName)));
+                ct.addMethod(compileMethod(ct));
             }catch (CannotCompileException e){
                 throw new RuntimeException(e);
             }
         }
     }
 
-    private CtMethod compileMethod(CtClass clazz, String name, XJLNMethod method) throws CannotCompileException{
+    private CtMethod compileMethod(CtClass clazz) throws CannotCompileException{
         StringBuilder src = new StringBuilder();
 
-        src.append(method.inner ? "private " : "public ").append(method.returnType).append(" ").append(name).append("(");
+        src.append(currentMethod.inner ? "private " : "public ").append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
-        for(String para:method.parameter.getKeys())
-            src.append(method.parameter.get(para).type).append(" ").append(para).append(",");
+        for(String para:currentMethod.parameter.getKeys())
+            src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
 
         if(src.toString().endsWith(","))
             src.deleteCharAt(src.length() - 1);
 
         src.append("){");
 
-        for(String statement:method.code){
+        for(String statement:currentMethod.code){
             switch(statement.split(" ")[0]){
                 case "if" -> src.append(compileIf(statement));
                 case "while" -> src.append(compileWhile(statement));
@@ -300,8 +303,10 @@ public class Compiler {
         while (th.hasNext()) {
             Token operator = th.assertToken(Token.Type.OPERATOR, Token.Type.SIMPLE);
 
-            if(operator.equals(Token.Type.SIMPLE) || operator.equals("->"))
+            if(operator.equals(Token.Type.SIMPLE) || operator.equals("->")) {
+                th.last();
                 return sb.toString();
+            }
 
             switch (type){
                 case "NUMBER", "int", "double", "long", "short" -> {
@@ -346,51 +351,83 @@ public class Compiler {
     private String compileCurrent(TokenHandler th){
         StringBuilder sb = new StringBuilder();
         String lastType = currentClassName;
-        th.last();
+        String call = th.current().s();
+        sb.append(call);
+
+        switch (th.next().s()){
+            case "(" -> {
+                sb.append("(");
+                th.assertHasNext();
+                while(th.hasNext()){
+                    if(th.next().equals(")")){
+                        sb.append(")");
+                        break;
+                    }
+                    sb.append(compileCalc(th));
+                    th.assertToken(",", ")");
+                    if(th.current().equals(")")) {
+                        sb.append(")");
+                        th.last();
+                    }else {
+                        sb.append(",");
+                        th.assertHasNext();
+                    }
+                }
+                lastType = getType(lastType, call, null);
+            }
+            case ":" -> {
+                th.last();
+                lastType = getType(lastType, currentMethodName, call);
+            }
+            default -> {
+                th.last();
+                return getType(lastType, currentMethodName, call) + " " + call;
+            }
+        }
 
         while (th.hasNext()){
-            if(th.next().t() == Token.Type.IDENTIFIER){
-                String name = th.current().s();
-                if(th.hasNext()){
-                    switch(th.next().s()){
-                        case ":" -> {
-                            sb.append(".");
-                            th.assertToken(Token.Type.IDENTIFIER);
-                            th.last();
-                            lastType = getType(lastType, null, name);
-                        }
-                        case "(" -> {
-                            sb.append("(");
-                            th.assertHasNext();
-                            while(th.hasNext()){
-                                if(th.next().equals(")")){
-                                    sb.append(")");
-                                    break;
-                                }
-                                sb.append(compileCalc(th));
-                                th.assertToken(",", ")");
-                                if(th.current().equals(")"))
-                                    th.last();
-                                else
-                                    sb.append(",");
+            if(th.next().equals(":")){
+                call = th.current().s();
+                sb.append(call);
+
+                switch (th.next().s()){
+                    case ":" -> {
+                        th.last();
+                        lastType = getType(lastType, null, call);
+                    }
+                    case "(" -> {
+                        sb.append("(");
+                        th.assertHasNext();
+                        while(th.hasNext()){
+                            if(th.next().equals(")")){
+                                sb.append(")");
+                                break;
+                            }
+                            sb.append(compileCalc(th));
+                            th.assertToken(",", ")");
+                            if(th.current().equals(")")) {
+                                sb.append(")");
+                                th.last();
+                            }else {
+                                sb.append(",");
                                 th.assertHasNext();
                             }
-                            lastType = getType(lastType, name, null);
                         }
-                        case "->", ",",")" -> {
-                            th.last();
-                            return sb.toString();
-                        }
-                        default -> throw new RuntimeException("illegal argument in: " + th);
+                        lastType = getType(lastType, call, null);
                     }
-                }else
-                    sb.append(name);
-            }else
+                    default -> {
+                        th.last();
+                        return lastType + " " + sb;
+                    }
+                }
+            }else{
+                th.last();
                 break;
+            }
         }
 
         th.last();
-        return sb.toString();
+        return lastType + " " + sb;
     }
 
     private String getType(String clazz, String method, String var){
