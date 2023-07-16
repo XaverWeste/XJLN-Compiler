@@ -363,12 +363,12 @@ public class Compiler {
                         sb.append(")");
                         break;
                     }
+                    th.last();
                     sb.append(compileCalc(th));
                     th.assertToken(",", ")");
-                    if(th.current().equals(")")) {
+                    if(th.current().equals(")"))
                         sb.append(")");
-                        th.last();
-                    }else {
+                    else {
                         sb.append(",");
                         th.assertHasNext();
                     }

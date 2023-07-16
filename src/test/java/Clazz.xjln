@@ -6,8 +6,8 @@ def Class[int i, double d]
 
     def Method(short s) :: int
         while s > 0
-            if s > 5 -> s = s / 2
             s = s - 1
+            Method(s)
         end
         return 0
     end
