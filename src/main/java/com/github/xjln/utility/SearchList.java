@@ -22,6 +22,8 @@ public class SearchList <Key, Value>{
     }
 
     public Value get(Key key){
+        if(!keys.contains(key))
+            return null;
         return values.get(keys.indexOf(key));
     }
 

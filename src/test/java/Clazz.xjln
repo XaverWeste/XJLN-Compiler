@@ -1,17 +1,17 @@
 use {String, Object} from java/lang
 
 main
-    int i
+    i = 5
 end
 
 def Class[int i, double d]
 
     long l
 
-    def Method(short s) :: int
-        while s > 0
-            s = s - 1
-            Method(s)
+    def Method(int j) :: int
+        while j > 0
+            j = j - 1
+            Method(j)
         end
         return 0
     end

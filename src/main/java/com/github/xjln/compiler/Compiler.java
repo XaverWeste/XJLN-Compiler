@@ -244,7 +244,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("if");
-        sb.append("if(").append(compileCalc(th)).append("){");
+        sb.append("if(").append(compileCalc(th).split(" ", 2)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -260,7 +260,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("while");
-        sb.append("while(").append(compileCalc(th)).append("){");
+        sb.append("while(").append(compileCalc(th).split(" ", 2)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -274,18 +274,28 @@ public class Compiler {
     private String compileReturn(String statement){
         TokenHandler th = Lexer.toToken(statement);
         th.assertToken("return");
-        return "return " + compileCalc(th) + ";";
+        th.assertHasNext();
+        return "return " + compileCalc(th).split(" ", 2)[1] + ";";
     }
 
     private String compileStatement(TokenHandler th){
         Token first = th.assertToken(Token.Type.IDENTIFIER);
         if(th.next().equals(Token.Type.IDENTIFIER)){
+            currentMethod.parameter.add(th.current().s(), new XJLNVariable(first.s()));
             th.last();
-            return first.toString() + " " + compileCalc(th) + ";";
-        }else {
+            return first + " " + compileCalc(th).split(" ", 2)[1] + ";";
+        }else if(th.current().equals("=")){
+            th.assertHasNext();
+            String calc = compileCalc(th);
+            if(currentMethod.parameter.get(first.s()) == null && currentClass.parameter.get(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
+                currentMethod.parameter.add(first.s(), new XJLNVariable(calc.split(" ", 2)[0]));
+                return (calc.split(" ", 2)[0].equals("NUMBER") ? "double" : calc.split(" ", 2)[0]) + " " + first + " = " + calc.split(" ", 2)[1] + ";";
+            }else
+                return first + " = " + calc.split(" ", 2)[1] + ";";
+        }else{
             th.last();
             th.last();
-            return compileCalc(th) + ";";
+            return compileCalc(th).split(" ", 2)[1] + ";";
         }
     }
 
@@ -308,7 +318,7 @@ public class Compiler {
 
             if(operator.equals(Token.Type.SIMPLE) || operator.equals("->")) {
                 th.last();
-                return sb.toString();
+                return type + " " + sb;
             }
 
             switch (type){
@@ -348,7 +358,7 @@ public class Compiler {
             type = currentType;
         }
 
-        return sb.toString();
+        return type + " " + sb;
     }
 
     private String compileCurrent(TokenHandler th){
@@ -370,7 +380,7 @@ public class Compiler {
                         break;
                     }
                     th.last();
-                    sb.append(compileCalc(th));
+                    sb.append(compileCalc(th).split(" ", 2)[1]);
                     th.assertToken(",", ")");
                     if(th.current().equals(")"))
                         sb.append(")");
@@ -409,7 +419,7 @@ public class Compiler {
                                 sb.append(")");
                                 break;
                             }
-                            sb.append(compileCalc(th));
+                            sb.append(compileCalc(th).split(" ", 2)[1]);
                             th.assertToken(",", ")");
                             if(th.current().equals(")")) {
                                 sb.append(")");
