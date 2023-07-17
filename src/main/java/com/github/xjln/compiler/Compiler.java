@@ -6,12 +6,12 @@ import javassist.bytecode.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.Set;
 
 public class Compiler {
@@ -19,7 +19,7 @@ public class Compiler {
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
     private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
 
-    private static String srcFolder = "";
+    private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
 
     private final Parser parser;
@@ -29,35 +29,26 @@ public class Compiler {
     private XJLNMethod currentMethod;
     private String currentMethodName;
 
-    public Compiler(String srcFolder){
+    /**
+     * creates a new instance of the XJLN-Compiler and starts compiling
+     * @param main the path to the .xjln file with the main method (if there is no main method or no main method should be executed the parameter should be null)
+     * @param srcFolders the paths to the folders that should be compiled
+     */
+    public Compiler(String main, String...srcFolders){
         parser = new Parser();
         classes = new HashMap<>();
-        Compiler.srcFolder = srcFolder;
+        Compiler.srcFolders = srcFolders;
         validateFolders();
-        compileFolder(new File(srcFolder));
+        for(String folder:srcFolders) compileFolder(new File(folder));
+        executeMain(main);
     }
 
     private void validateFolders() throws RuntimeException{
         Path compiled = Paths.get("compiled");
         if(!Files.exists(compiled) && !new File("compiled").mkdirs()) throw new RuntimeException("unable to validate compiled folder");
         else clearFolder(compiled.toFile(), false);
-        if(!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder");
-        srcFolder = srcFolder.replace("/", ".").replace("\\", ".");
+        for (String srcFolder : srcFolders) if (!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder");
     }
-
-    /*
-    private void clearFolder(File folder, boolean delete){
-        for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
-            if(fileEntry.isDirectory()){
-                clearFolder(fileEntry, true);
-                if(delete && folder.listFiles().length == 0) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
-            }else if(fileEntry.getName().endsWith(".class")) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
-        }
-        if(delete)
-            folder.delete();
-    }
-
-     */
 
     private void clearFolder(File folder, boolean delete){
         for(File file:folder.listFiles())
@@ -69,7 +60,7 @@ public class Compiler {
     }
 
     private void compileFolder(File folder){
-        for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
+        for (File fileEntry : folder.listFiles()){
             if(fileEntry.isDirectory()) compileFolder(fileEntry);
             else if(fileEntry.getName().endsWith(".xjln")) classes.putAll(parser.parseFile(fileEntry));
         }
@@ -391,6 +382,27 @@ public class Compiler {
                 }
                 lastType = getType(lastType, call, null);
             }
+            case "[" -> {
+                lastType = sb.toString();
+                sb = new StringBuilder("new " + sb);
+                sb.append("(");
+                th.assertHasNext();
+                while(th.hasNext()){
+                    if(th.next().equals("]")){
+                        sb.append(")");
+                        break;
+                    }
+                    th.last();
+                    sb.append(compileCalc(th).split(" ", 2)[1]);
+                    th.assertToken(",", "]");
+                    if(th.current().equals("]"))
+                        sb.append(")");
+                    else {
+                        sb.append(",");
+                        th.assertHasNext();
+                    }
+                }
+            }
             case ":" -> {
                 th.last();
                 lastType = getType(lastType, currentMethodName, call);
@@ -462,6 +474,19 @@ public class Compiler {
         }else if(classes.get(clazz) instanceof XJLNEnum)
             return clazz;
         return null;
+    }
+
+    private void executeMain(String path){
+        path = path.replace("/", ".").replace("\\", ".");
+        if(!classes.containsKey(path + ".Main"))
+            throw new RuntimeException("file " + path + " does not exist");
+        if(classes.get(path + ".Main") instanceof XJLNClass && !((XJLNClass) classes.get(path + ".Main")).methods.containsKey("main"))
+            throw new RuntimeException(path + " contains no main method");
+        try {
+            Class<?> clazz = ClassPool.getDefault().get(path + ".Main").getClass();
+            Object obj = clazz.getDeclaredConstructor().newInstance();
+            clazz.getMethod("main").invoke(obj);
+        }catch (NotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException ignored){} //won't throw
     }
 
     public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){

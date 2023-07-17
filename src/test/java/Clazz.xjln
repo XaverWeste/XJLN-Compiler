@@ -1,10 +1,11 @@
 use {String, Object} from java/lang
+use java/lang/System
 
 main
-    i = 5
+    Clazz[0,0]
 end
 
-def Class[int i, double d]
+def Clazz[int i, double d]
 
     long l
 
