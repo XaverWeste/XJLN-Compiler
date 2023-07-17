@@ -207,7 +207,10 @@ public class Compiler {
     private CtMethod compileMethod(CtClass clazz) throws CannotCompileException{
         StringBuilder src = new StringBuilder();
 
-        src.append(currentMethod.inner ? "private " : "public ").append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
+        src.append(currentMethod.inner ? "private " : "public ");
+        if(currentMethodName.equalsIgnoreCase("main"))
+            src.append("static ");
+        src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
         for(String para:currentMethod.parameter.getKeys())
             src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
@@ -353,6 +356,9 @@ public class Compiler {
         String lastType = currentClassName;
         String call = th.current().s();
         sb.append(call);
+
+        if(!th.hasNext())
+            return lastType + " " + sb;
 
         switch (th.next().s()){
             case "(" -> {

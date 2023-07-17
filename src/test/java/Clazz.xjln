@@ -1,5 +1,9 @@
 use {String, Object} from java/lang
 
+main
+    int i
+end
+
 def Class[int i, double d]
 
     long l
