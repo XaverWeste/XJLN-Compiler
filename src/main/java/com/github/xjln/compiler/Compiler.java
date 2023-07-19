@@ -153,6 +153,8 @@ public class Compiler {
         MethodInfo method = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter.getValues(), "void"));
         method.setAccessFlags(AccessFlag.PUBLIC);
         Bytecode code = new Bytecode(cf.getConstPool());
+        code.addAload(0);
+        code.addInvokespecial("java/lang/Object", "<init>", "()V");
         int i = 0;
         for(String n:clazz.parameter.getKeys()){
             XJLNVariable v = clazz.parameter.get(n);
