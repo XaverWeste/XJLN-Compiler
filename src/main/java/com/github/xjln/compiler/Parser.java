@@ -162,11 +162,22 @@ class Parser {
     private void parseFieldDef(String line){
         TokenHandler th = Lexer.toToken(line);
 
-        String type = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
+        boolean inner = false, constant = false;
+
+        String type = th.assertToken(Token.Type.IDENTIFIER).s();
+        if(type.equals("inner")){
+            inner = true;
+            type = th.assertToken(Token.Type.IDENTIFIER).s();
+        }
+        if(type.equals("const")){
+            constant = true;
+            type = th.assertToken(Token.Type.IDENTIFIER).s();
+        }
+        type = validateType(type);
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
 
         if(current instanceof XJLNClass)
-            ((XJLNClass) current).addField(name, new XJLNVariable(type));
+            ((XJLNClass) current).addField(name, new XJLNVariable(inner, constant, type));
         else
             throw new RuntimeException("internal compiler error at: " + line);
     }

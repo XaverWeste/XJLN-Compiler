@@ -7,7 +7,7 @@ end
 
 def Clazz[int i, double d]
 
-    long l
+    inner const long l
 
     def Method(int j) :: int
         while j > 0
