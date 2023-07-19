@@ -43,20 +43,27 @@ public class Compiler {
         executeMain(main);
     }
 
-    private void validateFolders() throws RuntimeException{
+    private void validateFolders(){
         Path compiled = Paths.get("compiled");
         if(!Files.exists(compiled) && !new File("compiled").mkdirs()) throw new RuntimeException("unable to validate compiled folder");
         else clearFolder(compiled.toFile(), false);
-        for (String srcFolder : srcFolders) if (!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder");
+        for (String srcFolder : srcFolders){
+            if (!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder " + srcFolder);
+            try {
+                ClassPool.getDefault().appendClassPath("compiled" + srcFolder);
+            }catch (NotFoundException ignored){}
+        }
     }
 
     private void clearFolder(File folder, boolean delete){
         for(File file:folder.listFiles())
             if(file.isDirectory())
                 clearFolder(file, true);
-            else if(file.getName().endsWith(".class")) file.delete();
+            else if(file.getName().endsWith(".class") && !file.delete())
+                throw new RuntimeException("failed to delete " + file.getPath());
         if(delete && folder.listFiles().length == 0)
-            folder.delete();
+            if(!folder.delete())
+                throw new RuntimeException("unable to clear folder " + folder.getPath());
     }
 
     private void compileFolder(File folder){
@@ -383,8 +390,9 @@ public class Compiler {
                 lastType = getType(lastType, call, null);
             }
             case "[" -> {
-                lastType = sb.toString();
-                sb = new StringBuilder("new " + sb);
+                if(!currentClass.aliases.containsKey(sb.toString()) || !classExist(currentClass.aliases.get(sb.toString())))
+                    throw new RuntimeException("class " + (currentClass.aliases.containsKey(sb.toString()) ? currentClass.aliases.get(sb.toString()) : sb) + " does not exist");
+                sb = new StringBuilder("new " + currentClass.aliases.get(sb.toString()));
                 sb.append("(");
                 th.assertHasNext();
                 while(th.hasNext()){

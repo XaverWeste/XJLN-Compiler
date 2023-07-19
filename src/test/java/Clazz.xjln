@@ -2,7 +2,7 @@ use {String, Object} from java/lang
 use java/lang/System
 
 main
-    Clazz[0,0]
+    Clazz[0,0.0]
 end
 
 def Clazz[int i, double d]

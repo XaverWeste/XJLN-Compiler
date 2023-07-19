@@ -36,11 +36,13 @@ class Parser {
                 if (line.startsWith("use ")) parseUseDef(line);
                 else if(line.equals("main")){
                     parseMain();
-                    if(uses.containsKey(className)) throw new RuntimeException("main is already defined in " + path);
+                    if(classes.containsKey(className)) throw new RuntimeException("main is already defined in " + path);
                     classes.put(className, current);
                 }else if(line.startsWith("def ")){
                     parseDef(line);
-                    if(uses.containsKey(className)) throw new RuntimeException("class " + className + " already exist in: " + line);
+                    String name = className.split("\\.")[className.split("\\.").length - 1];
+                    if(uses.containsKey(name)) throw new RuntimeException("class " + className + " already exist in: " + line);
+                    uses.put(name, className);
                     classes.put(className, current);
                 } else throw new RuntimeException("illegal argument in: " + line);
             }
@@ -107,7 +109,7 @@ class Parser {
 
     private void parseMain(){
         className = Compiler.validateName(path + ".Main");
-        current = new XJLNClass(new SearchList<>(), new String[0]);
+        current = new XJLNClass(new SearchList<>(), new String[0], uses);
         ((XJLNClass) current).methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
     }
 
@@ -141,7 +143,7 @@ class Parser {
         SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
         ArrayList<String> supers = new ArrayList<>();
 
-        current = new XJLNClass(parameter, supers.toArray(new String[0]));
+        current = new XJLNClass(parameter, supers.toArray(new String[0]), uses);
 
         String line = sc.nextLine().trim();
         while (!line.equals("end")) {
