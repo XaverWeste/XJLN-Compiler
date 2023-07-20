@@ -328,7 +328,7 @@ public class Compiler {
                     sb.append(operator.s());
                 }
                 default -> {
-                    if(!classExist(type))
+                    if(getClassLang(type) == null)
                         throw new RuntimeException("class " + type + " does not exist in: " + th);
                     sb.append(".").append(operator.s()).append("(");
                 }
@@ -374,27 +374,32 @@ public class Compiler {
             case "(" -> {
                 sb.append("(");
                 th.assertHasNext();
+                ArrayList<String> types = new ArrayList<>();
                 while(th.hasNext()){
                     if(th.next().equals(")")){
                         sb.append(")");
                         break;
                     }
                     th.last();
-                    sb.append(compileCalc(th).split(" ", 2)[1]);
+                    String[] calc = compileCalc(th).split(" ", 2);
+                    types.add(calc[0]);
+                    sb.append(calc[1]);
                     th.assertToken(",", ")");
-                    if(th.current().equals(")"))
+                    if(th.current().equals(")")) {
                         sb.append(")");
-                    else {
+                        break;
+                    } else {
                         sb.append(",");
                         th.assertHasNext();
                     }
                 }
-                lastType = getType(lastType, call, null);
+                lastType = getReturnType(lastType, call, types.toArray(new String[0]));
             }
             case "[" -> {
-                if(!currentClass.aliases.containsKey(sb.toString()) || !classExist(currentClass.aliases.get(sb.toString())))
+                if(!currentClass.aliases.containsKey(sb.toString()) || getClassLang(currentClass.aliases.get(sb.toString())) == null)
                     throw new RuntimeException("class " + (currentClass.aliases.containsKey(sb.toString()) ? currentClass.aliases.get(sb.toString()) : sb) + " does not exist");
                 sb = new StringBuilder("new " + currentClass.aliases.get(sb.toString()));
+                lastType = currentClass.aliases.get(sb.toString());
                 sb.append("(");
                 th.assertHasNext();
                 while(th.hasNext()){
@@ -431,17 +436,20 @@ public class Compiler {
                 switch (th.next().s()){
                     case ":" -> {
                         th.last();
-                        lastType = getType(lastType, null, call);
+                        lastType = getFieldType(lastType, call);
                     }
                     case "(" -> {
                         sb.append("(");
                         th.assertHasNext();
+                        ArrayList<String> types = new ArrayList<>();
                         while(th.hasNext()){
                             if(th.next().equals(")")){
                                 sb.append(")");
                                 break;
                             }
-                            sb.append(compileCalc(th).split(" ", 2)[1]);
+                            String[] calc = compileCalc(th).split(" ", 2);
+                            types.add(calc[0]);
+                            sb.append(calc[1]);
                             th.assertToken(",", ")");
                             if(th.current().equals(")")) {
                                 sb.append(")");
@@ -451,7 +459,7 @@ public class Compiler {
                                 th.assertHasNext();
                             }
                         }
-                        lastType = getType(lastType, call, null);
+                        lastType = getReturnType(lastType, call, types.toArray(new String[0]));
                     }
                     default -> {
                         th.last();
@@ -483,6 +491,57 @@ public class Compiler {
                 return ((XJLNClass) classes.get(clazz)).parameter.get(var).type;
         }else if(classes.get(clazz) instanceof XJLNEnum)
             return clazz;
+        return null;
+    }
+
+    private String getReturnType(String clazz, String method, String...parameter){
+        switch (getClassLang(clazz)){
+            case "java" -> {
+                try{
+                    Class<?>[] classes = new Class[parameter.length];
+                    for(int i = 0;i < parameter.length;i++)
+                        classes[i] = Class.forName(parameter[i]);
+                    return Class.forName(clazz).getMethod(method, classes).getReturnType().toString();
+                }catch (ClassNotFoundException | NoSuchMethodException ignored){
+                    return null;
+                }
+            }
+            case "xjln" -> {
+                if(classes.get(clazz) instanceof XJLNClass){
+                    if(!((XJLNClass) classes.get(clazz)).methods.containsKey(method))
+                        return null;
+                    return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType;
+                }
+            }
+            case "unknown" -> {
+                return null;
+            }
+            case "primitive" -> throw new RuntimeException("no such method");
+        }
+        return null;
+    }
+
+    private String getFieldType(String clazz, String name){
+        switch (getClassLang(clazz)){
+            case "java" -> {
+                try{
+                    return Class.forName(clazz).getField(name).getType().toString();
+                }catch (ClassNotFoundException | NoSuchFieldException ignored){
+                    return null;
+                }
+            }
+            case "xjln" -> {
+                if(classes.get(clazz) instanceof XJLNClass){
+                    if(!((XJLNClass) classes.get(clazz)).fields.containsKey(name))
+                        return null;
+                    return ((XJLNClass) classes.get(clazz)).fields.get(name).type;
+                }
+            }
+            case "unknown" -> {
+                return null;
+            }
+            case "primitive" -> throw new RuntimeException("no such method");
+        }
         return null;
     }
 
@@ -528,18 +587,18 @@ public class Compiler {
         return name;
     }
 
-    public static boolean classExist(String validName){
-        if(PRIMITIVES.contains(validName)) return true;
-        if(classes.containsKey(validName)) return true;
+    public static String getClassLang(String validName){
+        if(PRIMITIVES.contains(validName)) return "primitive";
+        if(classes.containsKey(validName)) return "xjln";
         try {
             Class.forName(validName);
-            return true;
+            return "java";
         }catch (ClassNotFoundException ignored){}
         try {
             ClassPool.getDefault().get(validName);
-            return true;
+            return "unknown";
         }catch (NotFoundException ignored){}
-        return false;
+        return null;
     }
 
     public static boolean hasMethod(String clazz, String method, String...types){

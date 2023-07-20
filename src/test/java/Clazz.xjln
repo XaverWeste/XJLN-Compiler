@@ -1,21 +1,25 @@
-use {String, Object} from java/lang
-use java/lang/System
+use System from java/lang as system
 
 main
-    Clazz[0,0.0]
+    system:out:println(0)
 end
 
-def Clazz[int i, double d]
+############# feature preview ###################
 
-    inner const long l
+#def class[/] => java/lang/Object, java/lang/Class
 
-    def Method(int j) :: int
-        while j > 0
-            j = j - 1
-            Method(j)
-        end
-        return 0
-    end
+#   [int] intArray = [4, 3]
 
-    #inner const [int] = [4, 3]
-end
+#   def function() :: int = 0
+
+#   def function(someClass sc) -> intArray:[1,2] = sc:intValue()
+
+#   def fib(int n) :: int {
+#       (0) = 0
+#       (1) = 0
+#       (n > 1) = fib(n - 1) - fib(n - 2)
+#   }
+
+#end
+
+#def someThing = (int i, int j)
