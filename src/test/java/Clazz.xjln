@@ -2,6 +2,13 @@ use System from java/lang as system
 
 main
     system:out:println(0)
+    #system:out:println(Class[0]:i)
+end
+
+def Class[int i]
+
+    int i
+
 end
 
 ############# feature preview ###################

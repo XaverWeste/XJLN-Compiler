@@ -7,6 +7,9 @@ import javassist.bytecode.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -143,6 +146,9 @@ public class Compiler {
         ClassFile cf = new ClassFile(false, name, null);
         cf.setAccessFlags(AccessFlag.setPublic(AccessFlag.PUBLIC));
 
+        if(name.endsWith("Main"))
+            return cf;
+
         //Fields
         for(String n:clazz.fields.keySet())
             addField(cf, clazz.fields.get(n), n);
@@ -207,16 +213,18 @@ public class Compiler {
     private CtMethod compileMethod(CtClass clazz) throws CannotCompileException{
         StringBuilder src = new StringBuilder();
 
-        src.append(currentMethod.inner ? "private " : "public ");
-        if(currentMethodName.equalsIgnoreCase("main"))
-            src.append("static ");
-        src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
+        if(currentMethodName.equalsIgnoreCase("main")){
+            src.append("public static void main(String[] args");
+        }else {
+            src.append(currentMethod.inner ? "private " : "public ");
+            src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
-        for(String para:currentMethod.parameter.getKeys())
-            src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
+            for (String para : currentMethod.parameter.getKeys())
+                src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
 
-        if(src.toString().endsWith(","))
-            src.deleteCharAt(src.length() - 1);
+            if (src.toString().endsWith(","))
+                src.deleteCharAt(src.length() - 1);
+        }
 
         src.append("){");
 
@@ -368,7 +376,7 @@ public class Compiler {
         sb.append(call);
 
         if(!th.hasNext())
-            return lastType + " " + sb;
+            return getType(currentClassName, currentMethodName, call) + " " + sb;
 
         switch (th.next().s()){
             case "(" -> {
@@ -384,8 +392,7 @@ public class Compiler {
                     String[] calc = compileCalc(th).split(" ", 2);
                     types.add(calc[0]);
                     sb.append(calc[1]);
-                    th.assertToken(",", ")");
-                    if(th.current().equals(")")) {
+                    if(th.assertToken(",", ")").equals(")")) {
                         sb.append(")");
                         break;
                     } else {
@@ -420,7 +427,12 @@ public class Compiler {
             }
             case ":" -> {
                 th.last();
-                lastType = getType(lastType, currentMethodName, call);
+                if(getType(lastType, currentMethodName, call) == null){
+                    sb = new StringBuilder(currentClass.aliases.get(call));
+                    lastType = sb.toString();
+                }else
+                    lastType = getType(lastType, currentMethodName, call);
+
             }
             default -> {
                 th.last();
@@ -430,7 +442,8 @@ public class Compiler {
 
         while (th.hasNext()){
             if(th.next().equals(":")){
-                call = th.current().s();
+                sb.append(".");
+                call = th.assertToken(Token.Type.IDENTIFIER).s();
                 sb.append(call);
 
                 switch (th.next().s()){
@@ -447,14 +460,13 @@ public class Compiler {
                                 sb.append(")");
                                 break;
                             }
+                            th.last();
                             String[] calc = compileCalc(th).split(" ", 2);
                             types.add(calc[0]);
                             sb.append(calc[1]);
-                            th.assertToken(",", ")");
-                            if(th.current().equals(")")) {
+                            if(th.assertToken(",", ")").equals(")"))
                                 sb.append(")");
-                                th.last();
-                            }else {
+                            else {
                                 sb.append(",");
                                 th.assertHasNext();
                             }
@@ -501,7 +513,7 @@ public class Compiler {
                     Class<?>[] classes = new Class[parameter.length];
                     for(int i = 0;i < parameter.length;i++)
                         classes[i] = Class.forName(parameter[i]);
-                    return Class.forName(clazz).getMethod(method, classes).getReturnType().toString();
+                    return Class.forName(clazz).getMethod(method, classes).getReturnType().toString().split(" ", 2)[1];
                 }catch (ClassNotFoundException | NoSuchMethodException ignored){
                     return null;
                 }
@@ -525,7 +537,7 @@ public class Compiler {
         switch (getClassLang(clazz)){
             case "java" -> {
                 try{
-                    return Class.forName(clazz).getField(name).getType().toString();
+                    return Class.forName(clazz).getField(name).getType().toString().split(" ", 2)[1];
                 }catch (ClassNotFoundException | NoSuchFieldException ignored){
                     return null;
                 }
@@ -552,10 +564,38 @@ public class Compiler {
         if(classes.get(path + ".Main") instanceof XJLNClass && !((XJLNClass) classes.get(path + ".Main")).methods.containsKey("main"))
             throw new RuntimeException(path + " contains no main method");
         try {
-            Class<?> clazz = ClassPool.getDefault().get(path + ".Main").getClass();
-            Object obj = clazz.getDeclaredConstructor().newInstance();
-            clazz.getMethod("main").invoke(obj);
-        }catch (NotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException ignored){} //won't throw
+            URLClassLoader classLoader = new URLClassLoader(new URL[]{new File(System.getProperty("user.dir") + "/compiled").toURI().toURL()});
+            classLoader.loadClass(path + ".Main").getMethod("main", String[].class).invoke(null, (Object) null);
+        /*
+            CustomClassLoader ccl = new CustomClassLoader();
+            Class<?> clazz = ccl.findClass(path + ".Main", ClassPool.getDefault().get(path + ".Main"));
+            clazz.getMethod("main", String[].class).invoke(null, (Object) null);
+
+         */
+        }catch (MalformedURLException e){
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static class CustomClassLoader extends ClassLoader {
+        public Class<?> findClass(String name, CtClass ct) throws ClassNotFoundException {
+            try {
+                if(ct.isFrozen())
+                    ct.defrost();
+                byte[] byteCode = ct.toBytecode();
+                return defineClass(name, byteCode, 0, byteCode.length);
+            } catch (Exception e) {
+                throw new ClassNotFoundException(name, e);
+            }
+        }
     }
 
     public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){

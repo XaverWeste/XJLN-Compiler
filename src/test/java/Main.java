@@ -1,6 +1,7 @@
 import com.github.xjln.compiler.Compiler;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.CtMethod;
 import javassist.CtNewMethod;
 import javassist.bytecode.*;
 

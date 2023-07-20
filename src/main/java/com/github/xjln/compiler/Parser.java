@@ -99,11 +99,11 @@ class Parser {
             th.assertNull();
 
         if(as != null)
-            uses.put(as, from + "/" + use.get(0));
+            uses.put(as, Compiler.validateName(from + "/" + use.get(0)));
         else
             for(String s:use) {
                 if(uses.containsKey(s)) throw new RuntimeException("alias " + s + " already exist in: " + line);
-                uses.put(s, from + "/" + s);
+                uses.put(s, Compiler.validateName(from + "/" + s));
             }
     }
 
