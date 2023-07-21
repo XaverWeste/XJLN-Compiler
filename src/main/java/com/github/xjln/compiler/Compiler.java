@@ -7,6 +7,7 @@ import javassist.bytecode.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -405,8 +406,8 @@ public class Compiler {
             case "[" -> {
                 if(!currentClass.aliases.containsKey(sb.toString()) || getClassLang(currentClass.aliases.get(sb.toString())) == null)
                     throw new RuntimeException("class " + (currentClass.aliases.containsKey(sb.toString()) ? currentClass.aliases.get(sb.toString()) : sb) + " does not exist");
-                sb = new StringBuilder("new " + currentClass.aliases.get(sb.toString()));
                 lastType = currentClass.aliases.get(sb.toString());
+                sb = new StringBuilder("new " + currentClass.aliases.get(sb.toString()));
                 sb.append("(");
                 th.assertHasNext();
                 while(th.hasNext()){
@@ -416,10 +417,10 @@ public class Compiler {
                     }
                     th.last();
                     sb.append(compileCalc(th).split(" ", 2)[1]);
-                    th.assertToken(",", "]");
-                    if(th.current().equals("]"))
+                    if(th.assertToken(",", "]").equals("]")) {
                         sb.append(")");
-                    else {
+                        break;
+                    }else {
                         sb.append(",");
                         th.assertHasNext();
                     }
@@ -464,9 +465,10 @@ public class Compiler {
                             String[] calc = compileCalc(th).split(" ", 2);
                             types.add(calc[0]);
                             sb.append(calc[1]);
-                            if(th.assertToken(",", ")").equals(")"))
+                            if(th.assertToken(",", ")").equals(")")) {
                                 sb.append(")");
-                            else {
+                                break;
+                            }else {
                                 sb.append(",");
                                 th.assertHasNext();
                             }
@@ -484,7 +486,6 @@ public class Compiler {
             }
         }
 
-        th.last();
         return lastType + " " + sb;
     }
 
@@ -565,36 +566,11 @@ public class Compiler {
             throw new RuntimeException(path + " contains no main method");
         try {
             URLClassLoader classLoader = new URLClassLoader(new URL[]{new File(System.getProperty("user.dir") + "/compiled").toURI().toURL()});
-            classLoader.loadClass(path + ".Main").getMethod("main", String[].class).invoke(null, (Object) null);
-        /*
-            CustomClassLoader ccl = new CustomClassLoader();
-            Class<?> clazz = ccl.findClass(path + ".Main", ClassPool.getDefault().get(path + ".Main"));
-            clazz.getMethod("main", String[].class).invoke(null, (Object) null);
-
-         */
-        }catch (MalformedURLException e){
+            Class<?> clazz = classLoader.loadClass(path + ".Main");
+            Method method = clazz.getMethod("main", String[].class);
+            method.invoke(null, (Object) null);
+        }catch (MalformedURLException | ClassNotFoundException | InvocationTargetException | IllegalAccessException | NoSuchMethodException e){
             throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static class CustomClassLoader extends ClassLoader {
-        public Class<?> findClass(String name, CtClass ct) throws ClassNotFoundException {
-            try {
-                if(ct.isFrozen())
-                    ct.defrost();
-                byte[] byteCode = ct.toBytecode();
-                return defineClass(name, byteCode, 0, byteCode.length);
-            } catch (Exception e) {
-                throw new ClassNotFoundException(name, e);
-            }
         }
     }
 
