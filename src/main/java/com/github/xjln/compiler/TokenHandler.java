@@ -139,7 +139,12 @@ class TokenHandler {
 
     public String toString(){
         StringBuilder sb = new StringBuilder();
-        for(Token t:tokens) sb.append(t.s()).append(" ");
+        for(int i = 0;i < tokens.length;i++)
+            if(i == index)
+                sb.append(" |> ").append(tokens[i]).append(" <|  ");
+            else
+                sb.append(tokens[i]).append(" ");
+        //for(Token t:tokens) sb.append(t.s()).append(" ");
         return sb.toString();
     }
 }

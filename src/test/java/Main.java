@@ -1,21 +1,24 @@
 import com.github.xjln.compiler.Compiler;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.CtMethod;
 import javassist.CtNewMethod;
 import javassist.bytecode.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        new Compiler("src/test/java");
+        new Compiler("src/test/java/Clazz", "src/test/java");
         //printClass("Main");
     }
 
     public Main() throws Exception{
+        /*
         ClassFile cf = new ClassFile(false, "compiled.test", null);
         CtClass ct = ClassPool.getDefault().makeClass(cf);
         ct.defrost();
         ct.addMethod(CtNewMethod.make("public int test(){return 0;}", ct));
         ct.writeFile();
+        */
     }
 
     public static void printClass(String name) throws Exception{

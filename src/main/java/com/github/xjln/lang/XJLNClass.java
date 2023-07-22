@@ -10,10 +10,12 @@ public class XJLNClass implements Compilable {
     public final String[] superClasses;
     public final HashMap<String, XJLNMethod> methods;
     public final HashMap<String, XJLNVariable> fields;
+    public final HashMap<String, String> aliases;
 
-    public XJLNClass(SearchList<String, XJLNVariable> parameter, String[] superClasses){
+    public XJLNClass(SearchList<String, XJLNVariable> parameter, String[] superClasses, HashMap<String, String> aliases){
         this.parameter = parameter;
         this.superClasses = superClasses;
+        this.aliases = aliases;
         methods = new HashMap<>();
         fields = new HashMap<>();
     }

@@ -6,12 +6,16 @@ import javassist.bytecode.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Objects;
 import java.util.Set;
 
 public class Compiler {
@@ -19,7 +23,7 @@ public class Compiler {
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
     private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
 
-    private static String srcFolder = "";
+    private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
 
     private final Parser parser;
@@ -29,47 +33,45 @@ public class Compiler {
     private XJLNMethod currentMethod;
     private String currentMethodName;
 
-    public Compiler(String srcFolder){
+    /**
+     * creates a new instance of the XJLN-Compiler and starts compiling
+     * @param main the path to the .xjln file with the main method (if there is no main method or no main method should be executed the parameter should be null)
+     * @param srcFolders the paths to the folders that should be compiled
+     */
+    public Compiler(String main, String...srcFolders){
         parser = new Parser();
         classes = new HashMap<>();
-        Compiler.srcFolder = srcFolder;
+        Compiler.srcFolders = srcFolders;
         validateFolders();
-        compileFolder(new File(srcFolder));
+        for(String folder:srcFolders) compileFolder(new File(folder));
+        executeMain(main);
     }
 
-    private void validateFolders() throws RuntimeException{
+    private void validateFolders(){
         Path compiled = Paths.get("compiled");
         if(!Files.exists(compiled) && !new File("compiled").mkdirs()) throw new RuntimeException("unable to validate compiled folder");
         else clearFolder(compiled.toFile(), false);
-        if(!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder");
-        srcFolder = srcFolder.replace("/", ".").replace("\\", ".");
-    }
-
-    /*
-    private void clearFolder(File folder, boolean delete){
-        for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
-            if(fileEntry.isDirectory()){
-                clearFolder(fileEntry, true);
-                if(delete && folder.listFiles().length == 0) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
-            }else if(fileEntry.getName().endsWith(".class")) if(!fileEntry.delete()) throw new RuntimeException("unable to clear out folders");
+        for (String srcFolder : srcFolders){
+            if (!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder " + srcFolder);
+            try {
+                ClassPool.getDefault().appendClassPath("compiled" + srcFolder);
+            }catch (NotFoundException ignored){}
         }
-        if(delete)
-            folder.delete();
     }
-
-     */
 
     private void clearFolder(File folder, boolean delete){
         for(File file:folder.listFiles())
             if(file.isDirectory())
                 clearFolder(file, true);
-            else if(file.getName().endsWith(".class")) file.delete();
+            else if(file.getName().endsWith(".class") && !file.delete())
+                throw new RuntimeException("failed to delete " + file.getPath());
         if(delete && folder.listFiles().length == 0)
-            folder.delete();
+            if(!folder.delete())
+                throw new RuntimeException("unable to clear folder " + folder.getPath());
     }
 
     private void compileFolder(File folder){
-        for (File fileEntry : Objects.requireNonNull(folder.listFiles())){
+        for (File fileEntry : folder.listFiles()){
             if(fileEntry.isDirectory()) compileFolder(fileEntry);
             else if(fileEntry.getName().endsWith(".xjln")) classes.putAll(parser.parseFile(fileEntry));
         }
@@ -145,34 +147,14 @@ public class Compiler {
         ClassFile cf = new ClassFile(false, name, null);
         cf.setAccessFlags(AccessFlag.setPublic(AccessFlag.PUBLIC));
 
+        if(name.endsWith("Main"))
+            return cf;
+
         //Fields
         for(String n:clazz.fields.keySet())
             addField(cf, clazz.fields.get(n), n);
         for(String n:clazz.parameter.getKeys())
             addField(cf, clazz.parameter.get(n), n);
-
-        //Constructor
-        MethodInfo method = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter.getValues(), "void"));
-        method.setAccessFlags(AccessFlag.PUBLIC);
-        Bytecode code = new Bytecode(cf.getConstPool());
-        int i = 0;
-        for(String n:clazz.parameter.getKeys()){
-            XJLNVariable v = clazz.parameter.get(n);
-            code.addAload(0);
-            i += 1;
-            switch(v.type){
-                case "int", "byte", "char", "short", "boolean" -> code.addIload(i);
-                case "double" -> code.addDload(i);
-                case "long" -> code.addLload(i);
-                case "float" -> code.addFload(i);
-                default -> code.addAload(i);
-            }
-            code.addAload(i);
-            code.addPutfield(name, n, toDesc(v.type));
-        }
-        code.addReturn(null);
-        method.setCodeAttribute(code.toCodeAttribute());
-        cf.addMethod2(method);
 
         return cf;
     }
@@ -193,6 +175,35 @@ public class Compiler {
         if(ct.isFrozen())
             ct.defrost();
 
+        //Constructor
+        if(!className.equalsIgnoreCase("Main")) {
+            try {
+                StringBuilder src = new StringBuilder();
+
+                src.append("public ").append(className.split("\\.")[className.split("\\.").length - 1]).append("(");
+
+                for (String para : clazz.parameter.getKeys())
+                    src.append(clazz.parameter.get(para).type).append(" ").append(para).append(",");
+
+                if (src.toString().endsWith(","))
+                    src.deleteCharAt(src.length() - 1);
+
+                src.append("){");
+
+                for (String name : clazz.parameter.getKeys())
+                    src.append("this.").append(name).append(" = ").append(name).append(";");
+
+
+                src.append("}");
+
+                CtConstructor constructor = CtNewConstructor.make(src.toString(), ct);
+                ct.addConstructor(constructor);
+            } catch (CannotCompileException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        //Methods
         for(String methodName: clazz.methods.keySet()){
             currentMethod = clazz.methods.get(methodName);
             currentMethodName = methodName;
@@ -207,13 +218,18 @@ public class Compiler {
     private CtMethod compileMethod(CtClass clazz) throws CannotCompileException{
         StringBuilder src = new StringBuilder();
 
-        src.append(currentMethod.inner ? "private " : "public ").append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
+        if(currentMethodName.equalsIgnoreCase("main")){
+            src.append("public static void main(String[] args");
+        }else {
+            src.append(currentMethod.inner ? "private " : "public ");
+            src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
-        for(String para:currentMethod.parameter.getKeys())
-            src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
+            for (String para : currentMethod.parameter.getKeys())
+                src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
 
-        if(src.toString().endsWith(","))
-            src.deleteCharAt(src.length() - 1);
+            if (src.toString().endsWith(","))
+                src.deleteCharAt(src.length() - 1);
+        }
 
         src.append("){");
 
@@ -241,7 +257,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("if");
-        sb.append("if(").append(compileCalc(th)).append("){");
+        sb.append("if(").append(compileCalc(th).split(" ", 2)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -257,7 +273,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("while");
-        sb.append("while(").append(compileCalc(th)).append("){");
+        sb.append("while(").append(compileCalc(th).split(" ", 2)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -271,18 +287,28 @@ public class Compiler {
     private String compileReturn(String statement){
         TokenHandler th = Lexer.toToken(statement);
         th.assertToken("return");
-        return "return " + compileCalc(th) + ";";
+        th.assertHasNext();
+        return "return " + compileCalc(th).split(" ", 2)[1] + ";";
     }
 
     private String compileStatement(TokenHandler th){
         Token first = th.assertToken(Token.Type.IDENTIFIER);
         if(th.next().equals(Token.Type.IDENTIFIER)){
+            currentMethod.parameter.add(th.current().s(), new XJLNVariable(first.s()));
             th.last();
-            return first.toString() + " " + compileCalc(th) + ";";
-        }else {
+            return first + " " + compileCalc(th).split(" ", 2)[1] + ";";
+        }else if(th.current().equals("=")){
+            th.assertHasNext();
+            String calc = compileCalc(th);
+            if(currentMethod.parameter.get(first.s()) == null && currentClass.parameter.get(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
+                currentMethod.parameter.add(first.s(), new XJLNVariable(calc.split(" ", 2)[0]));
+                return (calc.split(" ", 2)[0].equals("NUMBER") ? "double" : calc.split(" ", 2)[0]) + " " + first + " = " + calc.split(" ", 2)[1] + ";";
+            }else
+                return first + " = " + calc.split(" ", 2)[1] + ";";
+        }else{
             th.last();
             th.last();
-            return compileCalc(th) + ";";
+            return compileCalc(th).split(" ", 2)[1] + ";";
         }
     }
 
@@ -305,7 +331,7 @@ public class Compiler {
 
             if(operator.equals(Token.Type.SIMPLE) || operator.equals("->")) {
                 th.last();
-                return sb.toString();
+                return type + " " + sb;
             }
 
             switch (type){
@@ -315,7 +341,7 @@ public class Compiler {
                     sb.append(operator.s());
                 }
                 default -> {
-                    if(!classExist(type))
+                    if(getClassLang(type) == null)
                         throw new RuntimeException("class " + type + " does not exist in: " + th);
                     sb.append(".").append(operator.s()).append("(");
                 }
@@ -345,7 +371,7 @@ public class Compiler {
             type = currentType;
         }
 
-        return sb.toString();
+        return type + " " + sb;
     }
 
     private String compileCurrent(TokenHandler th){
@@ -354,30 +380,64 @@ public class Compiler {
         String call = th.current().s();
         sb.append(call);
 
+        if(!th.hasNext())
+            return getType(currentClassName, currentMethodName, call) + " " + sb;
+
         switch (th.next().s()){
             case "(" -> {
                 sb.append("(");
                 th.assertHasNext();
+                ArrayList<String> types = new ArrayList<>();
                 while(th.hasNext()){
                     if(th.next().equals(")")){
                         sb.append(")");
                         break;
                     }
                     th.last();
-                    sb.append(compileCalc(th));
-                    th.assertToken(",", ")");
-                    if(th.current().equals(")"))
+                    String[] calc = compileCalc(th).split(" ", 2);
+                    types.add(calc[0]);
+                    sb.append(calc[1]);
+                    if(th.assertToken(",", ")").equals(")")) {
                         sb.append(")");
-                    else {
+                        break;
+                    } else {
                         sb.append(",");
                         th.assertHasNext();
                     }
                 }
-                lastType = getType(lastType, call, null);
+                lastType = getReturnType(lastType, call, types.toArray(new String[0]));
+            }
+            case "[" -> {
+                if(!currentClass.aliases.containsKey(sb.toString()) || getClassLang(currentClass.aliases.get(sb.toString())) == null)
+                    throw new RuntimeException("class " + (currentClass.aliases.containsKey(sb.toString()) ? currentClass.aliases.get(sb.toString()) : sb) + " does not exist");
+                lastType = currentClass.aliases.get(sb.toString());
+                sb = new StringBuilder("new " + currentClass.aliases.get(sb.toString()));
+                sb.append("(");
+                th.assertHasNext();
+                while(th.hasNext()){
+                    if(th.next().equals("]")){
+                        sb.append(")");
+                        break;
+                    }
+                    th.last();
+                    sb.append(compileCalc(th).split(" ", 2)[1]);
+                    if(th.assertToken(",", "]").equals("]")) {
+                        sb.append(")");
+                        break;
+                    }else {
+                        sb.append(",");
+                        th.assertHasNext();
+                    }
+                }
             }
             case ":" -> {
                 th.last();
-                lastType = getType(lastType, currentMethodName, call);
+                if(getType(lastType, currentMethodName, call) == null){
+                    sb = new StringBuilder(currentClass.aliases.get(call));
+                    lastType = sb.toString();
+                }else
+                    lastType = getType(lastType, currentMethodName, call);
+
             }
             default -> {
                 th.last();
@@ -387,33 +447,37 @@ public class Compiler {
 
         while (th.hasNext()){
             if(th.next().equals(":")){
-                call = th.current().s();
+                sb.append(".");
+                call = th.assertToken(Token.Type.IDENTIFIER).s();
                 sb.append(call);
 
                 switch (th.next().s()){
                     case ":" -> {
                         th.last();
-                        lastType = getType(lastType, null, call);
+                        lastType = getFieldType(lastType, call);
                     }
                     case "(" -> {
                         sb.append("(");
                         th.assertHasNext();
+                        ArrayList<String> types = new ArrayList<>();
                         while(th.hasNext()){
                             if(th.next().equals(")")){
                                 sb.append(")");
                                 break;
                             }
-                            sb.append(compileCalc(th));
-                            th.assertToken(",", ")");
-                            if(th.current().equals(")")) {
+                            th.last();
+                            String[] calc = compileCalc(th).split(" ", 2);
+                            types.add(calc[0]);
+                            sb.append(calc[1]);
+                            if(th.assertToken(",", ")").equals(")")) {
                                 sb.append(")");
-                                th.last();
+                                break;
                             }else {
                                 sb.append(",");
                                 th.assertHasNext();
                             }
                         }
-                        lastType = getType(lastType, call, null);
+                        lastType = getReturnType(lastType, call, types.toArray(new String[0]));
                     }
                     default -> {
                         th.last();
@@ -426,7 +490,6 @@ public class Compiler {
             }
         }
 
-        th.last();
         return lastType + " " + sb;
     }
 
@@ -446,6 +509,73 @@ public class Compiler {
         }else if(classes.get(clazz) instanceof XJLNEnum)
             return clazz;
         return null;
+    }
+
+    private String getReturnType(String clazz, String method, String...parameter){
+        switch (getClassLang(clazz)){
+            case "java" -> {
+                try{
+                    Class<?>[] classes = new Class[parameter.length];
+                    for(int i = 0;i < parameter.length;i++)
+                        classes[i] = Class.forName(parameter[i]);
+                    return Class.forName(clazz).getMethod(method, classes).getReturnType().toString().split(" ", 2)[1];
+                }catch (ClassNotFoundException | NoSuchMethodException ignored){
+                    return null;
+                }
+            }
+            case "xjln" -> {
+                if(classes.get(clazz) instanceof XJLNClass){
+                    if(!((XJLNClass) classes.get(clazz)).methods.containsKey(method))
+                        return null;
+                    return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType;
+                }
+            }
+            case "unknown" -> {
+                return null;
+            }
+            case "primitive" -> throw new RuntimeException("no such method");
+        }
+        return null;
+    }
+
+    private String getFieldType(String clazz, String name){
+        switch (getClassLang(clazz)){
+            case "java" -> {
+                try{
+                    return Class.forName(clazz).getField(name).getType().toString().split(" ", 2)[1];
+                }catch (ClassNotFoundException | NoSuchFieldException ignored){
+                    return null;
+                }
+            }
+            case "xjln" -> {
+                if(classes.get(clazz) instanceof XJLNClass){
+                    if(!((XJLNClass) classes.get(clazz)).fields.containsKey(name))
+                        return null;
+                    return ((XJLNClass) classes.get(clazz)).fields.get(name).type;
+                }
+            }
+            case "unknown" -> {
+                return null;
+            }
+            case "primitive" -> throw new RuntimeException("no such method");
+        }
+        return null;
+    }
+
+    private void executeMain(String path){
+        path = path.replace("/", ".").replace("\\", ".");
+        if(!classes.containsKey(path + ".Main"))
+            throw new RuntimeException("file " + path + " does not exist");
+        if(classes.get(path + ".Main") instanceof XJLNClass && !((XJLNClass) classes.get(path + ".Main")).methods.containsKey("main"))
+            throw new RuntimeException(path + " contains no main method");
+        try {
+            URLClassLoader classLoader = new URLClassLoader(new URL[]{new File(System.getProperty("user.dir") + "/compiled").toURI().toURL()});
+            Class<?> clazz = classLoader.loadClass(path + ".Main");
+            Method method = clazz.getMethod("main", String[].class);
+            method.invoke(null, (Object) null);
+        }catch (MalformedURLException | ClassNotFoundException | InvocationTargetException | IllegalAccessException | NoSuchMethodException e){
+            throw new RuntimeException(e);
+        }
     }
 
     public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){
@@ -477,18 +607,18 @@ public class Compiler {
         return name;
     }
 
-    public static boolean classExist(String validName){
-        if(PRIMITIVES.contains(validName)) return true;
-        if(classes.containsKey(validName)) return true;
+    public static String getClassLang(String validName){
+        if(PRIMITIVES.contains(validName)) return "primitive";
+        if(classes.containsKey(validName)) return "xjln";
         try {
             Class.forName(validName);
-            return true;
+            return "java";
         }catch (ClassNotFoundException ignored){}
         try {
             ClassPool.getDefault().get(validName);
-            return true;
+            return "unknown";
         }catch (NotFoundException ignored){}
-        return false;
+        return null;
     }
 
     public static boolean hasMethod(String clazz, String method, String...types){

@@ -1,16 +1,30 @@
-use {String, Object} from java/lang
+use System from java/lang as system
 
-def Class[int i, double d]
-
-    long l
-
-    def Method(short s) :: int
-        while s > 0
-            s = s - 1
-            Method(s)
-        end
-        return 0
-    end
-
-    #inner const [int] = [4, 3]
+main
+    #system:out:println(0)
+    system:out:println(Clazz[0]:i)
 end
+
+def Clazz[int i]
+
+end
+
+############# feature preview ###################
+
+#def class[/] => java/lang/Object, java/lang/Class
+
+#   [int] intArray = [4, 3]
+
+#   def function() :: int = 0
+
+#   def function(someClass sc) -> intArray:[1,2] = sc:intValue()
+
+#   def fib(int n) :: int {
+#       (0) = 0
+#       (1) = 0
+#       (n > 1) = fib(n - 1) - fib(n - 2)
+#   }
+
+#end
+
+#def someThing = (int i, int j)
