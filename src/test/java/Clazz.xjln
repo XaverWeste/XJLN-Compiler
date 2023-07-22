@@ -2,10 +2,10 @@ use System from java/lang as system
 
 main
     #system:out:println(0)
-    system:out:println(Clazz[])
+    system:out:println(Clazz[0]:i)
 end
 
-def Clazz[]
+def Clazz[int i]
 
 end
 

@@ -156,31 +156,6 @@ public class Compiler {
         for(String n:clazz.parameter.getKeys())
             addField(cf, clazz.parameter.get(n), n);
 
-        //Constructor
-        MethodInfo method = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.parameter.getValues(), "void"));
-        method.setAccessFlags(AccessFlag.PUBLIC);
-        Bytecode code = new Bytecode(cf.getConstPool());
-        code.addAload(0);
-        code.addInvokespecial("java/lang/Object", "<init>", "()V");
-        int i = 0;
-        for(String n:clazz.parameter.getKeys()){
-            XJLNVariable v = clazz.parameter.get(n);
-            code.addAload(0);
-            i += 1;
-            switch(v.type){
-                case "int", "byte", "char", "short", "boolean" -> code.addIload(i);
-                case "double" -> code.addDload(i);
-                case "long" -> code.addLload(i);
-                case "float" -> code.addFload(i);
-                default -> code.addAload(i);
-            }
-            code.addAload(i);
-            code.addPutfield(name, n, toDesc(v.type));
-        }
-        code.addReturn(null);
-        method.setCodeAttribute(code.toCodeAttribute());
-        cf.addMethod2(method);
-
         return cf;
     }
 
@@ -200,6 +175,35 @@ public class Compiler {
         if(ct.isFrozen())
             ct.defrost();
 
+        //Constructor
+        if(!className.equalsIgnoreCase("Main")) {
+            try {
+                StringBuilder src = new StringBuilder();
+
+                src.append("public ").append(className.split("\\.")[className.split("\\.").length - 1]).append("(");
+
+                for (String para : clazz.parameter.getKeys())
+                    src.append(clazz.parameter.get(para).type).append(" ").append(para).append(",");
+
+                if (src.toString().endsWith(","))
+                    src.deleteCharAt(src.length() - 1);
+
+                src.append("){");
+
+                for (String name : clazz.parameter.getKeys())
+                    src.append("this.").append(name).append(" = ").append(name).append(";");
+
+
+                src.append("}");
+
+                CtConstructor constructor = CtNewConstructor.make(src.toString(), ct);
+                ct.addConstructor(constructor);
+            } catch (CannotCompileException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        //Methods
         for(String methodName: clazz.methods.keySet()){
             currentMethod = clazz.methods.get(methodName);
             currentMethodName = methodName;
