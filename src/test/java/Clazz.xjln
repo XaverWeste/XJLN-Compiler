@@ -3,12 +3,11 @@ use System from java/lang as system
 main
     #system:out:println(0)
     c = Clazz[]
-    system:out:println(c:test(5))
 end
 
 def Clazz[]
 
-    def test(int i) :: int = i * 2
+    def inner test(int i) :: int = i * 2
 
 end
 

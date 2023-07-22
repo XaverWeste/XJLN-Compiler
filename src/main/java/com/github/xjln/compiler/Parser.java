@@ -186,8 +186,13 @@ class Parser {
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        boolean inner = false;
         if(name.equalsIgnoreCase("main"))
             throw new RuntimeException("name \"main\" is not allowed as method name in " + className);
+        if(name.equals("inner")){
+            inner = true;
+            name = th.assertToken(Token.Type.IDENTIFIER).s();
+        }
         th.assertToken("(");
         SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
 
@@ -218,7 +223,7 @@ class Parser {
         }
 
         if(current instanceof XJLNClass){
-            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, false, returnType, code == null ? parseCode() : new String[]{code}));
+            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
         }else
             throw new RuntimeException("internal compiler error at method " + name + " definition");
     }
