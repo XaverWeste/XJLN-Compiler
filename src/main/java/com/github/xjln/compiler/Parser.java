@@ -192,15 +192,33 @@ class Parser {
         SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
 
         String returnType = "void";
+        String code = null;
+
         if(th.hasNext()){
-            th.assertToken(":");
-            th.assertToken(":");
-            returnType = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
-            th.assertNull();
+            if(th.assertToken(":", "=", "->").equals(":")){
+                th.assertToken(":");
+                returnType = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
+                if(th.hasNext())
+                    th.assertToken("=", "->");
+            }
+
+            if(th.current().equals("=")){
+                th.assertHasNext();
+                StringBuilder sb = new StringBuilder("return ");
+                while (th.hasNext())
+                    sb.append(th.next()).append(" ");
+                code = sb.toString();
+            }else if(th.current().equals("->")){
+                th.assertHasNext();
+                StringBuilder sb = new StringBuilder();
+                while (th.hasNext())
+                    sb.append(th.next()).append(" ");
+                code = sb.toString();
+            }
         }
 
         if(current instanceof XJLNClass){
-            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, false, returnType, parseCode()));
+            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, false, returnType, code == null ? parseCode() : new String[]{code}));
         }else
             throw new RuntimeException("internal compiler error at method " + name + " definition");
     }

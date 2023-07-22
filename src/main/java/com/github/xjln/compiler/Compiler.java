@@ -295,7 +295,7 @@ public class Compiler {
     private String compileStatement(TokenHandler th){
         Token first = th.assertToken(Token.Type.IDENTIFIER);
         if(th.next().equals(Token.Type.IDENTIFIER)){
-            currentMethod.parameter.add(th.current().s(), new XJLNVariable(first.s()));
+            currentMethod.parameter.add(currentClass.aliases.get(th.current().s()), new XJLNVariable(first.s()));
             th.last();
             return first + " " + compileCalc(th).split(" ", 2)[1] + ";";
         }else if(th.current().equals("=")){

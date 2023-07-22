@@ -2,10 +2,13 @@ use System from java/lang as system
 
 main
     #system:out:println(0)
-    system:out:println(Clazz[0]:i)
+    c = Clazz[]
+    system:out:println(c:test(5))
 end
 
-def Clazz[int i]
+def Clazz[]
+
+    def test(int i) :: int = i * 2
 
 end
 
@@ -14,10 +17,6 @@ end
 #def class[/] => java/lang/Object, java/lang/Class
 
 #   [int] intArray = [4, 3]
-
-#   def function() :: int = 0
-
-#   def function(someClass sc) -> intArray:[1,2] = sc:intValue()
 
 #   def fib(int n) :: int {
 #       (0) = 0
