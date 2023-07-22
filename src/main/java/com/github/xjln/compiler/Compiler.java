@@ -223,6 +223,8 @@ public class Compiler {
             src.append("public static void main(String[] args");
         }else {
             src.append(currentMethod.inner ? "private " : "public ");
+            if(currentClassName.endsWith("Main"))
+                src.append("static ");
             src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
             for (String para : currentMethod.parameter.getKeys())

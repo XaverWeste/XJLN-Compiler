@@ -2,7 +2,11 @@ use System from java/lang as system
 
 main
     #system:out:println(0)
-    Clazz c = Clazz[]
+    print(5)
+end
+
+def print(int i)
+    system:out:println(i)
 end
 
 def Clazz[]
