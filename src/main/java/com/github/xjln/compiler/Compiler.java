@@ -44,7 +44,8 @@ public class Compiler {
         Compiler.srcFolders = srcFolders;
         validateFolders();
         for(String folder:srcFolders) compileFolder(new File(folder));
-        executeMain(main);
+        if(main != null)
+            executeMain(main);
     }
 
     private void validateFolders(){
