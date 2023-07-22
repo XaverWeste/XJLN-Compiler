@@ -295,9 +295,13 @@ public class Compiler {
     private String compileStatement(TokenHandler th){
         Token first = th.assertToken(Token.Type.IDENTIFIER);
         if(th.next().equals(Token.Type.IDENTIFIER)){
-            currentMethod.parameter.add(currentClass.aliases.get(th.current().s()), new XJLNVariable(first.s()));
-            th.last();
-            return first + " " + compileCalc(th).split(" ", 2)[1] + ";";
+            first = new Token(currentClass.aliases.get(first.s()), Token.Type.IDENTIFIER);
+            currentMethod.parameter.add(first.s(), new XJLNVariable(first.s()));
+            if(!th.hasNext())
+                return first + " " + th.current() + ";";
+            Token second = th.current();
+            th.assertToken("=");
+            return first + " " + second + "=" + compileCalc(th).split(" ", 2)[1] + ";";
         }else if(th.current().equals("=")){
             th.assertHasNext();
             String calc = compileCalc(th);
