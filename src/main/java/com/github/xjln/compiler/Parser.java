@@ -36,8 +36,8 @@ class Parser {
             line = sc.nextLine().trim();
             if (!line.equals("") && !line.startsWith("#")) {
                 if (line.startsWith("use ")) parseUseDef(line);
-                else if(line.equals("main")){
-                    parseMain();
+                else if(line.startsWith("main")){
+                    parseMain(line);
                     if(classes.containsKey("Main")) throw new RuntimeException("main is already defined in " + path);
                     else classes.put(Compiler.validateName(path + ".Main"), mainClass);
                     if(!uses.containsKey("Main"))
@@ -120,10 +120,21 @@ class Parser {
             }
     }
 
-    private void parseMain(){
+    private void parseMain(String line){
         if(mainClass == null)
             mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
-        mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("main");
+        if(th.hasNext()){
+            th.assertToken("->");
+            th.assertHasNext();
+            StringBuilder code = new StringBuilder();
+            while (th.hasNext())
+                code.append(th.next()).append(" ");
+            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", new String[]{code.toString()}));
+            //TODO
+        }else
+            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
     }
 
     private void parseDef(String line){
@@ -239,9 +250,11 @@ class Parser {
             }
         }
 
-        if(main)
+        if(main) {
+            if(mainClass == null)
+                mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
             mainClass.addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
-        else if(current instanceof XJLNClass)
+        }else if(current instanceof XJLNClass)
             ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
         else
             throw new RuntimeException("internal compiler error at method " + name + " definition");

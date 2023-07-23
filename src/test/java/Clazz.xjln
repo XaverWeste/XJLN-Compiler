@@ -5,9 +5,7 @@ main
     print(5)
 end
 
-def print(int i)
-    system:out:println(i)
-end
+def print(int i) -> system:out:println(i)
 
 def Clazz[]
 
