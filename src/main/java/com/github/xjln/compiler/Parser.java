@@ -66,6 +66,7 @@ class Parser {
 
     private void resetUse(){
         uses = new HashMap<>();
+        uses.put("RuntimeException", "java/lang/RuntimeException");
     }
 
     private void parseUseDef(String line){
@@ -132,7 +133,6 @@ class Parser {
             while (th.hasNext())
                 code.append(th.next()).append(" ");
             mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", new String[]{code.toString()}));
-            //TODO
         }else
             mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
     }

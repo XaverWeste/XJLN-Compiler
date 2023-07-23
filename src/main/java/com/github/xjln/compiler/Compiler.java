@@ -22,6 +22,7 @@ public class Compiler {
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
     private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
+    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=");
 
     private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
@@ -325,6 +326,7 @@ public class Compiler {
 
         switch (th.current().t()) {
             case NUMBER -> sb.append(th.current());
+            case STRING -> sb.append(th.current().s());
             case IDENTIFIER -> {
                 String current = compileCurrent(th);
                 type = current.split(" ", 2)[0];
@@ -345,6 +347,11 @@ public class Compiler {
                 case "NUMBER", "int", "double", "long", "short" -> {
                     if(!PRIMITIVE_NUMBER_OPERATORS.contains(operator.s()))
                            throw new RuntimeException("illegal operator");
+                    sb.append(operator.s());
+                }
+                case "String" -> {
+                    if(!PRIMITIVE_BOOLEAN_OPERATORS.contains(operator.s()))
+                        throw new RuntimeException("illegal operator");
                     sb.append(operator.s());
                 }
                 default -> {
