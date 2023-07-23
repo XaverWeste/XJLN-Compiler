@@ -22,6 +22,7 @@ public class Compiler {
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
     private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
+    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=");
 
     private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
@@ -223,6 +224,8 @@ public class Compiler {
             src.append("public static void main(String[] args");
         }else {
             src.append(currentMethod.inner ? "private " : "public ");
+            if(currentClassName.endsWith("Main"))
+                src.append("static ");
             src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
             for (String para : currentMethod.parameter.getKeys())
@@ -295,9 +298,13 @@ public class Compiler {
     private String compileStatement(TokenHandler th){
         Token first = th.assertToken(Token.Type.IDENTIFIER);
         if(th.next().equals(Token.Type.IDENTIFIER)){
-            currentMethod.parameter.add(th.current().s(), new XJLNVariable(first.s()));
-            th.last();
-            return first + " " + compileCalc(th).split(" ", 2)[1] + ";";
+            first = new Token(currentClass.aliases.get(first.s()), Token.Type.IDENTIFIER);
+            currentMethod.parameter.add(first.s(), new XJLNVariable(first.s()));
+            if(!th.hasNext())
+                return first + " " + th.current() + ";";
+            Token second = th.current();
+            th.assertToken("=");
+            return first + " " + second + "=" + compileCalc(th).split(" ", 2)[1] + ";";
         }else if(th.current().equals("=")){
             th.assertHasNext();
             String calc = compileCalc(th);
@@ -319,6 +326,7 @@ public class Compiler {
 
         switch (th.current().t()) {
             case NUMBER -> sb.append(th.current());
+            case STRING -> sb.append(th.current().s());
             case IDENTIFIER -> {
                 String current = compileCurrent(th);
                 type = current.split(" ", 2)[0];
@@ -339,6 +347,11 @@ public class Compiler {
                 case "NUMBER", "int", "double", "long", "short" -> {
                     if(!PRIMITIVE_NUMBER_OPERATORS.contains(operator.s()))
                            throw new RuntimeException("illegal operator");
+                    sb.append(operator.s());
+                }
+                case "String" -> {
+                    if(!PRIMITIVE_BOOLEAN_OPERATORS.contains(operator.s()))
+                        throw new RuntimeException("illegal operator");
                     sb.append(operator.s());
                 }
                 default -> {

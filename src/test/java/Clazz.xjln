@@ -1,30 +1,14 @@
-use System from java/lang as system
+use System from java/lang
 
-main
-    #system:out:println(0)
-    system:out:println(Clazz[0]:i)
-end
+main -> System:out:println("Hello World!")
 
-def Clazz[int i]
 
-end
-
-############# feature preview ###################
-
-#def class[/] => java/lang/Object, java/lang/Class
-
-#   [int] intArray = [4, 3]
-
-#   def function() :: int = 0
-
-#   def function(someClass sc) -> intArray:[1,2] = sc:intValue()
-
-#   def fib(int n) :: int {
-#       (0) = 0
-#       (1) = 0
-#       (n > 1) = fib(n - 1) - fib(n - 2)
-#   }
-
+############# syntax preview ###################
+#
+#def Class[/] => java/lang/Object, java/lang/Class
+#
+#   [[int]] intArray = [4, 3]
+#
 #end
-
+#
 #def someThing = (int i, int j)

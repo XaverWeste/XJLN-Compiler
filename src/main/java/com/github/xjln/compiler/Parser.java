@@ -12,6 +12,7 @@ import java.util.Scanner;
 class Parser {
 
     private HashMap<String, String> uses;
+    private XJLNClass mainClass;
     private Compilable current;
     private String path;
     private String className;
@@ -28,24 +29,36 @@ class Parser {
 
         path = file.getPath();
         path = path.substring(0, path.length() - 5);
+        mainClass = null;
 
         String line;
         while (sc.hasNextLine()) {
             line = sc.nextLine().trim();
             if (!line.equals("") && !line.startsWith("#")) {
                 if (line.startsWith("use ")) parseUseDef(line);
-                else if(line.equals("main")){
-                    parseMain();
-                    if(classes.containsKey(className)) throw new RuntimeException("main is already defined in " + path);
-                    classes.put(className, current);
+                else if(line.startsWith("main")){
+                    parseMain(line);
+                    if(classes.containsKey("Main")) throw new RuntimeException("main is already defined in " + path);
+                    else classes.put(Compiler.validateName(path + ".Main"), mainClass);
+                    if(!uses.containsKey("Main"))
+                        uses.put("Main", Compiler.validateName(path + ".Main"));
                 }else if(line.startsWith("def ")){
                     parseDef(line);
-                    String name = className.split("\\.")[className.split("\\.").length - 1];
-                    if(uses.containsKey(name)) throw new RuntimeException("class " + className + " already exist in: " + line);
-                    uses.put(name, className);
-                    classes.put(className, current);
+                    if(className != null) {
+                        String name = className.split("\\.")[className.split("\\.").length - 1];
+                        if (uses.containsKey(name))
+                            throw new RuntimeException("class " + className + " already exist in: " + line);
+                        uses.put(name, className);
+                        classes.put(className, current);
+                    }
                 } else throw new RuntimeException("illegal argument in: " + line);
             }
+        }
+
+        if(!classes.containsKey("Main") && mainClass != null){
+            classes.put(Compiler.validateName(path + ".Main"), mainClass);
+            if(!uses.containsKey("Main"))
+                uses.put("Main", Compiler.validateName(path + ".Main"));
         }
 
         return classes;
@@ -53,6 +66,7 @@ class Parser {
 
     private void resetUse(){
         uses = new HashMap<>();
+        uses.put("RuntimeException", "java/lang/RuntimeException");
     }
 
     private void parseUseDef(String line){
@@ -107,10 +121,20 @@ class Parser {
             }
     }
 
-    private void parseMain(){
-        className = Compiler.validateName(path + ".Main");
-        current = new XJLNClass(new SearchList<>(), new String[0], uses);
-        ((XJLNClass) current).methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
+    private void parseMain(String line){
+        if(mainClass == null)
+            mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("main");
+        if(th.hasNext()){
+            th.assertToken("->");
+            th.assertHasNext();
+            StringBuilder code = new StringBuilder();
+            while (th.hasNext())
+                code.append(th.next()).append(" ");
+            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", new String[]{code.toString()}));
+        }else
+            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
     }
 
     private void parseDef(String line){
@@ -122,8 +146,12 @@ class Parser {
         if(th.current().s().equalsIgnoreCase("main"))
             throw new RuntimeException("name \"main\" is not allowed for " + className);
 
-        if(th.assertToken("=", "[").s().equals("=")) parseEnumDef(th);
-        else parseClassDef(th);
+        if(th.assertToken("=", "[", "(").s().equals("=")) parseEnumDef(th);
+        else if(th.current().equals("[")) parseClassDef(th);
+        else{
+            className = null;
+            parseMethodDef(line, true);
+        }
     }
 
     private void parseEnumDef(TokenHandler th){
@@ -149,7 +177,7 @@ class Parser {
         while (!line.equals("end")) {
             if (!line.equals("") && !line.startsWith("#")) {
                 if(line.startsWith("def "))
-                    parseMethodDef(line);
+                    parseMethodDef(line, false);
                 else
                     parseFieldDef(line);
             }
@@ -182,26 +210,53 @@ class Parser {
             throw new RuntimeException("internal compiler error at: " + line);
     }
 
-    private void parseMethodDef(String line){
+    private void parseMethodDef(String line, boolean main){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        boolean inner = false;
         if(name.equalsIgnoreCase("main"))
             throw new RuntimeException("name \"main\" is not allowed as method name in " + className);
+        if(name.equals("inner")){
+            inner = true;
+            name = th.assertToken(Token.Type.IDENTIFIER).s();
+        }
         th.assertToken("(");
         SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
 
         String returnType = "void";
+        String code = null;
+
         if(th.hasNext()){
-            th.assertToken(":");
-            th.assertToken(":");
-            returnType = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
-            th.assertNull();
+            if(th.assertToken(":", "=", "->").equals(":")){
+                th.assertToken(":");
+                returnType = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
+                if(th.hasNext())
+                    th.assertToken("=", "->");
+            }
+
+            if(th.current().equals("=")){
+                th.assertHasNext();
+                StringBuilder sb = new StringBuilder("return ");
+                while (th.hasNext())
+                    sb.append(th.next()).append(" ");
+                code = sb.toString();
+            }else if(th.current().equals("->")){
+                th.assertHasNext();
+                StringBuilder sb = new StringBuilder();
+                while (th.hasNext())
+                    sb.append(th.next()).append(" ");
+                code = sb.toString();
+            }
         }
 
-        if(current instanceof XJLNClass){
-            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, false, returnType, parseCode()));
-        }else
+        if(main) {
+            if(mainClass == null)
+                mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
+            mainClass.addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
+        }else if(current instanceof XJLNClass)
+            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
+        else
             throw new RuntimeException("internal compiler error at method " + name + " definition");
     }
 
