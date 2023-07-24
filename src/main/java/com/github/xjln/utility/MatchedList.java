@@ -52,4 +52,17 @@ public class MatchedList<First, Second> {
     public int size(){
         return firstList.size();
     }
+
+    public static <First, Second> MatchedList<First, Second> of(First[] firsts, Second[] seconds) throws RuntimeException{
+        assert firsts != null;
+        assert seconds != null;
+        assert firsts.length == seconds.length;
+
+        MatchedList<First, Second> matchedList = new MatchedList<>();
+
+        for(int i = 0;i < firsts.length;i++)
+            matchedList.add(firsts[i], seconds[i]);
+
+        return matchedList;
+    }
 }

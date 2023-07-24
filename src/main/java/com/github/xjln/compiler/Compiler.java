@@ -1,6 +1,8 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
+import com.github.xjln.utility.MatchedList;
+
 import javassist.*;
 import javassist.bytecode.*;
 
@@ -19,6 +21,10 @@ import java.util.HashMap;
 import java.util.Set;
 
 public class Compiler {
+
+    public static final MatchedList<String, String> OPERATOR_LIST = MatchedList.of(
+            new String[]{"+"  , "-"       , "*"       , "/"     , "="     , "<"       , ">"          , "!"  , "%"     , "&"  , "|"},
+            new String[]{"add", "subtract", "multiply", "divide", "equals", "lessThan", "greaterThan", "not", "modulo", "and", "or"});
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
     private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
@@ -644,5 +650,14 @@ public class Compiler {
                 return false;
         }
         return false;
+    }
+
+    public static String toIdentifier(String operators){
+        StringBuilder sb = new StringBuilder();
+        for(char c:operators.toCharArray())
+            sb.append(OPERATOR_LIST.getSecond(String.valueOf(c))).append("_");
+        if(sb.length() > 0)
+            sb.deleteCharAt(sb.length() - 1);
+        return sb.toString();
     }
 }
