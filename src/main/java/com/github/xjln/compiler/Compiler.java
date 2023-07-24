@@ -27,8 +27,8 @@ public class Compiler {
             new String[]{"add", "subtract", "multiply", "divide", "equals", "lessThan", "greaterThan", "not", "modulo", "and", "or"});
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
-    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
-    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=");
+    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "!=", "==", ">=", "<=", "<", ">", "%", "=");
+    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=", "&&", "||");
 
     private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
@@ -372,17 +372,21 @@ public class Compiler {
             switch (th.next().t()) {
                 case NUMBER -> {
                     sb.append(th.current());
-                    currentType = "NUMBER";
+                    currentType = toType(th.current().s());
                 }
                 case IDENTIFIER -> {
                     String current = compileCurrent(th);
                     currentType = current.split(" ", 2)[0];
                     sb.append(current.split(" ", 2)[1]);
                 }
+                case STRING -> {
+                    currentType = "String";
+                    sb.append(th.current());
+                }
                 default -> throw new RuntimeException("illegal argument in: " + th);
             }
 
-            if(!hasMethod(type, operator.s(), currentType))
+            if(!hasMethod(type, toIdentifier(operator.s()), currentType))
                 throw new RuntimeException("operator " + operator + " is not defined for " + type + " and " + currentType);
 
             if(!PRIMITIVES.contains(type))
@@ -391,7 +395,7 @@ public class Compiler {
             type = currentType;
         }
 
-        return type + " " + sb;
+        return type + " " + sb; //TODO
     }
 
     private String compileCurrent(TokenHandler th){
@@ -659,5 +663,11 @@ public class Compiler {
         if(sb.length() > 0)
             sb.deleteCharAt(sb.length() - 1);
         return sb.toString();
+    }
+
+    public static String toType(String number){
+        if(number.contains("."))
+            return "double";
+        return "int";
     }
 }

@@ -213,16 +213,22 @@ class Parser {
     private void parseMethodDef(String line, boolean main){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
-        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        String name = th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).s();
         boolean inner = false;
         if(name.equalsIgnoreCase("main"))
             throw new RuntimeException("name \"main\" is not allowed as method name in " + className);
         if(name.equals("inner")){
             inner = true;
-            name = th.assertToken(Token.Type.IDENTIFIER).s();
+            name = th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).s();
         }
         th.assertToken("(");
         MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
+
+        if(Lexer.isOperator(name)){
+            if(parameter.size() >= 2)
+                throw new RuntimeException("for Method " + name + " is only one parameter allowed");
+            name = Compiler.toIdentifier(name);
+        }
 
         String returnType = "void";
         String code = null;
