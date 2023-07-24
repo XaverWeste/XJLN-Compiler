@@ -1,7 +1,7 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
-import com.github.xjln.utility.SearchList;
+import com.github.xjln.utility.MatchedList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -123,7 +123,7 @@ class Parser {
 
     private void parseMain(String line){
         if(mainClass == null)
-            mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
+            mainClass = new XJLNClass(new MatchedList<>(), new String[0], uses);
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("main");
         if(th.hasNext()){
@@ -132,9 +132,9 @@ class Parser {
             StringBuilder code = new StringBuilder();
             while (th.hasNext())
                 code.append(th.next()).append(" ");
-            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", new String[]{code.toString()}));
+            mainClass.methods.put("main", new XJLNMethod(new MatchedList<>(), false, "void", new String[]{code.toString()}));
         }else
-            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
+            mainClass.methods.put("main", new XJLNMethod(new MatchedList<>(), false, "void", parseCode()));
     }
 
     private void parseDef(String line){
@@ -168,7 +168,7 @@ class Parser {
     }
 
     private void parseClassDef(TokenHandler th){
-        SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
+        MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
         ArrayList<String> supers = new ArrayList<>();
 
         current = new XJLNClass(parameter, supers.toArray(new String[0]), uses);
@@ -222,7 +222,7 @@ class Parser {
             name = th.assertToken(Token.Type.IDENTIFIER).s();
         }
         th.assertToken("(");
-        SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
+        MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
 
         String returnType = "void";
         String code = null;
@@ -252,7 +252,7 @@ class Parser {
 
         if(main) {
             if(mainClass == null)
-                mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
+                mainClass = new XJLNClass(new MatchedList<>(), new String[0], uses);
             mainClass.addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
         }else if(current instanceof XJLNClass)
             ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
@@ -278,8 +278,8 @@ class Parser {
         return code.toArray(new String[0]);
     }
 
-    private SearchList<String, XJLNVariable> parseParameterList(TokenHandler th){
-        SearchList<String, XJLNVariable> paraList = new SearchList<>();
+    private MatchedList<String, XJLNVariable> parseParameterList(TokenHandler th){
+        MatchedList<String, XJLNVariable> paraList = new MatchedList<>();
 
         if(th.length() == 0)
             return paraList;

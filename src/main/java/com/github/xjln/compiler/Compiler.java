@@ -155,8 +155,8 @@ public class Compiler {
         //Fields
         for(String n:clazz.fields.keySet())
             addField(cf, clazz.fields.get(n), n);
-        for(String n:clazz.parameter.getKeys())
-            addField(cf, clazz.parameter.get(n), n);
+        for(String n:clazz.parameter.getFirstList())
+            addField(cf, clazz.parameter.getSecond(n), n);
 
         return cf;
     }
@@ -184,15 +184,15 @@ public class Compiler {
 
                 src.append("public ").append(className.split("\\.")[className.split("\\.").length - 1]).append("(");
 
-                for (String para : clazz.parameter.getKeys())
-                    src.append(clazz.parameter.get(para).type).append(" ").append(para).append(",");
+                for (String para : clazz.parameter.getFirstList())
+                    src.append(clazz.parameter.getSecond(para).type).append(" ").append(para).append(",");
 
                 if (src.toString().endsWith(","))
                     src.deleteCharAt(src.length() - 1);
 
                 src.append("){");
 
-                for (String name : clazz.parameter.getKeys())
+                for (String name : clazz.parameter.getFirstList())
                     src.append("this.").append(name).append(" = ").append(name).append(";");
 
 
@@ -228,8 +228,8 @@ public class Compiler {
                 src.append("static ");
             src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
-            for (String para : currentMethod.parameter.getKeys())
-                src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
+            for (String para : currentMethod.parameter.getFirstList())
+                src.append(currentMethod.parameter.getSecond(para).type).append(" ").append(para).append(",");
 
             if (src.toString().endsWith(","))
                 src.deleteCharAt(src.length() - 1);
@@ -308,7 +308,7 @@ public class Compiler {
         }else if(th.current().equals("=")){
             th.assertHasNext();
             String calc = compileCalc(th);
-            if(currentMethod.parameter.get(first.s()) == null && currentClass.parameter.get(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
+            if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
                 currentMethod.parameter.add(first.s(), new XJLNVariable(calc.split(" ", 2)[0]));
                 return (calc.split(" ", 2)[0].equals("NUMBER") ? "double" : calc.split(" ", 2)[0]) + " " + first + " = " + calc.split(" ", 2)[1] + ";";
             }else
@@ -514,12 +514,12 @@ public class Compiler {
             }else
                 throw new RuntimeException("illegal argument");
         }else if(classes.get(clazz) instanceof XJLNClass){
-            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var) != null)
-                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var).type;
+            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var) != null)
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var).type;
             if(((XJLNClass) classes.get(clazz)).fields.get(var) != null)
                 return ((XJLNClass) classes.get(clazz)).fields.get(var).type;
-            if(((XJLNClass) classes.get(clazz)).parameter.get(var) != null)
-                return ((XJLNClass) classes.get(clazz)).parameter.get(var).type;
+            if(((XJLNClass) classes.get(clazz)).parameter.getSecond(var) != null)
+                return ((XJLNClass) classes.get(clazz)).parameter.getSecond(var).type;
         }else if(classes.get(clazz) instanceof XJLNEnum)
             return clazz;
         return null;
