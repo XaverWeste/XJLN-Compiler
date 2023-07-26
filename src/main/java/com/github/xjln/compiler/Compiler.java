@@ -408,38 +408,6 @@ public class Compiler {
         return new String[]{type, arg};
     }
 
-    /*private String compileCalc(TokenHandler th){
-            String currentType;
-
-            switch (th.next().t()) {
-                case NUMBER -> {
-                    sb.append(th.current());
-                    currentType = toType(th.current().s());
-                }
-                case IDENTIFIER -> {
-                    String current = compileCurrent(th);
-                    currentType = current.split(" ", 2)[0];
-                    sb.append(current.split(" ", 2)[1]);
-                }
-                case STRING -> {
-                    currentType = "String";
-                    sb.append(th.current());
-                }
-                default -> throw new RuntimeException("illegal argument in: " + th);
-            }
-
-            if(!hasMethod(type, toIdentifier(operator.s()), currentType))
-                throw new RuntimeException("operator " + operator + " is not defined for " + type + " and " + currentType);
-
-            if(!PRIMITIVES.contains(type))
-                sb.append(")");
-
-            type = currentType;
-        }
-
-        return type + " " + sb;
-    }*/
-
     private String compileCurrent(TokenHandler th){
         StringBuilder sb = new StringBuilder();
         String lastType = currentClassName;
@@ -503,7 +471,6 @@ public class Compiler {
                     lastType = sb.toString();
                 }else
                     lastType = getType(lastType, currentMethodName, call);
-
             }
             default -> {
                 th.last();
@@ -516,6 +483,9 @@ public class Compiler {
                 sb.append(".");
                 call = th.assertToken(Token.Type.IDENTIFIER).s();
                 sb.append(call);
+
+                if(!th.hasNext())
+                    return getFieldType(lastType, call) + " " + sb;
 
                 switch (th.next().s()){
                     case ":" -> {
@@ -615,9 +585,11 @@ public class Compiler {
             }
             case "xjln" -> {
                 if(classes.get(clazz) instanceof XJLNClass){
-                    if(!((XJLNClass) classes.get(clazz)).fields.containsKey(name))
-                        return null;
-                    return ((XJLNClass) classes.get(clazz)).fields.get(name).type;
+                    if(((XJLNClass) classes.get(clazz)).fields.containsKey(name))
+                        return ((XJLNClass) classes.get(clazz)).fields.get(name).type;
+                    if(((XJLNClass) classes.get(clazz)).parameter.getSecond(name) != null)
+                        return ((XJLNClass) classes.get(clazz)).parameter.getSecond(name).type;
+                    return null;
                 }
             }
             case "unknown" -> {
