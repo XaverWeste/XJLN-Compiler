@@ -267,7 +267,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("if");
-        sb.append("if(").append(compileCalc(th).split(" ", 2)[1]).append("){");
+        sb.append("if(").append(compileCalc(th)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -283,7 +283,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("while");
-        sb.append("while(").append(compileCalc(th).split(" ", 2)[1]).append("){");
+        sb.append("while(").append(compileCalc(th)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -298,7 +298,7 @@ public class Compiler {
         TokenHandler th = Lexer.toToken(statement);
         th.assertToken("return");
         th.assertHasNext();
-        return "return " + compileCalc(th).split(" ", 2)[1] + ";";
+        return "return " + compileCalc(th)[1] + ";";
     }
 
     private String compileStatement(TokenHandler th){
@@ -310,23 +310,23 @@ public class Compiler {
                 return first + " " + th.current() + ";";
             Token second = th.current();
             th.assertToken("=");
-            return first + " " + second + "=" + compileCalc(th).split(" ", 2)[1] + ";";
+            return first + " " + second + "=" + compileCalc(th)[1] + ";";
         }else if(th.current().equals("=")){
             th.assertHasNext();
-            String calc = compileCalc(th);
+            String[] calc = compileCalc(th);
             if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
-                currentMethod.parameter.add(first.s(), new XJLNVariable(calc.split(" ", 2)[0]));
-                return (calc.split(" ", 2)[0].equals("NUMBER") ? "double" : calc.split(" ", 2)[0]) + " " + first + " = " + calc.split(" ", 2)[1] + ";";
+                currentMethod.parameter.add(first.s(), new XJLNVariable(calc[0]));
+                return (calc[0].equals("NUMBER") ? "double" : calc[0]) + " " + first + " = " + calc[1] + ";";
             }else
-                return first + " = " + calc.split(" ", 2)[1] + ";";
+                return first + " = " + calc[1] + ";";
         }else{
             th.last();
             th.last();
-            return compileCalc(th).split(" ", 2)[1] + ";";
+            return compileCalc(th)[1] + ";";
         }
     }
 
-    private String compileCalc(TokenHandler th){
+    private String[] compileCalc(TokenHandler th){
         StringBuilder sb = new StringBuilder();
         String[] current = compileCalcArg(th);
         String type = current[0];
@@ -337,7 +337,7 @@ public class Compiler {
 
             if(operator.equals(Token.Type.SIMPLE) || operator.equals("->")) {
                 th.last();
-                return type + " " + sb;
+                return new String[]{type, sb.toString()};
             }
 
             if(type == null)
@@ -360,21 +360,22 @@ public class Compiler {
                         operator = new Token("||", Token.Type.OPERATOR);
                     if(operator.equals("&"))
                         operator = new Token("&&", Token.Type.OPERATOR);
-                    sb.append(operator).append(" ").append(currentArg);
+                    sb.append(operator).append(currentArg);
                 }
                 case "java/lang/String" -> {
                     if(!operator.equals("+") || !currentType.equals("java/lang/String"))
                         throw new RuntimeException("Operator " + operator + " is not defined for java/lang/String and " + currentType + " in: " + th);
-                    sb.append(" + ").append(currentArg);
+                    sb.append("+").append(currentArg);
                 }
                 default -> {
                     if(!hasMethod(type, toIdentifier(operator.s()), currentType))
                         throw new RuntimeException("Operator " + operator + " (Method " + toIdentifier(operator.s()) + ") is not defined for " + type + " and " + currentType + " in: " + th);
+                    sb.append(".").append(toIdentifier(operator.s())).append("(").append(currentArg).append(")");
                 }
             }
         }
 
-        return sb.toString();
+        return new String[]{type, sb.toString()};
     }
 
     private String[] compileCalcArg(TokenHandler th){
@@ -459,7 +460,7 @@ public class Compiler {
                         break;
                     }
                     th.last();
-                    String[] calc = compileCalc(th).split(" ", 2);
+                    String[] calc = compileCalc(th);
                     types.add(calc[0]);
                     sb.append(calc[1]);
                     if(th.assertToken(",", ")").equals(")")) {
@@ -485,7 +486,7 @@ public class Compiler {
                         break;
                     }
                     th.last();
-                    sb.append(compileCalc(th).split(" ", 2)[1]);
+                    sb.append(compileCalc(th)[1]);
                     if(th.assertToken(",", "]").equals("]")) {
                         sb.append(")");
                         break;
@@ -531,7 +532,7 @@ public class Compiler {
                                 break;
                             }
                             th.last();
-                            String[] calc = compileCalc(th).split(" ", 2);
+                            String[] calc = compileCalc(th);
                             types.add(calc[0]);
                             sb.append(calc[1]);
                             if(th.assertToken(",", ")").equals(")")) {
