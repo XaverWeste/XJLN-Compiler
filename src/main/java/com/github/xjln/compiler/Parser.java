@@ -107,6 +107,8 @@ class Parser {
         if(th.current().equals("as")){
             if(use.size() != 1) throw new RuntimeException("only can alias one in: " + line);
             as = th.assertToken(Token.Type.IDENTIFIER).s();
+            if(Compiler.PRIMITIVES.contains(as))
+                throw new RuntimeException(as + " is not allowed as alias");
             if(uses.containsKey(as)) throw new RuntimeException("alias " + as + " already exist in: " + line);
             th.assertNull();
         }else
