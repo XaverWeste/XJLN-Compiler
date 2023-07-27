@@ -1,4 +1,4 @@
-use System from java/lang
+use java/lang/System
 
 main -> System:out:println("Hello World!")
 

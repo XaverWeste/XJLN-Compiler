@@ -603,7 +603,7 @@ public class Compiler {
     private void executeMain(String path){
         path = path.replace("/", ".").replace("\\", ".");
         if(!classes.containsKey(path + ".Main"))
-            throw new RuntimeException("file " + path + " does not exist");
+            throw new RuntimeException("file " + path + ".Main does not exist");
         if(classes.get(path + ".Main") instanceof XJLNClass && !((XJLNClass) classes.get(path + ".Main")).methods.containsKey("main"))
             throw new RuntimeException(path + " contains no main method");
         try {

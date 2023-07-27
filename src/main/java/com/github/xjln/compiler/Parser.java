@@ -95,7 +95,7 @@ class Parser {
                 from.append("/").append(th.assertToken(Token.Type.IDENTIFIER));
 
             use.add(from.toString().split("/")[from.toString().split("/").length - 1]);
-            from.delete(from.toString().split("/")[from.toString().split("/").length - 1].length() + 1, from.length());
+            from.delete(from.length() - from.toString().split("/")[from.toString().split("/").length - 1].length() - 1, from.length());
         }else if(th.current().equals("from")){
             from = new StringBuilder();
             from.append(th.assertToken(Token.Type.IDENTIFIER));
