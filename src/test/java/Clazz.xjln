@@ -6,6 +6,8 @@ def Clazz[]
 
     [[int]] intArray
 
+    def test() -> intArray:3:length
+
 end
 
 ############# syntax preview ###################
