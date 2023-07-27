@@ -1,7 +1,7 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
-import com.github.xjln.utility.SearchList;
+import com.github.xjln.utility.MatchedList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -95,7 +95,7 @@ class Parser {
                 from.append("/").append(th.assertToken(Token.Type.IDENTIFIER));
 
             use.add(from.toString().split("/")[from.toString().split("/").length - 1]);
-            from.delete(from.toString().split("/")[from.toString().split("/").length - 1].length() + 1, from.length());
+            from.delete(from.length() - from.toString().split("/")[from.toString().split("/").length - 1].length() - 1, from.length());
         }else if(th.current().equals("from")){
             from = new StringBuilder();
             from.append(th.assertToken(Token.Type.IDENTIFIER));
@@ -107,6 +107,8 @@ class Parser {
         if(th.current().equals("as")){
             if(use.size() != 1) throw new RuntimeException("only can alias one in: " + line);
             as = th.assertToken(Token.Type.IDENTIFIER).s();
+            if(Compiler.PRIMITIVES.contains(as))
+                throw new RuntimeException(as + " is not allowed as alias");
             if(uses.containsKey(as)) throw new RuntimeException("alias " + as + " already exist in: " + line);
             th.assertNull();
         }else
@@ -123,7 +125,7 @@ class Parser {
 
     private void parseMain(String line){
         if(mainClass == null)
-            mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
+            mainClass = new XJLNClass(new MatchedList<>(), new String[0], uses);
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("main");
         if(th.hasNext()){
@@ -132,9 +134,9 @@ class Parser {
             StringBuilder code = new StringBuilder();
             while (th.hasNext())
                 code.append(th.next()).append(" ");
-            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", new String[]{code.toString()}));
+            mainClass.methods.put("main", new XJLNMethod(new MatchedList<>(), false, "void", new String[]{code.toString()}));
         }else
-            mainClass.methods.put("main", new XJLNMethod(new SearchList<>(), false, "void", parseCode()));
+            mainClass.methods.put("main", new XJLNMethod(new MatchedList<>(), false, "void", parseCode()));
     }
 
     private void parseDef(String line){
@@ -168,7 +170,7 @@ class Parser {
     }
 
     private void parseClassDef(TokenHandler th){
-        SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
+        MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
         ArrayList<String> supers = new ArrayList<>();
 
         current = new XJLNClass(parameter, supers.toArray(new String[0]), uses);
@@ -213,16 +215,22 @@ class Parser {
     private void parseMethodDef(String line, boolean main){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
-        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        String name = th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).s();
         boolean inner = false;
         if(name.equalsIgnoreCase("main"))
             throw new RuntimeException("name \"main\" is not allowed as method name in " + className);
         if(name.equals("inner")){
             inner = true;
-            name = th.assertToken(Token.Type.IDENTIFIER).s();
+            name = th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).s();
         }
         th.assertToken("(");
-        SearchList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
+        MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
+
+        if(Lexer.isOperator(name)){
+            if(parameter.size() >= 2)
+                throw new RuntimeException("for Method " + name + " is only one parameter allowed");
+            name = Compiler.toIdentifier(name);
+        }
 
         String returnType = "void";
         String code = null;
@@ -252,7 +260,7 @@ class Parser {
 
         if(main) {
             if(mainClass == null)
-                mainClass = new XJLNClass(new SearchList<>(), new String[0], uses);
+                mainClass = new XJLNClass(new MatchedList<>(), new String[0], uses);
             mainClass.addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
         }else if(current instanceof XJLNClass)
             ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
@@ -278,8 +286,8 @@ class Parser {
         return code.toArray(new String[0]);
     }
 
-    private SearchList<String, XJLNVariable> parseParameterList(TokenHandler th){
-        SearchList<String, XJLNVariable> paraList = new SearchList<>();
+    private MatchedList<String, XJLNVariable> parseParameterList(TokenHandler th){
+        MatchedList<String, XJLNVariable> paraList = new MatchedList<>();
 
         if(th.length() == 0)
             return paraList;
@@ -293,7 +301,7 @@ class Parser {
             type = th.assertToken(Token.Type.IDENTIFIER).s();
             name = th.assertToken(Token.Type.IDENTIFIER).s();
 
-            paraList.add(name, new XJLNVariable(type));
+            paraList.add(name, new XJLNVariable(validateType(type)));
 
             if(th.hasNext()){
                 th.assertToken(",");
@@ -306,8 +314,8 @@ class Parser {
 
     private String validateType(String type){
         if(Compiler.PRIMITIVES.contains(type)) return type;
-        if(type.equals("var")) return "java/lang/Object";
+        if(type.equals("var")) return Compiler.validateName("java/lang/Object");
         if(uses.containsKey(type)) return uses.get(type);
-        return path + "/" + type;
+        return Compiler.validateName(path + "\\" + type);
     }
 }

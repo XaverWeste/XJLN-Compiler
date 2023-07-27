@@ -1,6 +1,8 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
+import com.github.xjln.utility.MatchedList;
+
 import javassist.*;
 import javassist.bytecode.*;
 
@@ -20,9 +22,13 @@ import java.util.Set;
 
 public class Compiler {
 
+    public static final MatchedList<String, String> OPERATOR_LIST = MatchedList.of(
+            new String[]{"+"  , "-"       , "*"       , "/"     , "="     , "<"       , ">"          , "!"  , "%"     , "&"  , "|"},
+            new String[]{"add", "subtract", "multiply", "divide", "equals", "lessThan", "greaterThan", "not", "modulo", "and", "or"});
+
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
-    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "==", ">=", "<=", "<", ">", "%", "=");
-    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=");
+    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "!=", "==", ">=", "<=", "<", ">", "%", "=");
+    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=", "&&", "||");
 
     private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
@@ -155,8 +161,8 @@ public class Compiler {
         //Fields
         for(String n:clazz.fields.keySet())
             addField(cf, clazz.fields.get(n), n);
-        for(String n:clazz.parameter.getKeys())
-            addField(cf, clazz.parameter.get(n), n);
+        for(String n:clazz.parameter.getFirstList())
+            addField(cf, clazz.parameter.getSecond(n), n);
 
         return cf;
     }
@@ -184,15 +190,15 @@ public class Compiler {
 
                 src.append("public ").append(className.split("\\.")[className.split("\\.").length - 1]).append("(");
 
-                for (String para : clazz.parameter.getKeys())
-                    src.append(clazz.parameter.get(para).type).append(" ").append(para).append(",");
+                for (String para : clazz.parameter.getFirstList())
+                    src.append(clazz.parameter.getSecond(para).type).append(" ").append(para).append(",");
 
                 if (src.toString().endsWith(","))
                     src.deleteCharAt(src.length() - 1);
 
                 src.append("){");
 
-                for (String name : clazz.parameter.getKeys())
+                for (String name : clazz.parameter.getFirstList())
                     src.append("this.").append(name).append(" = ").append(name).append(";");
 
 
@@ -228,8 +234,8 @@ public class Compiler {
                 src.append("static ");
             src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 
-            for (String para : currentMethod.parameter.getKeys())
-                src.append(currentMethod.parameter.get(para).type).append(" ").append(para).append(",");
+            for (String para : currentMethod.parameter.getFirstList())
+                src.append(currentMethod.parameter.getSecond(para).type).append(" ").append(para).append(",");
 
             if (src.toString().endsWith(","))
                 src.deleteCharAt(src.length() - 1);
@@ -261,7 +267,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("if");
-        sb.append("if(").append(compileCalc(th).split(" ", 2)[1]).append("){");
+        sb.append("if(").append(compileCalc(th)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -277,7 +283,7 @@ public class Compiler {
         StringBuilder sb = new StringBuilder();
 
         th.assertToken("while");
-        sb.append("while(").append(compileCalc(th).split(" ", 2)[1]).append("){");
+        sb.append("while(").append(compileCalc(th)[1]).append("){");
 
         if(th.hasNext()){
             th.assertToken("->");
@@ -292,7 +298,7 @@ public class Compiler {
         TokenHandler th = Lexer.toToken(statement);
         th.assertToken("return");
         th.assertHasNext();
-        return "return " + compileCalc(th).split(" ", 2)[1] + ";";
+        return "return " + compileCalc(th)[1] + ";";
     }
 
     private String compileStatement(TokenHandler th){
@@ -304,88 +310,102 @@ public class Compiler {
                 return first + " " + th.current() + ";";
             Token second = th.current();
             th.assertToken("=");
-            return first + " " + second + "=" + compileCalc(th).split(" ", 2)[1] + ";";
+            return first + " " + second + "=" + compileCalc(th)[1] + ";";
         }else if(th.current().equals("=")){
             th.assertHasNext();
-            String calc = compileCalc(th);
-            if(currentMethod.parameter.get(first.s()) == null && currentClass.parameter.get(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
-                currentMethod.parameter.add(first.s(), new XJLNVariable(calc.split(" ", 2)[0]));
-                return (calc.split(" ", 2)[0].equals("NUMBER") ? "double" : calc.split(" ", 2)[0]) + " " + first + " = " + calc.split(" ", 2)[1] + ";";
+            String[] calc = compileCalc(th);
+            if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
+                currentMethod.parameter.add(first.s(), new XJLNVariable(calc[0]));
+                return (calc[0].equals("NUMBER") ? "double" : calc[0]) + " " + first + " = " + calc[1] + ";";
             }else
-                return first + " = " + calc.split(" ", 2)[1] + ";";
+                return first + " = " + calc[1] + ";";
         }else{
             th.last();
             th.last();
-            return compileCalc(th).split(" ", 2)[1] + ";";
+            return compileCalc(th)[1] + ";";
         }
     }
 
-    private String compileCalc(TokenHandler th){
+    private String[] compileCalc(TokenHandler th){
         StringBuilder sb = new StringBuilder();
-        String type = th.next().t().toString();
+        String[] current = compileCalcArg(th);
+        String type = current[0];
+        sb.append(current[1]);
 
-        switch (th.current().t()) {
-            case NUMBER -> sb.append(th.current());
-            case STRING -> sb.append(th.current().s());
-            case IDENTIFIER -> {
-                String current = compileCurrent(th);
-                type = current.split(" ", 2)[0];
-                sb.append(current.split(" ", 2)[1]);
-            }
-            default -> throw new RuntimeException("illegal argument in: " + th);
-        }
-
-        while (th.hasNext()) {
+        while(th.hasNext()) {
             Token operator = th.assertToken(Token.Type.OPERATOR, Token.Type.SIMPLE);
 
             if(operator.equals(Token.Type.SIMPLE) || operator.equals("->")) {
                 th.last();
-                return type + " " + sb;
+                return new String[]{type, sb.toString()};
             }
+
+            if(type == null)
+                throw new RuntimeException("illegal argument in: " + th);
+
+            current = compileCalcArg(th);
+            String currentType = current[0];
+            String currentArg = current[1];
 
             switch (type){
-                case "NUMBER", "int", "double", "long", "short" -> {
-                    if(!PRIMITIVE_NUMBER_OPERATORS.contains(operator.s()))
-                           throw new RuntimeException("illegal operator");
-                    sb.append(operator.s());
+                case "short", "int", "long", "float", "double" -> {
+                    if(!PRIMITIVE_NUMBER_OPERATORS.contains(operator.s()) || !Set.of("short", "int", "long", "float", "double").contains(currentType))
+                        throw new RuntimeException("Operator " + operator + " is not defined for " + type + " and " + currentType + " in: " + th);
+                    sb.append(operator).append(currentArg);
                 }
-                case "String" -> {
-                    if(!PRIMITIVE_BOOLEAN_OPERATORS.contains(operator.s()))
-                        throw new RuntimeException("illegal operator");
-                    sb.append(operator.s());
+                case "boolean" -> {
+                    if(!PRIMITIVE_BOOLEAN_OPERATORS.contains(operator.s()) || !currentType.equals("boolean"))
+                        throw new RuntimeException("Operator " + operator + " is not defined for boolean and " + currentType + " in: " + th);
+                    if(operator.equals("|"))
+                        operator = new Token("||", Token.Type.OPERATOR);
+                    if(operator.equals("&"))
+                        operator = new Token("&&", Token.Type.OPERATOR);
+                    sb.append(operator).append(currentArg);
+                }
+                case "java/lang/String" -> {
+                    if(!operator.equals("+") || !currentType.equals("java/lang/String"))
+                        throw new RuntimeException("Operator " + operator + " is not defined for java/lang/String and " + currentType + " in: " + th);
+                    sb.append("+").append(currentArg);
                 }
                 default -> {
-                    if(getClassLang(type) == null)
-                        throw new RuntimeException("class " + type + " does not exist in: " + th);
-                    sb.append(".").append(operator.s()).append("(");
+                    if(!hasMethod(type, toIdentifier(operator.s()), currentType))
+                        throw new RuntimeException("Operator " + operator + " (Method " + toIdentifier(operator.s()) + ") is not defined for " + type + " and " + currentType + " in: " + th);
+                    sb.append(".").append(toIdentifier(operator.s())).append("(").append(currentArg).append(")");
                 }
             }
-
-            String currentType;
-
-            switch (th.next().t()) {
-                case NUMBER -> {
-                    sb.append(th.current());
-                    currentType = "NUMBER";
-                }
-                case IDENTIFIER -> {
-                    String current = compileCurrent(th);
-                    currentType = current.split(" ", 2)[0];
-                    sb.append(current.split(" ", 2)[1]);
-                }
-                default -> throw new RuntimeException("illegal argument in: " + th);
-            }
-
-            if(!hasMethod(type, operator.s(), currentType))
-                throw new RuntimeException("operator " + operator + " is not defined for " + type + " and " + currentType);
-
-            if(!PRIMITIVES.contains(type))
-                sb.append(")");
-
-            type = currentType;
         }
 
-        return type + " " + sb;
+        return new String[]{type, sb.toString()};
+    }
+
+    private String[] compileCalcArg(TokenHandler th){
+        String arg;
+        String type;
+
+        switch (th.next().t()){
+            case STRING -> {
+                type = "java/lang/String";
+                arg = th.current().s();
+            }
+            case NUMBER -> {
+                type = getPrimitiveType(th.current().s());
+                arg = th.current().s();
+            }
+            case SIMPLE -> {
+                throw new RuntimeException("expected number in " + th); //TODO
+            }
+            case OPERATOR -> {
+                throw new RuntimeException("expected identifier in " + th); //TODO
+            }
+            case IDENTIFIER -> {
+                String current = compileCurrent(th);
+                type = current.split(" ", 2)[0];
+                arg = current.split(" ", 2)[1];
+            }
+            default -> throw new RuntimeException("illegal argument in: " + th);
+        }
+
+        return new String[]{type, arg};
     }
 
     private String compileCurrent(TokenHandler th){
@@ -408,7 +428,7 @@ public class Compiler {
                         break;
                     }
                     th.last();
-                    String[] calc = compileCalc(th).split(" ", 2);
+                    String[] calc = compileCalc(th);
                     types.add(calc[0]);
                     sb.append(calc[1]);
                     if(th.assertToken(",", ")").equals(")")) {
@@ -434,7 +454,7 @@ public class Compiler {
                         break;
                     }
                     th.last();
-                    sb.append(compileCalc(th).split(" ", 2)[1]);
+                    sb.append(compileCalc(th)[1]);
                     if(th.assertToken(",", "]").equals("]")) {
                         sb.append(")");
                         break;
@@ -451,7 +471,6 @@ public class Compiler {
                     lastType = sb.toString();
                 }else
                     lastType = getType(lastType, currentMethodName, call);
-
             }
             default -> {
                 th.last();
@@ -464,6 +483,9 @@ public class Compiler {
                 sb.append(".");
                 call = th.assertToken(Token.Type.IDENTIFIER).s();
                 sb.append(call);
+
+                if(!th.hasNext())
+                    return getFieldType(lastType, call) + " " + sb;
 
                 switch (th.next().s()){
                     case ":" -> {
@@ -480,7 +502,7 @@ public class Compiler {
                                 break;
                             }
                             th.last();
-                            String[] calc = compileCalc(th).split(" ", 2);
+                            String[] calc = compileCalc(th);
                             types.add(calc[0]);
                             sb.append(calc[1]);
                             if(th.assertToken(",", ")").equals(")")) {
@@ -514,12 +536,12 @@ public class Compiler {
             }else
                 throw new RuntimeException("illegal argument");
         }else if(classes.get(clazz) instanceof XJLNClass){
-            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var) != null)
-                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.get(var).type;
+            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var) != null)
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var).type;
             if(((XJLNClass) classes.get(clazz)).fields.get(var) != null)
                 return ((XJLNClass) classes.get(clazz)).fields.get(var).type;
-            if(((XJLNClass) classes.get(clazz)).parameter.get(var) != null)
-                return ((XJLNClass) classes.get(clazz)).parameter.get(var).type;
+            if(((XJLNClass) classes.get(clazz)).parameter.getSecond(var) != null)
+                return ((XJLNClass) classes.get(clazz)).parameter.getSecond(var).type;
         }else if(classes.get(clazz) instanceof XJLNEnum)
             return clazz;
         return null;
@@ -563,9 +585,11 @@ public class Compiler {
             }
             case "xjln" -> {
                 if(classes.get(clazz) instanceof XJLNClass){
-                    if(!((XJLNClass) classes.get(clazz)).fields.containsKey(name))
-                        return null;
-                    return ((XJLNClass) classes.get(clazz)).fields.get(name).type;
+                    if(((XJLNClass) classes.get(clazz)).fields.containsKey(name))
+                        return ((XJLNClass) classes.get(clazz)).fields.get(name).type;
+                    if(((XJLNClass) classes.get(clazz)).parameter.getSecond(name) != null)
+                        return ((XJLNClass) classes.get(clazz)).parameter.getSecond(name).type;
+                    return null;
                 }
             }
             case "unknown" -> {
@@ -579,7 +603,7 @@ public class Compiler {
     private void executeMain(String path){
         path = path.replace("/", ".").replace("\\", ".");
         if(!classes.containsKey(path + ".Main"))
-            throw new RuntimeException("file " + path + " does not exist");
+            throw new RuntimeException("file " + path + ".Main does not exist");
         if(classes.get(path + ".Main") instanceof XJLNClass && !((XJLNClass) classes.get(path + ".Main")).methods.containsKey("main"))
             throw new RuntimeException(path + " contains no main method");
         try {
@@ -635,14 +659,58 @@ public class Compiler {
         return null;
     }
 
-    public static boolean hasMethod(String clazz, String method, String...types){
-        if(Set.of("NUMBER", "int", "double", "long", "short").contains(clazz)) return PRIMITIVE_NUMBER_OPERATORS.contains(method) && types.length == 1 && Set.of("int", "double", "long", "short", "NUMBER").contains(types[0]);
-        if(classes.containsKey(clazz)){
-            if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method))
-                return ((XJLNClass) classes.get(clazz)).methods.get(method).matches(types);
-            else
-                return false;
+    public static boolean hasMethod(String clazz, String method, String...types){ //TODO
+        switch (getClassLang(clazz)){
+            case "xjln" -> {
+                if(classes.get(clazz) instanceof XJLNClass)
+                    return ((XJLNClass) classes.get(clazz)).methods.containsKey(method);
+            }
+            case "java" -> {
+                try {
+                    Class<?>[] classTypes = new Class[types.length];
+                    for(int i = 0;i < types.length;i++)
+                        classTypes[i] = Class.forName(types[i]);
+                    Class.forName(clazz).getMethod(method, classTypes);
+                    return true;
+                }catch (ClassNotFoundException | NoSuchMethodException ignored){}
+            }
         }
-        return false;
+        throw new RuntimeException("Class " + clazz + " didn't exist");
+    }
+
+    public static String toIdentifier(String operators){
+        StringBuilder sb = new StringBuilder();
+        for(char c:operators.toCharArray())
+            sb.append(OPERATOR_LIST.getSecond(String.valueOf(c))).append("_");
+        if(sb.length() > 0)
+            sb.deleteCharAt(sb.length() - 1);
+        return sb.toString();
+    }
+
+    public static String getPrimitiveType(String number){
+        if(number.contains(".")){
+            try{
+                Float.parseFloat(number);
+                return "float";
+            }catch (NumberFormatException ignored){}
+            try{
+                Double.parseDouble(number);
+                return "double";
+            }catch (NumberFormatException ignored){}
+        }else{
+            try{
+                Short.parseShort(number);
+                return "short";
+            }catch (NumberFormatException ignored){}
+            try{
+                Integer.parseInt(number);
+                return "int";
+            }catch (NumberFormatException ignored){}
+            try{
+                Long.parseLong(number);
+                return "long";
+            }catch (NumberFormatException ignored){}
+        }
+        throw new RuntimeException("internal compiler error");
     }
 }
