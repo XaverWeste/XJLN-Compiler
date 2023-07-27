@@ -103,6 +103,20 @@ class TokenHandler {
         throw new RuntimeException("expected one of " + arrayToString(types) + " got " + token.t().toString() + " in: " + this);
     }
 
+    public Token assertToken(String string, Token.Type...types){
+        if(!hasNext()) throw new RuntimeException("expected one of " + arrayToString(types) + " got nothing in: " + this);
+        Token token = next();
+
+        if(token.equals(string))
+            return token;
+
+        for(Token.Type t:types)
+            if(token.t() == t)
+                return token;
+
+        throw new RuntimeException("expected one of " + string + ", " + arrayToString(types) + " got " + token.t().toString() + " in: " + this);
+    }
+
     public static void assertToken(Token token, String string) throws RuntimeException {
         if(!token.equals(string)) throw new RuntimeException("expected " + string + " got " + token.s());
     }

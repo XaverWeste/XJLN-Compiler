@@ -223,7 +223,7 @@ public class Compiler {
         }
     }
 
-    private CtMethod compileMethod(CtClass clazz) throws CannotCompileException{
+    private CtMethod compileMethod(CtClass clazz){
         StringBuilder src = new StringBuilder();
 
         if(currentMethodName.equalsIgnoreCase("main")){
@@ -259,7 +259,12 @@ public class Compiler {
 
         src.append("}");
 
-        return CtMethod.make(src.toString(), clazz);
+        try {
+            return CtMethod.make(src.toString(), clazz);
+        }catch (CannotCompileException e){
+            System.out.println(src);
+            throw new RuntimeException(e);
+        }
     }
 
     private String compileIf(String statement){
@@ -316,7 +321,23 @@ public class Compiler {
             String[] calc = compileCalc(th);
             if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
                 currentMethod.parameter.add(first.s(), new XJLNVariable(calc[0]));
-                return (calc[0].equals("NUMBER") ? "double" : calc[0]) + " " + first + " = " + calc[1] + ";";
+
+                if(calc[0].equals("NUMBER"))
+                    calc[0] = getPrimitiveType(calc[0]);
+
+                if(calc[0].startsWith("[")){
+                    int i = 0;
+                    while (calc[0].startsWith("[")){
+                        i++;
+                        calc[0] = calc[0].substring(1);
+                    }
+                    while (i > 0){
+                        i--;
+                        calc[0] = calc[0] + "[]";
+                    }
+                }
+
+                return calc[0] + " " + first + " = " + calc[1] + ";";
             }else
                 return first + " = " + calc[1] + ";";
         }else{
@@ -392,10 +413,32 @@ public class Compiler {
                 arg = th.current().s();
             }
             case SIMPLE -> {
-                throw new RuntimeException("expected number in " + th); //TODO
+                if(th.current().equals("(")){
+                    throw new RuntimeException("not yet supported argument in: " + th); //TODO
+                }else if(th.current().equals("[")){
+                    StringBuilder typeBuilder = new StringBuilder("[");
+                    StringBuilder argBuilder = new StringBuilder("new ");
+
+                    type = th.assertToken(Token.Type.IDENTIFIER).s();
+                    if(!PRIMITIVES.contains(type))
+                        type = currentClass.aliases.get(type);
+
+                    argBuilder.append(type).append("[");
+
+                    th.assertToken(",");
+                    argBuilder.append(th.assertToken(Token.Type.NUMBER)).append("]");
+
+                    while(!th.assertToken("]", ",").equals("]")) {
+                        typeBuilder.append("[");
+                        argBuilder.append("[").append(th.assertToken(Token.Type.NUMBER)).append("]");
+                    }
+
+                    type = typeBuilder.append(type).toString();
+                    arg = argBuilder.toString();
+                }else throw new RuntimeException("illegal argument in: " + th);
             }
             case OPERATOR -> {
-                throw new RuntimeException("expected identifier in " + th); //TODO
+                throw new RuntimeException("not yet supported argument in: " + th); //TODO
             }
             case IDENTIFIER -> {
                 String current = compileCurrent(th);
@@ -480,44 +523,56 @@ public class Compiler {
 
         while (th.hasNext()){
             if(th.next().equals(":")){
-                sb.append(".");
-                call = th.assertToken(Token.Type.IDENTIFIER).s();
-                sb.append(call);
-
-                if(!th.hasNext())
-                    return getFieldType(lastType, call) + " " + sb;
-
-                switch (th.next().s()){
-                    case ":" -> {
-                        th.last();
-                        lastType = getFieldType(lastType, call);
+                if(th.assertToken(Token.Type.IDENTIFIER, Token.Type.NUMBER).equals(Token.Type.NUMBER)){
+                    if(!lastType.startsWith("["))
+                        throw new RuntimeException("Expected IDENTIFIER got NUMBER in: " + th);
+                    sb.append("[").append(th.current()).append("]");
+                    if(lastType.split("\\[").length == 2)
+                        lastType = lastType.substring(1);
+                    else{
+                        String[] sa = lastType.split("\\[");
+                        lastType = "[".repeat(Math.max(0, sa.length - 1)) + sa[sa.length - 1];
                     }
-                    case "(" -> {
-                        sb.append("(");
-                        th.assertHasNext();
-                        ArrayList<String> types = new ArrayList<>();
-                        while(th.hasNext()){
-                            if(th.next().equals(")")){
-                                sb.append(")");
-                                break;
-                            }
+                }else {
+                    sb.append(".");
+                    call = th.current().s();
+                    sb.append(call);
+
+                    if (!th.hasNext())
+                        return getFieldType(lastType, call) + " " + sb;
+
+                    switch (th.next().s()) {
+                        case ":" -> {
                             th.last();
-                            String[] calc = compileCalc(th);
-                            types.add(calc[0]);
-                            sb.append(calc[1]);
-                            if(th.assertToken(",", ")").equals(")")) {
-                                sb.append(")");
-                                break;
-                            }else {
-                                sb.append(",");
-                                th.assertHasNext();
-                            }
+                            lastType = getFieldType(lastType, call);
                         }
-                        lastType = getReturnType(lastType, call, types.toArray(new String[0]));
-                    }
-                    default -> {
-                        th.last();
-                        return lastType + " " + sb;
+                        case "(" -> {
+                            sb.append("(");
+                            th.assertHasNext();
+                            ArrayList<String> types = new ArrayList<>();
+                            while (th.hasNext()) {
+                                if (th.next().equals(")")) {
+                                    sb.append(")");
+                                    break;
+                                }
+                                th.last();
+                                String[] calc = compileCalc(th);
+                                types.add(calc[0]);
+                                sb.append(calc[1]);
+                                if (th.assertToken(",", ")").equals(")")) {
+                                    sb.append(")");
+                                    break;
+                                } else {
+                                    sb.append(",");
+                                    th.assertHasNext();
+                                }
+                            }
+                            lastType = getReturnType(lastType, call, types.toArray(new String[0]));
+                        }
+                        default -> {
+                            th.last();
+                            return lastType + " " + sb;
+                        }
                     }
                 }
             }else{
@@ -575,6 +630,11 @@ public class Compiler {
     }
 
     private String getFieldType(String clazz, String name){
+        if(clazz.startsWith("[")){
+            if(!name.equals("length"))
+                throw new RuntimeException(new NoSuchFieldException());
+            return "int";
+        }
         switch (getClassLang(clazz)){
             case "java" -> {
                 try{
@@ -595,7 +655,7 @@ public class Compiler {
             case "unknown" -> {
                 return null;
             }
-            case "primitive" -> throw new RuntimeException("no such method");
+            case "primitive" -> throw new RuntimeException(new NoSuchFieldException());
         }
         return null;
     }
@@ -625,6 +685,9 @@ public class Compiler {
     }
 
     public static String toDesc(String type){
+        if(type.startsWith("["))
+            return "[" + toDesc(type.substring(1));
+
         return switch (type){
             case "int" -> "I";
             case "double" -> "D";

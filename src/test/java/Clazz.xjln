@@ -2,11 +2,19 @@ use java/lang/System
 
 main -> System:out:println("Hello World!")
 
+def Clazz[]
+
+    [[int]] intArray
+
+    def test() -> intArray = [int, 3, 4]
+
+end
+
 ############# syntax preview ###################
 #
 #def Class[/] => java/lang/Object, java/lang/Class
 #
-#   [[int]] intArray = [4, 3]
+#   [[int]] intArray = [int, 4, 3]
 #
 #   def fib(int n) :: int{
 #       (0) = 1
