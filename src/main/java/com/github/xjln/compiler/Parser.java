@@ -194,15 +194,30 @@ class Parser {
 
         boolean inner = false, constant = false;
 
-        String type = th.assertToken(Token.Type.IDENTIFIER).s();
+        String type = th.assertToken("[", Token.Type.IDENTIFIER).s();
         if(type.equals("inner")){
             inner = true;
-            type = th.assertToken(Token.Type.IDENTIFIER).s();
+            type = th.assertToken("[", Token.Type.IDENTIFIER).s();
         }
         if(type.equals("const")){
             constant = true;
-            type = th.assertToken(Token.Type.IDENTIFIER).s();
+            type = th.assertToken("[", Token.Type.IDENTIFIER).s();
         }
+        if(type.equals("[")){
+            StringBuilder sb = new StringBuilder("[");
+            int i = 1;
+            while(th.assertToken("[", Token.Type.IDENTIFIER).equals("[")){
+                i++;
+                sb.append("[");
+            }
+            sb.append(th.current());
+            while (i > 0){
+                i--;
+                th.assertToken("]");
+            }
+            type = sb.toString();
+        }
+
         type = validateType(type);
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
 
@@ -316,6 +331,10 @@ class Parser {
         if(Compiler.PRIMITIVES.contains(type)) return type;
         if(type.equals("var")) return Compiler.validateName("java/lang/Object");
         if(uses.containsKey(type)) return uses.get(type);
+        if(type.startsWith("[")){
+            String[] sa = type.split("\\[");
+            return "[".repeat(Math.max(0, sa.length - 1)) + Compiler.validateName(sa[sa.length - 1]);
+        }
         return Compiler.validateName(path + "\\" + type);
     }
 }

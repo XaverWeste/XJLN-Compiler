@@ -2,6 +2,12 @@ use java/lang/System
 
 main -> System:out:println("Hello World!")
 
+def Clazz[]
+
+    [[int]] intArray
+
+end
+
 ############# syntax preview ###################
 #
 #def Class[/] => java/lang/Object, java/lang/Class

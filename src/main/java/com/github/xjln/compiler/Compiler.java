@@ -625,6 +625,9 @@ public class Compiler {
     }
 
     public static String toDesc(String type){
+        if(type.startsWith("["))
+            return "[" + toDesc(type.substring(1));
+
         return switch (type){
             case "int" -> "I";
             case "double" -> "D";
