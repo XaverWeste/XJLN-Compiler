@@ -223,7 +223,7 @@ public class Compiler {
         }
     }
 
-    private CtMethod compileMethod(CtClass clazz) throws CannotCompileException{
+    private CtMethod compileMethod(CtClass clazz){
         StringBuilder src = new StringBuilder();
 
         if(currentMethodName.equalsIgnoreCase("main")){
@@ -259,7 +259,12 @@ public class Compiler {
 
         src.append("}");
 
-        return CtMethod.make(src.toString(), clazz);
+        try {
+            return CtMethod.make(src.toString(), clazz);
+        }catch (CannotCompileException e){
+            System.out.println(src);
+            throw new RuntimeException(e);
+        }
     }
 
     private String compileIf(String statement){
@@ -316,7 +321,23 @@ public class Compiler {
             String[] calc = compileCalc(th);
             if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
                 currentMethod.parameter.add(first.s(), new XJLNVariable(calc[0]));
-                return (calc[0].equals("NUMBER") ? "double" : calc[0]) + " " + first + " = " + calc[1] + ";";
+
+                if(calc[0].equals("NUMBER"))
+                    calc[0] = getPrimitiveType(calc[0]);
+
+                if(calc[0].startsWith("[")){
+                    int i = 0;
+                    while (calc[0].startsWith("[")){
+                        i++;
+                        calc[0] = calc[0].substring(1);
+                    }
+                    while (i > 0){
+                        i--;
+                        calc[0] = calc[0] + "[]";
+                    }
+                }
+
+                return calc[0] + " " + first + " = " + calc[1] + ";";
             }else
                 return first + " = " + calc[1] + ";";
         }else{
@@ -392,10 +413,32 @@ public class Compiler {
                 arg = th.current().s();
             }
             case SIMPLE -> {
-                throw new RuntimeException("expected number in " + th); //TODO
+                if(th.current().equals("(")){
+                    throw new RuntimeException("not yet supported argument in: " + th); //TODO
+                }else if(th.current().equals("[")){
+                    StringBuilder typeBuilder = new StringBuilder("[");
+                    StringBuilder argBuilder = new StringBuilder("new ");
+
+                    type = th.assertToken(Token.Type.IDENTIFIER).s();
+                    if(!PRIMITIVES.contains(type))
+                        type = currentClass.aliases.get(type);
+
+                    argBuilder.append(type).append("[");
+
+                    th.assertToken(",");
+                    argBuilder.append(th.assertToken(Token.Type.NUMBER)).append("]");
+
+                    while(!th.assertToken("]", ",").equals("]")) {
+                        typeBuilder.append("[");
+                        argBuilder.append("[").append(th.assertToken(Token.Type.NUMBER)).append("]");
+                    }
+
+                    type = typeBuilder.append(type).toString();
+                    arg = argBuilder.toString();
+                }else throw new RuntimeException("illegal argument in: " + th);
             }
             case OPERATOR -> {
-                throw new RuntimeException("expected identifier in " + th); //TODO
+                throw new RuntimeException("not yet supported argument in: " + th); //TODO
             }
             case IDENTIFIER -> {
                 String current = compileCurrent(th);

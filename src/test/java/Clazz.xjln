@@ -6,7 +6,7 @@ def Clazz[]
 
     [[int]] intArray
 
-    def test() -> intArray:3:length
+    def test() -> intArray = [int, 3, 4]
 
 end
 
@@ -14,7 +14,7 @@ end
 #
 #def Class[/] => java/lang/Object, java/lang/Class
 #
-#   [[int]] intArray = [4, 3]
+#   [[int]] intArray = [int, 4, 3]
 #
 #   def fib(int n) :: int{
 #       (0) = 1
