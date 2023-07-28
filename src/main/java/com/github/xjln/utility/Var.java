@@ -12,6 +12,11 @@ public class Var {
             this.allowedTypes = allowedTypes;
     }
 
+    public Var(Object value){
+        allowedTypes = new String[]{value.getClass().toString().split(" ")[1]};
+        this.value = value;
+    }
+
     public <T> void setValue(T value) {
         if(allowedTypes != null && !isAllowed(value.getClass().toString().split(" ", 2)[1]))
             throw new ClassCastException();
@@ -20,6 +25,10 @@ public class Var {
 
     public <T> T getValue(){
         return (T) value;
+    }
+
+    public String getCurrentType(){
+        return value.getClass().toString().split(" ", 2)[1];
     }
 
     public boolean isAllowed(String type){
