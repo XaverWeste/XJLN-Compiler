@@ -67,6 +67,7 @@ class Parser {
     private void resetUse(){
         uses = new HashMap<>();
         uses.put("RuntimeException", "java/lang/RuntimeException");
+        uses.put("var", "com.github.xjln.utility.Var");
     }
 
     private void parseUseDef(String line){
@@ -329,7 +330,6 @@ class Parser {
 
     private String validateType(String type){
         if(Compiler.PRIMITIVES.contains(type)) return type;
-        if(type.equals("var")) return Compiler.validateName("java/lang/Object");
         if(uses.containsKey(type)) return uses.get(type);
         if(type.startsWith("[")){
             String[] sa = type.split("\\[");

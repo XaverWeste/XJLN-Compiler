@@ -5,11 +5,12 @@ public class Var {
     private Object value;
     private final String[] allowedTypes;
 
-    public Var(String...allowedTypes){
+    public Var(Object value, String...allowedTypes){
         if(allowedTypes.length == 0)
             this.allowedTypes = null;
         else
             this.allowedTypes = allowedTypes;
+        this.value = value;
     }
 
     public Var(Object value){
