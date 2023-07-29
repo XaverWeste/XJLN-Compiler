@@ -8,9 +8,6 @@ public class Main {
         //printClass("Main");
     }
 
-    public Main() throws Exception{
-    }
-
     public static void printClass(String name) throws Exception{
         ClassPool cp = ClassPool.getDefault();
         if(cp.get(name).isFrozen()) cp.get(name).defrost();

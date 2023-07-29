@@ -28,7 +28,7 @@ public class Compiler {
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
     private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "!=", "==", ">=", "<=", "<", ">", "%", "=");
-    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=", "&&", "||");
+    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=", "&", "|");
 
     private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
@@ -247,7 +247,7 @@ public class Compiler {
             switch(statement.split(" ")[0]){
                 case "if" -> src.append(compileIf(statement));
                 case "while" -> src.append(compileWhile(statement));
-                case "return" -> src.append(compileReturn(statement));
+                case "return" -> src.append(compileReturn(Lexer.toToken(statement)));
                 case "end" -> {
                     if(!statement.equals("end"))
                         throw new RuntimeException("illegal argument in: " + statement);
@@ -299,8 +299,7 @@ public class Compiler {
         return sb.toString();
     }
 
-    private String compileReturn(String statement){
-        TokenHandler th = Lexer.toToken(statement);
+    private String compileReturn(TokenHandler th){
         th.assertToken("return");
         th.assertHasNext();
         return "return " + compileCalc(th)[1] + ";";
@@ -308,6 +307,10 @@ public class Compiler {
 
     private String compileStatement(TokenHandler th){
         Token first = th.assertToken(Token.Type.IDENTIFIER);
+        if(first.equals("return")){
+            th.last();
+            return compileReturn(th);
+        }
         if(th.next().equals(Token.Type.IDENTIFIER)){
             first = new Token(currentClass.aliases.get(first.s()), Token.Type.IDENTIFIER);
             currentMethod.parameter.add(first.s(), new XJLNVariable(first.s()));
@@ -394,6 +397,8 @@ public class Compiler {
                     sb.append(".").append(toIdentifier(operator.s())).append("(").append(currentArg).append(")");
                 }
             }
+
+            type = getReturnType(type, PRIMITIVES.contains(type) ? operator.s() : toIdentifier(operator.s()), currentType);
         }
 
         return new String[]{type, sb.toString()};
@@ -414,7 +419,9 @@ public class Compiler {
             }
             case SIMPLE -> {
                 if(th.current().equals("(")){
-                    throw new RuntimeException("not yet supported argument in: " + th); //TODO
+                    String[] calc = compileCalc(th);
+                    th.assertToken(")");
+                    return calc;
                 }else if(th.current().equals("[")){
                     StringBuilder typeBuilder = new StringBuilder("[");
                     StringBuilder argBuilder = new StringBuilder("new ");
@@ -624,7 +631,11 @@ public class Compiler {
             case "unknown" -> {
                 return null;
             }
-            case "primitive" -> throw new RuntimeException("no such method");
+            case "primitive" -> {
+                if(method.contains("="))
+                    return "boolean";
+                return clazz;
+            }
         }
         return null;
     }
