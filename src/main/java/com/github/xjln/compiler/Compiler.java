@@ -23,11 +23,15 @@ import java.util.Set;
 public class Compiler {
 
     public static final MatchedList<String, String> OPERATOR_LIST = MatchedList.of(
-            new String[]{"+"  , "-"       , "*"       , "/"     , "="     , "<"       , ">"          , "!"  , "%"     , "&"  , "|"},
+            new String[]{"+"  , "-"       , "*"       , "/"     , "="     , "<"       , ">"          , "!"  , "%"     , "&"  , "|" },
             new String[]{"add", "subtract", "multiply", "divide", "equals", "lessThan", "greaterThan", "not", "modulo", "and", "or"});
 
-    public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
-    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS = Set.of("+", "-", "*", "/", "!=", "==", ">=", "<=", "<", ">", "%", "=");
+    public static final MatchedList<String, String> WRAPPER_CLASSES = MatchedList.of(
+            new String[]{"var"                        , "int"              , "double"          , "long"          , "float"          , "boolean"          , "char"               , "byte"          , "short"},
+            new String[]{"com.github.xjln.utility.Var", "java.lang.Integer", "java.lang.Double", "java.lang.Long", "java.lang.Float", "java.lang.Boolean", "java.lang.Character", "java.lang.Byte", "java.lang.Short"});
+
+    public  static final Set<String> PRIMITIVES                  = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
+    private static final Set<String> PRIMITIVE_NUMBER_OPERATORS  = Set.of("+", "-", "*", "/", "!=", "==", ">=", "<=", "<", ">", "%", "=");
     private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=", "&", "|");
 
     private static String[] srcFolders = new String[0];
@@ -311,6 +315,13 @@ public class Compiler {
             th.last();
             return compileReturn(th);
         }
+        if(first.equals("{")){
+            StringBuilder sb = new StringBuilder("{");
+            sb.append(th.assertToken(Token.Type.IDENTIFIER));
+            while (th.assertToken(",", "}").equals(","))
+                sb.append(th.assertToken(Token.Type.IDENTIFIER));
+            first = new Token(sb.toString(), Token.Type.IDENTIFIER);
+        }
         if(th.next().equals(Token.Type.IDENTIFIER)){
             first = new Token(currentClass.aliases.get(first.s()), Token.Type.IDENTIFIER);
             currentMethod.parameter.add(first.s(), new XJLNVariable(first.s()));
@@ -591,6 +602,10 @@ public class Compiler {
         return lastType + " " + sb;
     }
 
+    private String primitiveToObject(String value){
+        return "new " + WRAPPER_CLASSES.getSecond(getPrimitiveType(value)) + "(" + value + ")";
+    }
+
     private String getType(String clazz, String method, String var){
         if(var == null){
             if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method)){
@@ -733,7 +748,7 @@ public class Compiler {
         return null;
     }
 
-    public static boolean hasMethod(String clazz, String method, String...types){ //TODO
+    public static boolean hasMethod(String clazz, String method, String...types){
         switch (getClassLang(clazz)){
             case "xjln" -> {
                 if(classes.get(clazz) instanceof XJLNClass)
@@ -761,27 +776,27 @@ public class Compiler {
         return sb.toString();
     }
 
-    public static String getPrimitiveType(String number){
-        if(number.contains(".")){
+    public static String getPrimitiveType(String value){
+        if(value.contains(".")){
             try{
-                Float.parseFloat(number);
+                Float.parseFloat(value);
                 return "float";
             }catch (NumberFormatException ignored){}
             try{
-                Double.parseDouble(number);
+                Double.parseDouble(value);
                 return "double";
             }catch (NumberFormatException ignored){}
         }else{
             try{
-                Short.parseShort(number);
+                Short.parseShort(value);
                 return "short";
             }catch (NumberFormatException ignored){}
             try{
-                Integer.parseInt(number);
+                Integer.parseInt(value);
                 return "int";
             }catch (NumberFormatException ignored){}
             try{
-                Long.parseLong(number);
+                Long.parseLong(value);
                 return "long";
             }catch (NumberFormatException ignored){}
         }

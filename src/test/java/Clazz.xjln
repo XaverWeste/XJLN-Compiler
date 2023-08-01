@@ -15,5 +15,11 @@ main -> System:out:println("Hello World!")
 #   }
 #
 #end
+
+# Roadmap
 #
-#def someThing = (int i, int j)
+# 0.6 dynamic typing, method overloading
+# 0.7 advanced syntax for method definition
+# 0.8 interfaces and static methods and fields
+# 0.9 optional parameter, generics
+# 1.0 bug fixes, general improvements and standard library

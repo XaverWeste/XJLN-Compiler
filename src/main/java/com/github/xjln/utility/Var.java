@@ -6,19 +6,16 @@ public class Var {
     private final String[] allowedTypes;
 
     public Var(Object value, String...allowedTypes){
-        if(allowedTypes.length == 0)
-            this.allowedTypes = null;
-        else
-            this.allowedTypes = allowedTypes;
-        this.value = value;
+        this.allowedTypes = allowedTypes;
+        setValue(value);
     }
 
     public Var(Object value){
-        allowedTypes = new String[]{value.getClass().toString().split(" ")[1]};
-        this.value = value;
+        this.allowedTypes = null;
+        setValue(value);
     }
 
-    public <T> void setValue(T value) {
+    public <T> void setValue(T value) throws ClassCastException{
         if(allowedTypes != null && !isAllowed(value.getClass().toString().split(" ", 2)[1]))
             throw new ClassCastException();
         this.value = value;
