@@ -12,19 +12,19 @@ The compiler first validates all (input and output) folders. Second, all .class 
 
 ## Syntax Basics
 ### Hello World
-```
+``` XJLN
 use java/lang/System
 
 main -> System:out:println("Hello World!")
 ```
 
-### Enum definition
-```
+### Enums
+``` XJLN
 def Bool = True | False
 ```
 
-### Method/Function definion
-```
+### Methods/Functions
+``` XJLN
 def fib(int n) :: int
   if n < 0 -> return -1
   if (n == 0) | (n == 1) -> return 1
@@ -32,4 +32,25 @@ def fib(int n) :: int
 end
 
 def doubleInt(int value) :: int = value * 2
+```
+
+### Classes
+``` XJLN
+def Integer[int value]
+
+    inner int value
+
+    def +(int i) :: int = value + i
+    
+    def +(Integer i) :: int = value + i:value
+    
+    def set(int i) -> value = i
+    
+    def get() :: int = value
+end
+
+main
+    Integer integer = Integer[0]
+    int i = integer + 10
+end
 ```
