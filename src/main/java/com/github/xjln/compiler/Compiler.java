@@ -157,7 +157,7 @@ public class Compiler {
 
     private ClassFile compileClass(XJLNClass clazz, String name){
         ClassFile cf = new ClassFile(false, name, null);
-        cf.setAccessFlags(AccessFlag.setPublic(AccessFlag.PUBLIC));
+        cf.setAccessFlags(AccessFlag.PUBLIC);
 
         if(name.endsWith("Main"))
             return cf;
@@ -165,6 +165,12 @@ public class Compiler {
         //Fields
         for(XJLNField field:clazz.getFields())
             addField(cf, field);
+
+        try{
+            clazz.validateSuperClasses();
+        }catch (ClassNotFoundException e){
+            throw new RuntimeException(e);
+        }
 
         return cf;
     }
@@ -704,14 +710,6 @@ public class Compiler {
         }
     }
 
-    public static String toDesc(ArrayList<XJLNVariable> parameters, String returnType){
-        StringBuilder sb = new StringBuilder("(");
-        for(XJLNVariable parameter:parameters) sb.append(toDesc(parameter.type));
-        sb.append(")");
-        sb.append(toDesc(returnType));
-        return sb.toString();
-    }
-
     public static String toDesc(String type){
         if(type.startsWith("["))
             return "[" + toDesc(type.substring(1));
@@ -748,6 +746,10 @@ public class Compiler {
             return "unknown";
         }catch (NotFoundException ignored){}
         return null;
+    }
+
+    public static Compilable getXJLNClass(String validName){
+        return classes.get(validName);
     }
 
     public static boolean hasMethod(String clazz, String method, String...types){

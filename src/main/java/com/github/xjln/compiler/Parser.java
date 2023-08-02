@@ -172,9 +172,22 @@ class Parser {
 
     private void parseClassDef(TokenHandler th){
         MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
-        ArrayList<String> supers = new ArrayList<>();
+        ArrayList<String> superClasses = new ArrayList<>();
 
-        current = new XJLNClass(className, parameter, supers.toArray(new String[0]), uses);
+        if(th.hasNext()) {
+            th.assertToken("=>");
+            th.assertHasNext();
+
+            while (th.hasNext()){
+                superClasses.add(validateType(th.assertToken(Token.Type.IDENTIFIER).s()));
+                if(th.hasNext()){
+                    th.assertToken(",");
+                    th.assertHasNext();
+                }
+            }
+        }
+
+        current = new XJLNClass(className, parameter, superClasses.toArray(new String[0]), uses);
 
         String line = sc.nextLine().trim();
         while (!line.equals("end")) {

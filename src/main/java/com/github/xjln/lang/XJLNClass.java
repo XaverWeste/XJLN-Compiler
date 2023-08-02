@@ -3,8 +3,10 @@ package com.github.xjln.lang;
 import com.github.xjln.compiler.Compiler;
 import com.github.xjln.utility.MatchedList;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class XJLNClass implements Compilable {
@@ -32,12 +34,63 @@ public class XJLNClass implements Compilable {
     }
 
     public boolean hasField(String field){
-        return fields.containsKey(field);
+        if(fields.containsKey(field))
+            return true;
+
+        for(String superClass:superClasses){
+            switch (Objects.requireNonNull(Compiler.getClassLang(superClass))){
+                case "xjln" -> {
+                    Compilable compilable = Compiler.getXJLNClass(superClass);
+                    if(compilable instanceof XJLNClass){
+                        if(((XJLNClass) compilable).hasField(field))
+                            return true;
+                    } //TODO enum values
+                }
+                case "java" -> {
+                    try{
+                        Class<?> clazz = Class.forName(superClass);
+                        while (clazz != null) {
+                            try {
+                                clazz.getField(field);
+                                return true;
+                            } catch (NoSuchFieldException ignored){}
+                            clazz = clazz.getSuperclass();
+                        }
+                    }catch (ClassNotFoundException ignored){}
+                }
+            }
+        }
+
+        return false;
     }
 
     public XJLNField getField(String field) throws NoSuchFieldException{
         if(fields.containsKey(field))
             return fields.get(field);
+
+        for(String superClass:superClasses){
+            switch (Objects.requireNonNull(Compiler.getClassLang(superClass))){
+                case "xjln" -> {
+                    Compilable compilable = Compiler.getXJLNClass(superClass);
+                    if(compilable instanceof XJLNClass){
+                        try{
+                            return ((XJLNClass) compilable).getField(field);
+                        }catch (NoSuchFieldException ignored){}
+                    } //TODO enum values
+                }
+                case "java" -> {
+                    try{
+                        Class<?> clazz = Class.forName(superClass);
+                        while (clazz != null) {
+                            try {
+                                return XJLNField.ofField(clazz.getField(field));
+                            } catch (NoSuchFieldException ignored){}
+                            clazz = clazz.getSuperclass();
+                        }
+                    }catch (ClassNotFoundException ignored){}
+                }
+            }
+        }
 
         throw new NoSuchFieldException(field);
     }
@@ -63,6 +116,12 @@ public class XJLNClass implements Compilable {
             return methods.get(methodIdentification);
 
         throw new NoSuchMethodException(name + '.' + method + (parameterTypes.length == 0 ? "()" : Arrays.stream(parameterTypes).map(c -> c == null ? "null" : c).collect(Collectors.joining(",", "(", ")"))));
+    }
+
+    public void validateSuperClasses() throws ClassNotFoundException{
+        for(String superClass:superClasses)
+            if(Compiler.getClassLang(superClass) == null)
+                throw new ClassNotFoundException("Class " + superClass + " does not exist");
     }
 
     @Override
