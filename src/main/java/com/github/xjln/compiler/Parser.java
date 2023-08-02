@@ -126,7 +126,7 @@ class Parser {
 
     private void parseMain(String line){
         if(mainClass == null)
-            mainClass = new XJLNClass(new MatchedList<>(), new String[0], uses);
+            mainClass = new XJLNClass(Compiler.validateName(path + ".Main"),new MatchedList<>(), new String[0], uses);
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("main");
         if(th.hasNext()){
@@ -135,9 +135,9 @@ class Parser {
             StringBuilder code = new StringBuilder();
             while (th.hasNext())
                 code.append(th.next()).append(" ");
-            mainClass.methods.put("main", new XJLNMethod(new MatchedList<>(), false, "void", new String[]{code.toString()}));
+            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, "void", new String[]{code.toString()}));
         }else
-            mainClass.methods.put("main", new XJLNMethod(new MatchedList<>(), false, "void", parseCode()));
+            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, "void", parseCode()));
     }
 
     private void parseDef(String line){
@@ -174,7 +174,7 @@ class Parser {
         MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
         ArrayList<String> supers = new ArrayList<>();
 
-        current = new XJLNClass(parameter, supers.toArray(new String[0]), uses);
+        current = new XJLNClass(className, parameter, supers.toArray(new String[0]), uses);
 
         String line = sc.nextLine().trim();
         while (!line.equals("end")) {
@@ -223,7 +223,7 @@ class Parser {
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
 
         if(current instanceof XJLNClass)
-            ((XJLNClass) current).addField(name, new XJLNVariable(inner, constant, type));
+            ((XJLNClass) current).addField(new XJLNField(inner, constant, type, name));
         else
             throw new RuntimeException("internal compiler error at: " + line);
     }
@@ -276,7 +276,7 @@ class Parser {
 
         if(main) {
             if(mainClass == null)
-                mainClass = new XJLNClass(new MatchedList<>(), new String[0], uses);
+                mainClass = new XJLNClass(Compiler.validateName(path + ".Main"), new MatchedList<>(), new String[0], uses);
             mainClass.addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
         }else if(current instanceof XJLNClass)
             ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));

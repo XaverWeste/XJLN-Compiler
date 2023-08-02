@@ -18,8 +18,8 @@ main -> System:out:println("Hello World!")
 
 # Roadmap
 #
-# 0.6 dynamic typing, method overloading
-# 0.7 advanced syntax for method definition
+# 0.6 method overloading, super classes (and dynamic typing part 1)
+# 0.7 dynamic typing part 2 (of 2) and advanced syntax for method definition
 # 0.8 interfaces and static methods and fields
 # 0.9 optional parameter, generics
 # 1.0 bug fixes, general improvements and standard library

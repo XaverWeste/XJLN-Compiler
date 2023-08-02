@@ -163,20 +163,18 @@ public class Compiler {
             return cf;
 
         //Fields
-        for(String n:clazz.fields.keySet())
-            addField(cf, clazz.fields.get(n), n);
-        for(String n:clazz.parameter.getFirstList())
-            addField(cf, clazz.parameter.getSecond(n), n);
+        for(XJLNField field:clazz.getFields())
+            addField(cf, field);
 
         return cf;
     }
 
-    private void addField(ClassFile cf, XJLNVariable v, String name){
-        FieldInfo field = new FieldInfo(cf.getConstPool(), name, toDesc(v.type));
-        field.setAccessFlags(v.constant ? v.inner ? AccessFlag.setPrivate(AccessFlag.FINAL) : AccessFlag.setPublic(AccessFlag.FINAL) : v.inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
+    private void addField(ClassFile cf, XJLNField field){
+        FieldInfo fieldInfo = new FieldInfo(cf.getConstPool(), field.name(), toDesc(field.type()));
+        fieldInfo.setAccessFlags(field.constant() ? field.inner() ? AccessFlag.setPrivate(AccessFlag.FINAL) : AccessFlag.setPublic(AccessFlag.FINAL) : field.inner() ? AccessFlag.PRIVATE : AccessFlag.PUBLIC);
 
         try{
-            cf.addField(field);
+            cf.addField(fieldInfo);
         }catch (DuplicateMemberException ignored){}
     }
 
@@ -333,7 +331,7 @@ public class Compiler {
         }else if(th.current().equals("=")){
             th.assertHasNext();
             String[] calc = compileCalc(th);
-            if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.fields.containsKey(first.s())) {
+            if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.hasField(first.s())) {
                 currentMethod.parameter.add(first.s(), new XJLNVariable(calc[0]));
 
                 if(calc[0].equals("NUMBER"))
@@ -615,8 +613,10 @@ public class Compiler {
         }else if(classes.get(clazz) instanceof XJLNClass){
             if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var) != null)
                 return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var).type;
-            if(((XJLNClass) classes.get(clazz)).fields.get(var) != null)
-                return ((XJLNClass) classes.get(clazz)).fields.get(var).type;
+            if(((XJLNClass) classes.get(clazz)).hasField(var))
+                try {
+                    return ((XJLNClass) classes.get(clazz)).getField(var).type();
+                }catch (NoSuchFieldException ignored){}
             if(((XJLNClass) classes.get(clazz)).parameter.getSecond(var) != null)
                 return ((XJLNClass) classes.get(clazz)).parameter.getSecond(var).type;
         }else if(classes.get(clazz) instanceof XJLNEnum)
@@ -671,8 +671,10 @@ public class Compiler {
             }
             case "xjln" -> {
                 if(classes.get(clazz) instanceof XJLNClass){
-                    if(((XJLNClass) classes.get(clazz)).fields.containsKey(name))
-                        return ((XJLNClass) classes.get(clazz)).fields.get(name).type;
+                    if(((XJLNClass) classes.get(clazz)).hasField(name))
+                        try {
+                            return ((XJLNClass) classes.get(clazz)).getField(name).type();
+                        }catch (NoSuchFieldException ignored){}
                     if(((XJLNClass) classes.get(clazz)).parameter.getSecond(name) != null)
                         return ((XJLNClass) classes.get(clazz)).parameter.getSecond(name).type;
                     return null;
