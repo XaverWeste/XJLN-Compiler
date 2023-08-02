@@ -167,7 +167,7 @@ class Parser {
             values.add(th.current().s());
         }
 
-        current = new XJLNEnum(values);
+        current = new XJLNEnum(className, values);
     }
 
     private void parseClassDef(TokenHandler th){

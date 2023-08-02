@@ -2,6 +2,8 @@ package com.github.xjln.lang;
 
 import com.github.xjln.utility.MatchedList;
 
+import java.lang.reflect.Method;
+
 public class XJLNMethod {
 
     public final MatchedList<String, XJLNVariable> parameter;
@@ -16,12 +18,7 @@ public class XJLNMethod {
         this.code = code;
     }
 
-    public boolean matches(String...types){
-        if(types.length != parameter.size())
-            return false;
-        for(int i = 0;i < types.length;i++)
-            if(!parameter.getSecond(i).type.equals(types[i]))
-                return false;
-        return true;
+    public static XJLNMethod ofMethod(Method method){
+        return new XJLNMethod(new MatchedList<>(), method.toString().startsWith("private ") || method.toString().startsWith("protected "), method.getReturnType().toString().split(" ", 2)[1], null);
     }
 }

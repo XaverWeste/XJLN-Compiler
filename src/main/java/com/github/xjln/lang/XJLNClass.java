@@ -4,6 +4,7 @@ import com.github.xjln.compiler.Compiler;
 import com.github.xjln.utility.MatchedList;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
@@ -44,7 +45,8 @@ public class XJLNClass implements Compilable {
                     if(compilable instanceof XJLNClass){
                         if(((XJLNClass) compilable).hasField(field))
                             return true;
-                    } //TODO enum values
+                    }else if(compilable instanceof XJLNEnum && ((XJLNEnum) compilable).hasValue(field))
+                        return true;
                 }
                 case "java" -> {
                     try{
@@ -76,7 +78,10 @@ public class XJLNClass implements Compilable {
                         try{
                             return ((XJLNClass) compilable).getField(field);
                         }catch (NoSuchFieldException ignored){}
-                    } //TODO enum values
+                    }else if(compilable instanceof XJLNEnum){
+                        if(((XJLNEnum) compilable).hasValue(field))
+                            return new XJLNField(false, true, ((XJLNEnum) compilable).name, field);
+                    }
                 }
                 case "java" -> {
                     try{
@@ -106,16 +111,80 @@ public class XJLNClass implements Compilable {
     }
 
     public boolean hasMethod(String method, String...parameterTypes){
-        return methods.containsKey(method + (parameterTypes.length == 0 ? "()" : Arrays.stream(parameterTypes).map(c -> c == null ? "null" : Compiler.toDesc(c)).collect(Collectors.joining(",", "(", ")"))));
+        String methodIdentification = method + (parameterTypes.length == 0 ? "()" : Arrays.stream(parameterTypes).map(c -> c == null ? "null" : Compiler.toDesc(c)).collect(Collectors.joining(",", "(", ")")));
+        ArrayList<Class<?>> classTypes = new ArrayList<>();
+        for(String parameter:parameterTypes)
+            try {
+                classTypes.add(Class.forName(parameter));
+            }catch (ClassNotFoundException e){
+                throw new RuntimeException(e);
+            }
+
+        if(methods.containsKey(methodIdentification))
+            return true;
+
+        for(String superClass:superClasses){
+            switch (Objects.requireNonNull(Compiler.getClassLang(superClass))){
+                case "xjln" -> {
+                    Compilable compilable = Compiler.getXJLNClass(superClass);
+                    if(compilable instanceof XJLNClass && ((XJLNClass) compilable).hasMethod(method, parameterTypes))
+                            return true;
+                }
+                case "java" -> {
+                    try{
+                        Class<?> clazz = Class.forName(superClass);
+                        while (clazz != null) {
+                            try {
+                                clazz.getMethod(method, classTypes.toArray(new Class[0]));
+                                return true;
+                            } catch (NoSuchMethodException ignored){}
+                            clazz = clazz.getSuperclass();
+                        }
+                    }catch (ClassNotFoundException ignored){}
+                }
+            }
+        }
+
+        return false;
     }
 
     public XJLNMethod getMethod(String method, String...parameterTypes) throws NoSuchMethodException{
         String methodIdentification = method + (parameterTypes.length == 0 ? "()" : Arrays.stream(parameterTypes).map(c -> c == null ? "null" : Compiler.toDesc(c)).collect(Collectors.joining(",", "(", ")")));
+        ArrayList<Class<?>> classTypes = new ArrayList<>();
+        for(String parameter:parameterTypes)
+            try {
+                classTypes.add(Class.forName(parameter));
+            }catch (ClassNotFoundException e){
+                throw new RuntimeException(e);
+            }
 
         if(methods.containsKey(methodIdentification))
             return methods.get(methodIdentification);
 
-        throw new NoSuchMethodException(name + '.' + method + (parameterTypes.length == 0 ? "()" : Arrays.stream(parameterTypes).map(c -> c == null ? "null" : c).collect(Collectors.joining(",", "(", ")"))));
+        for(String superClass:superClasses){
+            switch (Objects.requireNonNull(Compiler.getClassLang(superClass))){
+                case "xjln" -> {
+                    Compilable compilable = Compiler.getXJLNClass(superClass);
+                    if(compilable instanceof XJLNClass)
+                        try{
+                            return ((XJLNClass) compilable).getMethod(method, parameterTypes);
+                        }catch (NoSuchMethodException ignored){}
+                }
+                case "java" -> {
+                    try{
+                        Class<?> clazz = Class.forName(superClass);
+                        while (clazz != null) {
+                            try {
+                                return XJLNMethod.ofMethod(clazz.getMethod(method, classTypes.toArray(new Class[0])));
+                            } catch (NoSuchMethodException ignored){}
+                            clazz = clazz.getSuperclass();
+                        }
+                    }catch (ClassNotFoundException ignored){}
+                }
+            }
+        }
+
+        throw new NoSuchMethodException(name + '.' + methodIdentification);
     }
 
     public void validateSuperClasses() throws ClassNotFoundException{

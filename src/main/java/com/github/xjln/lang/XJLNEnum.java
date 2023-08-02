@@ -5,8 +5,10 @@ import java.util.ArrayList;
 public class XJLNEnum implements Compilable {
 
     public final String[] values;
+    public final String name;
 
-    public XJLNEnum(ArrayList<String> values){
+    public XJLNEnum(String name, ArrayList<String> values){
+        this.name = name;
         this.values = values.toArray(new String[0]);
     }
 
