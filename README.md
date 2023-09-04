@@ -1,6 +1,9 @@
 # XJLN-Compiler
 XJLN Compiler for Java Virtual Machine
 
+## XJLN IntelliJ Plugin
+https://github.com/XaverWeste/XJLN-IntelliJ-Plugin.git
+
 ## How to use
 You only have to create a new Object of the Compiler and the Compiler will do the rest.
 
