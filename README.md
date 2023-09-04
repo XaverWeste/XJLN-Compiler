@@ -14,11 +14,21 @@ The Compiler has several parameters,
 The compiler first validates all (input and output) folders. Second, all .class files and empty folders in the output folder will be deleted (all other files in this folder should be safe and untouched). Third, the compiler starts compiling all specified src folders and writes the resulting .class files to the output folder. The main method is executed last, if specified.
 
 ## Syntax Basics
-### Hello World
+### Hello World (short)
 ``` XJLN
 use java/lang/System
 
 main -> System:out:println("Hello World!")
+```
+
+### Hello World (long)
+``` XJLN
+use {System, String} from java/lang
+
+main
+    String string = "Hello World!"
+    system:out:println(string)
+end
 ```
 
 ### Enums

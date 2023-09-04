@@ -159,7 +159,7 @@ public class Compiler {
         ClassFile cf = new ClassFile(false, name, null);
         cf.setAccessFlags(AccessFlag.PUBLIC);
 
-        if(name.endsWith("Main"))
+        if(name.endsWith(".Main"))
             return cf;
 
         //Fields
@@ -238,7 +238,7 @@ public class Compiler {
             src.append("public static void main(String[] args");
         }else {
             src.append(currentMethod.inner ? "private " : "public ");
-            if(currentClassName.endsWith("Main"))
+            if(currentMethod.statik)
                 src.append("static ");
             src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
 

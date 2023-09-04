@@ -135,9 +135,9 @@ class Parser {
             StringBuilder code = new StringBuilder();
             while (th.hasNext())
                 code.append(th.next()).append(" ");
-            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, "void", new String[]{code.toString()}));
+            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, true,"void", new String[]{code.toString()}));
         }else
-            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, "void", parseCode()));
+            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, true, "void", parseCode()));
     }
 
     private void parseDef(String line){
@@ -153,7 +153,7 @@ class Parser {
         else if(th.current().equals("[")) parseClassDef(th);
         else{
             className = null;
-            parseMethodDef(line, true);
+            parseMethodDef(line, true, true);
         }
     }
 
@@ -187,18 +187,22 @@ class Parser {
             }
         }
 
+        boolean statik = parameter == null;
+        if(parameter == null)
+            parameter = new MatchedList<>();
+
         current = new XJLNClass(className, parameter, superClasses.toArray(new String[0]), uses);
 
         String line = sc.nextLine().trim();
         while (!line.equals("end")) {
             if (!line.equals("") && !line.startsWith("#")) {
                 if(line.startsWith("def "))
-                    parseMethodDef(line, false);
+                    parseMethodDef(line, false, statik);
                 else
                     parseFieldDef(line);
             }
             if(!sc.hasNextLine())
-                throw new RuntimeException("class " + path + "/" + className + " was not class");
+                throw new RuntimeException("class " + path + "/" + className + " was not closed");
             line = sc.nextLine().trim();
         }
     }
@@ -236,12 +240,12 @@ class Parser {
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
 
         if(current instanceof XJLNClass)
-            ((XJLNClass) current).addField(new XJLNField(inner, constant, type, name));
+            ((XJLNClass) current).addField(new XJLNField(inner, constant, false, type, name));
         else
             throw new RuntimeException("internal compiler error at: " + line);
     }
 
-    private void parseMethodDef(String line, boolean main){
+    private void parseMethodDef(String line, boolean main, boolean statik){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
         String name = th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).s();
@@ -290,9 +294,9 @@ class Parser {
         if(main) {
             if(mainClass == null)
                 mainClass = new XJLNClass(Compiler.validateName(path + ".Main"), new MatchedList<>(), new String[0], uses);
-            mainClass.addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
+            mainClass.addMethod(name, new XJLNMethod(parameter, inner, statik, returnType, code == null ? parseCode() : new String[]{code}));
         }else if(current instanceof XJLNClass)
-            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, returnType, code == null ? parseCode() : new String[]{code}));
+            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, statik, returnType, code == null ? parseCode() : new String[]{code}));
         else
             throw new RuntimeException("internal compiler error at method " + name + " definition");
     }
@@ -321,8 +325,13 @@ class Parser {
         if(th.length() == 0)
             return paraList;
 
-        if(th.length() == 1)
-            throw new RuntimeException("illegal argument in definition of class " + className);
+        if(th.length() == 1) {
+            if (th.next().equals("/")) {
+                return null;
+            } else {
+                throw new RuntimeException("illegal argument in definition of class " + className + " in: " + th);
+            }
+        }
 
         String type, name;
 

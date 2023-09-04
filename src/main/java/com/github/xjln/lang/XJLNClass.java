@@ -3,7 +3,6 @@ package com.github.xjln.lang;
 import com.github.xjln.compiler.Compiler;
 import com.github.xjln.utility.MatchedList;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -80,7 +79,7 @@ public class XJLNClass implements Compilable {
                         }catch (NoSuchFieldException ignored){}
                     }else if(compilable instanceof XJLNEnum){
                         if(((XJLNEnum) compilable).hasValue(field))
-                            return new XJLNField(false, true, ((XJLNEnum) compilable).name, field);
+                            return new XJLNField(false, true, true,((XJLNEnum) compilable).name, field);
                     }
                 }
                 case "java" -> {
