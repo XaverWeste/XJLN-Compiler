@@ -14,6 +14,7 @@ public class XJLNClass implements Compilable {
     public final String name;
     public final MatchedList<String, XJLNVariable> parameter;
     public final String[] superClasses;
+    public final String[] generics;
     public final HashMap<String, XJLNMethod> methods;
     private final HashMap<String, XJLNField> fields;
     public final HashMap<String, String> aliases;
@@ -22,6 +23,7 @@ public class XJLNClass implements Compilable {
         this.name = name;
         this.parameter = parameter;
         this.superClasses = superClasses;
+        this.generics = null; //TODO
         this.aliases = aliases;
         methods = new HashMap<>();
         fields = new HashMap<>();

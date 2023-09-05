@@ -10,6 +10,7 @@ public class XJLNMethod {
     public final boolean inner;
     public final boolean statik;
     public final String returnType;
+    public final String[] generics;
     public final String[] code;
 
     public XJLNMethod(MatchedList<String, XJLNVariable> parameter, boolean inner, boolean statik, String returnType, String[] code){
@@ -17,6 +18,7 @@ public class XJLNMethod {
         this.inner = inner;
         this.statik = statik;
         this.returnType = returnType;
+        this.generics = null; //TODO
         this.code = code;
     }
 
