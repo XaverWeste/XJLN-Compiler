@@ -237,13 +237,11 @@ public class Compiler {
         if(currentMethodName.equalsIgnoreCase("main")){
             src.append("public static void main(String[] args");
         }else {
-            src.append(currentMethod.inner ? "private " : "public ");
-            if(currentMethod.statik)
-                src.append("static ");
-            src.append(currentMethod.returnType).append(" ").append(currentMethodName).append("(");
+            src.append(currentMethod.inner() ? "private " : "public ");
+            src.append(currentMethod.returnType()).append(" ").append(currentMethodName).append("(");
 
-            for (String para : currentMethod.parameter.getFirstList())
-                src.append(currentMethod.parameter.getSecond(para).type).append(" ").append(para).append(",");
+            for (String para : currentMethod.parameterTypes().getFirstList())
+                src.append(currentMethod.parameterTypes().getSecond(para)).append(" ").append(para).append(",");
 
             if (src.toString().endsWith(","))
                 src.deleteCharAt(src.length() - 1);
@@ -251,7 +249,7 @@ public class Compiler {
 
         src.append("){");
 
-        for(String statement:currentMethod.code){
+        for(String statement:currentMethod.code()){
             switch(statement.split(" ")[0]){
                 case "if" -> src.append(compileIf(statement));
                 case "while" -> src.append(compileWhile(statement));
@@ -328,7 +326,7 @@ public class Compiler {
         }
         if(th.next().equals(Token.Type.IDENTIFIER)){
             first = new Token(currentClass.aliases.get(first.s()), Token.Type.IDENTIFIER);
-            currentMethod.parameter.add(first.s(), new XJLNVariable(first.s()));
+            currentMethod.parameterTypes().add(first.s(), first.s());
             if(!th.hasNext())
                 return first + " " + th.current() + ";";
             Token second = th.current();
@@ -337,8 +335,8 @@ public class Compiler {
         }else if(th.current().equals("=")){
             th.assertHasNext();
             String[] calc = compileCalc(th);
-            if(currentMethod.parameter.getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.hasField(first.s())) {
-                currentMethod.parameter.add(first.s(), new XJLNVariable(calc[0]));
+            if(currentMethod.parameterTypes().getSecond(first.s()) == null && currentClass.parameter.getSecond(first.s()) == null && !currentClass.hasField(first.s())) {
+                currentMethod.parameterTypes().add(first.s(), calc[0]);
 
                 if(calc[0].equals("NUMBER"))
                     calc[0] = getPrimitiveType(calc[0]);
@@ -613,12 +611,12 @@ public class Compiler {
     private String getType(String clazz, String method, String var){
         if(var == null){
             if(classes.get(clazz) instanceof XJLNClass && ((XJLNClass) classes.get(clazz)).methods.containsKey(method)){
-                return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType;
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType();
             }else
                 throw new RuntimeException("illegal argument");
         }else if(classes.get(clazz) instanceof XJLNClass){
-            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var) != null)
-                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameter.getSecond(var).type;
+            if(method != null && ((XJLNClass) classes.get(clazz)).methods.get(method).parameterTypes().getSecond(var) != null)
+                return ((XJLNClass) classes.get(clazz)).methods.get(method).parameterTypes().getSecond(var);
             if(((XJLNClass) classes.get(clazz)).hasField(var))
                 try {
                     return ((XJLNClass) classes.get(clazz)).getField(var).type();
@@ -646,7 +644,7 @@ public class Compiler {
                 if(classes.get(clazz) instanceof XJLNClass){
                     if(!((XJLNClass) classes.get(clazz)).methods.containsKey(method))
                         return null;
-                    return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType;
+                    return ((XJLNClass) classes.get(clazz)).methods.get(method).returnType();
                 }
             }
             case "unknown" -> {

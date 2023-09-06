@@ -135,9 +135,9 @@ class Parser {
             StringBuilder code = new StringBuilder();
             while (th.hasNext())
                 code.append(th.next()).append(" ");
-            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, true,"void", new String[]{code.toString()}));
+            mainClass.addMethod("main", true, new XJLNMethod(mainClass, false, "main", null, null, "void", new String[]{code.toString()}));
         }else
-            mainClass.addMethod("main", new XJLNMethod(new MatchedList<>(), false, true, "void", parseCode()));
+            mainClass.addMethod("main", true, new XJLNMethod(mainClass, false, "main", null, null, "void", parseCode()));
     }
 
     private void parseDef(String line){
@@ -294,9 +294,9 @@ class Parser {
         if(main) {
             if(mainClass == null)
                 mainClass = new XJLNClass(Compiler.validateName(path + ".Main"), new MatchedList<>(), new String[0], uses);
-            mainClass.addMethod(name, new XJLNMethod(parameter, inner, statik, returnType, code == null ? parseCode() : new String[]{code}));
+            mainClass.addMethod(name, true, new XJLNMethod(mainClass, false, name, null, null, returnType, code == null ? parseCode() : new String[]{code}));
         }else if(current instanceof XJLNClass)
-            ((XJLNClass) current).addMethod(name, new XJLNMethod(parameter, inner, statik, returnType, code == null ? parseCode() : new String[]{code}));
+            ((XJLNClass) current).addMethod(name, false, new XJLNMethod(mainClass, false, name, null, null, returnType, code == null ? parseCode() : new String[]{code}));
         else
             throw new RuntimeException("internal compiler error at method " + name + " definition");
     }

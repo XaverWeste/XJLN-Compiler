@@ -105,7 +105,7 @@ public class XJLNClass implements Compilable {
         return fields.values().toArray(new XJLNField[0]);
     }
 
-    public void addMethod(String name, XJLNMethod method){
+    public void addMethod(String name, boolean statik, XJLNMethod method){
         if(methods.containsKey(name))
             throw new RuntimeException("method " + name + " already exist" + this.name);
         methods.put(name, method);
