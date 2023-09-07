@@ -36,13 +36,7 @@ class Parser {
             line = sc.nextLine().trim();
             if (!line.equals("") && !line.startsWith("#")) {
                 if (line.startsWith("use ")) parseUseDef(line);
-                else if(line.startsWith("main")){
-                    parseMain(line);
-                    if(classes.containsKey("Main")) throw new RuntimeException("main is already defined in " + path);
-                    else classes.put(Compiler.validateName(path + ".Main"), mainClass);
-                    if(!uses.containsKey("Main"))
-                        uses.put("Main", Compiler.validateName(path + ".Main"));
-                }else if(line.startsWith("def ")){
+                else if(line.startsWith("def ")){
                     parseDef(line);
                     if(className != null) {
                         String name = className.split("\\.")[className.split("\\.").length - 1];
@@ -124,22 +118,6 @@ class Parser {
             }
     }
 
-    private void parseMain(String line){
-        if(mainClass == null)
-            mainClass = new XJLNClass(Compiler.validateName(path + ".Main"),new MatchedList<>(), new String[0], uses);
-        TokenHandler th = Lexer.toToken(line);
-        th.assertToken("main");
-        if(th.hasNext()){
-            th.assertToken("->");
-            th.assertHasNext();
-            StringBuilder code = new StringBuilder();
-            while (th.hasNext())
-                code.append(th.next()).append(" ");
-            mainClass.addMethod("main", true, new XJLNMethod(mainClass, false, "main", null, null, "void", new String[]{code.toString()}));
-        }else
-            mainClass.addMethod("main", true, new XJLNMethod(mainClass, false, "main", null, null, "void", parseCode()));
-    }
-
     private void parseDef(String line){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
@@ -150,11 +128,6 @@ class Parser {
             throw new RuntimeException("name \"main\" is not allowed for " + className);
 
         if(th.assertToken("=", "[", "(").s().equals("=")) parseEnumDef(th);
-        else if(th.current().equals("[")) parseClassDef(th);
-        else{
-            className = null;
-            parseMethodDef(line, true, true);
-        }
     }
 
     private void parseEnumDef(TokenHandler th){
@@ -168,137 +141,6 @@ class Parser {
         }
 
         current = new XJLNEnum(className, values);
-    }
-
-    private void parseClassDef(TokenHandler th){
-        MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
-        ArrayList<String> superClasses = new ArrayList<>();
-
-        if(th.hasNext()) {
-            th.assertToken("=>");
-            th.assertHasNext();
-
-            while (th.hasNext()){
-                superClasses.add(validateType(th.assertToken(Token.Type.IDENTIFIER).s()));
-                if(th.hasNext()){
-                    th.assertToken(",");
-                    th.assertHasNext();
-                }
-            }
-        }
-
-        boolean statik = parameter == null;
-        if(parameter == null)
-            parameter = new MatchedList<>();
-
-        current = new XJLNClass(className, parameter, superClasses.toArray(new String[0]), uses);
-
-        String line = sc.nextLine().trim();
-        while (!line.equals("end")) {
-            if (!line.equals("") && !line.startsWith("#")) {
-                if(line.startsWith("def "))
-                    parseMethodDef(line, false, statik);
-                else
-                    parseFieldDef(line);
-            }
-            if(!sc.hasNextLine())
-                throw new RuntimeException("class " + path + "/" + className + " was not closed");
-            line = sc.nextLine().trim();
-        }
-    }
-
-    private void parseFieldDef(String line){
-        TokenHandler th = Lexer.toToken(line);
-
-        boolean inner = false, constant = false;
-
-        String type = th.assertToken("[", Token.Type.IDENTIFIER).s();
-        if(type.equals("inner")){
-            inner = true;
-            type = th.assertToken("[", Token.Type.IDENTIFIER).s();
-        }
-        if(type.equals("const")){
-            constant = true;
-            type = th.assertToken("[", Token.Type.IDENTIFIER).s();
-        }
-        if(type.equals("[")){
-            StringBuilder sb = new StringBuilder("[");
-            int i = 1;
-            while(th.assertToken("[", Token.Type.IDENTIFIER).equals("[")){
-                i++;
-                sb.append("[");
-            }
-            sb.append(th.current());
-            while (i > 0){
-                i--;
-                th.assertToken("]");
-            }
-            type = sb.toString();
-        }
-
-        type = validateType(type);
-        String name = th.assertToken(Token.Type.IDENTIFIER).s();
-
-        if(current instanceof XJLNClass)
-            ((XJLNClass) current).addField(new XJLNField(inner, constant, false, type, name));
-        else
-            throw new RuntimeException("internal compiler error at: " + line);
-    }
-
-    private void parseMethodDef(String line, boolean main, boolean statik){
-        TokenHandler th = Lexer.toToken(line);
-        th.assertToken("def");
-        String name = th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).s();
-        boolean inner = false;
-        if(name.equalsIgnoreCase("main"))
-            throw new RuntimeException("name \"main\" is not allowed as method name in " + className);
-        if(name.equals("inner")){
-            inner = true;
-            name = th.assertToken(Token.Type.IDENTIFIER, Token.Type.OPERATOR).s();
-        }
-        th.assertToken("(");
-        MatchedList<String, XJLNVariable> parameter = parseParameterList(th.getInBracket());
-
-        if(Lexer.isOperator(name)){
-            if(parameter.size() >= 2)
-                throw new RuntimeException("for Method " + name + " is only one parameter allowed");
-            name = Compiler.toIdentifier(name);
-        }
-
-        String returnType = "void";
-        String code = null;
-
-        if(th.hasNext()){
-            if(th.assertToken(":", "=", "->").equals(":")){
-                th.assertToken(":");
-                returnType = validateType(th.assertToken(Token.Type.IDENTIFIER).s());
-                if(th.hasNext())
-                    th.assertToken("=", "->");
-            }
-
-            if(th.current().equals("=")){
-                th.assertHasNext();
-                StringBuilder sb = new StringBuilder("return ");
-                while (th.hasNext())
-                    sb.append(th.next()).append(" ");
-                code = sb.toString();
-            }else if(th.current().equals("->")){
-                th.assertHasNext();
-                StringBuilder sb = new StringBuilder();
-                while (th.hasNext())
-                    sb.append(th.next()).append(" ");
-                code = sb.toString();
-            }
-        }
-
-        if(main) {
-            if(mainClass == null)
-                mainClass = new XJLNClass(Compiler.validateName(path + ".Main"), new MatchedList<>(), new String[0], uses);
-            mainClass.addMethod(name, true, new XJLNMethod(mainClass, false, name, null, null, returnType, code == null ? parseCode() : new String[]{code}));
-        }else if(current instanceof XJLNClass)
-            ((XJLNClass) current).addMethod(name, false, new XJLNMethod(mainClass, false, name, null, null, returnType, code == null ? parseCode() : new String[]{code}));
-        else
-            throw new RuntimeException("internal compiler error at method " + name + " definition");
     }
 
     private String[] parseCode(){

@@ -1,3 +1,6 @@
+# !!!Important!!!
+### This branch is currently being restructured and revised, so the compiler is not working. For a working version of the compiler see Main branch and/or last releases.
+
 # XJLN-Compiler
 XJLN Compiler for Java Virtual Machine
 
