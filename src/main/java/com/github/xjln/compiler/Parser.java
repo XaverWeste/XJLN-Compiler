@@ -1,7 +1,6 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
-import com.github.xjln.utility.MatchedList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -211,7 +210,7 @@ class Parser {
         boolean inner = false;
         String name;
         ArrayList<String> genericTypes = null;
-        HashMap<String, String> parameterTypes = null;
+        HashMap<String, XJLNParameter> parameter;
         String returnType = "void";
 
         boolean abstrakt = false;
@@ -247,14 +246,14 @@ class Parser {
             th.assertToken("(");
         }
 
-        parameterTypes = parseParameterList();
+        parameter = parseParameterList(th.getInBracket());
 
         if(th.hasNext()){
             if(th.assertToken(":", "->", "{").equals(":")){
                 th.assertToken(":");
                 returnType = th.assertToken(Token.Type.IDENTIFIER).s();
                 if(genericTypes == null || !genericTypes.contains(returnType))
-                    validateType(returnType);
+                    returnType = validateType(returnType);
 
                 if(th.hasNext())
                     th.assertToken("->", "{", "=");
@@ -277,21 +276,67 @@ class Parser {
 
                 code.add(statement.toString());
             }else if(th.current().equals("{")){
+                throw new RuntimeException("Statement \"" + th + "\" is currently not supported");
                 //TODO {...}
             }else
                 code.addAll(parseCode());
 
-            return new XJLNMethod(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameterTypes, returnType, code.toArray(new String[0]));
+            return new XJLNMethod(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]));
         }else {
             if(th.current().equals("->") || th.current().equals("=") || th.current().equals("{"))
                 throw new RuntimeException("Method " + name + " should not be abstract");
 
-            return new XJLNMethodAbstract(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameterTypes, returnType);
+            return new XJLNMethodAbstract(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType);
         }
     }
 
-    private HashMap<String, String> parseParameterList(){
-        return null;
+    private HashMap<String, XJLNParameter> parseParameterList(TokenHandler th){
+        HashMap<String, XJLNParameter> parameterList = new HashMap<>();
+
+        if(th.length() == 1){
+            if(th.next().equals("/"))
+                return null;
+            th.last();
+        }
+
+        while (th.hasNext()){
+            boolean constant = false;
+            String type;
+            String name;
+            StringBuilder value = null;
+
+            if(th.assertToken(Token.Type.IDENTIFIER).equals("const")){
+                constant = true;
+                th.assertToken(Token.Type.IDENTIFIER);
+            }
+
+            type = th.current().s();
+            name = th.assertToken(Token.Type.IDENTIFIER).s();
+
+            if(th.hasNext() && th.assertToken(",", "=").equals("=")){
+                value = new StringBuilder();
+                while (th.hasNext() && !th.next().equals(",")){
+                    if(th.current().equals("("))
+                        value.append(" ( ").append(th.getInBracket().toString()).append(" ) ");
+                    else
+                        value.append(th.current().toString()).append(" ");
+                }
+                th.last();
+            }else
+                th.last();
+
+            if(parameterList.containsKey(name))
+                throw new RuntimeException("Parameter " + name + " is already defined");
+
+            parameterList.put(name, new XJLNParameter(constant, type, name, value == null ? null : value.toString()));
+
+            if(th.hasNext()){
+                th.assertToken(",");
+                th.assertHasNext();
+            }
+        }
+
+        return parameterList;
     }
 
     private ArrayList<String> parseCode(){
