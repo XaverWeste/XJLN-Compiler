@@ -143,14 +143,166 @@ class Parser {
         current = new XJLNEnum(className, values);
     }
 
-    private String[] parseCode(){
+    private void parseInterface(){
+
+    }
+
+    private void parseRecord(){
+
+    }
+
+    private void parseClass(){
+
+    }
+
+    private XJLNField parseField(String line, boolean staticContext){
+        boolean inner;
+        boolean constant;
+        String type;
+        String name;
+        String initValue;
+
+        TokenHandler th = Lexer.toToken(line);
+
+        if(th.next().equals("inner")){
+            inner = true;
+            th.next();
+        }else
+            inner = false;
+
+        if(th.current().equals("const")){
+            constant = true;
+            th.next();
+        }else
+            constant = false;
+
+        type = TokenHandler.assertToken(th.current(), Token.Type.IDENTIFIER).s();
+        th.assertHasNext();
+
+        if(th.next().equals("=")){
+            name = type;
+            type = null;
+            th.last();
+        }else
+            name = TokenHandler.assertToken(th.current(), Token.Type.IDENTIFIER).s();
+
+        if(th.hasNext()){
+            th.assertToken("=");
+            th.assertHasNext();
+
+            StringBuilder value = new StringBuilder();
+            while (th.hasNext())
+                value.append(th.next()).append(" ");
+
+            initValue = value.toString();
+        }else
+            initValue = null;
+
+        if(type == null && initValue == null)
+            throw new RuntimeException("Expected Type or Value for Field " + name + " in Class " + className); //TODO check className reference
+
+        if(staticContext && constant && initValue == null)
+            throw new RuntimeException("Expected Value for Field " + name + " in Class " + className);
+
+        return new XJLNField(inner, constant, type, name, initValue);
+    }
+
+    private XJLNMethodAbstract parseMethod(String line, boolean staticContext){
+        boolean inner = false;
+        String name;
+        ArrayList<String> genericTypes = null;
+        HashMap<String, String> parameterTypes = null;
+        String returnType = "void";
+
+        boolean abstrakt = false;
+        TokenHandler th = Lexer.toToken(line);
+
+        th.assertToken("def");
+        th.assertToken(Token.Type.IDENTIFIER);
+
+        if(th.current().equals("abstract")) {
+            abstrakt = true;
+            th.assertToken(Token.Type.IDENTIFIER);
+        }
+
+        if(th.current().equals("inner")){
+            inner = true;
+            th.assertToken(Token.Type.IDENTIFIER);
+        }
+
+        name = th.current().s();
+
+        if(th.assertToken("<", "(").equals("<")){
+            genericTypes = new ArrayList<>();
+            genericTypes.add(th.assertToken(Token.Type.IDENTIFIER).s());
+            th.assertHasNext();
+
+            while (th.assertToken(">", ",").equals(",")){
+                if(genericTypes.contains(th.assertToken(Token.Type.IDENTIFIER).s()))
+                    throw new RuntimeException("Value " + th.current() + " is already defined in method " + name);
+
+                genericTypes.add(th.current().s());
+                th.assertHasNext();
+            }
+            th.assertToken("(");
+        }
+
+        parameterTypes = parseParameterList();
+
+        if(th.hasNext()){
+            if(th.assertToken(":", "->", "{").equals(":")){
+                th.assertToken(":");
+                returnType = th.assertToken(Token.Type.IDENTIFIER).s();
+                if(genericTypes == null || !genericTypes.contains(returnType))
+                    validateType(returnType);
+
+                if(th.hasNext())
+                    th.assertToken("->", "{", "=");
+            }
+        }
+
+        if(!abstrakt) {
+            ArrayList<String> code = new ArrayList<>();
+
+            if(th.current().equals("->")){
+                StringBuilder statement = new StringBuilder();
+                while (th.hasNext())
+                    statement.append(th.next()).append(" ");
+
+                code.add(statement.toString());
+            }else if(th.current().equals("=")){
+                StringBuilder statement = new StringBuilder("return ");
+                while (th.hasNext())
+                    statement.append(th.next()).append(" ");
+
+                code.add(statement.toString());
+            }else if(th.current().equals("{")){
+                //TODO {...}
+            }else
+                code.addAll(parseCode());
+
+            return new XJLNMethod(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameterTypes, returnType, code.toArray(new String[0]));
+        }else {
+            if(th.current().equals("->") || th.current().equals("=") || th.current().equals("{"))
+                throw new RuntimeException("Method " + name + " should not be abstract");
+
+            return new XJLNMethodAbstract(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameterTypes, returnType);
+        }
+    }
+
+    private HashMap<String, String> parseParameterList(){
+        return null;
+    }
+
+    private ArrayList<String> parseCode(){
         ArrayList<String> code = new ArrayList<>();
         int i = 1;
         while (i > 0 && sc.hasNextLine()) {
             String line = sc.nextLine().trim();
             if (!line.equals("") && !line.startsWith("#")) {
                 if(line.equals("end")) i--;
-                if((line.startsWith("if ") || line.startsWith("while ")) && !line.contains("->")) i++;
+                if((line.startsWith("if ") || line.startsWith("while ") || line.startsWith("for ")) && !line.contains("->")) i++;
+                if(line.startsWith("switch ")) i++;
                 if(i > 0) code.add(line);
             }
         }
@@ -158,38 +310,7 @@ class Parser {
         if(i > 0)
             throw new RuntimeException("method in class " + className + " was not closed");
 
-        return code.toArray(new String[0]);
-    }
-
-    private MatchedList<String, XJLNVariable> parseParameterList(TokenHandler th){
-        MatchedList<String, XJLNVariable> paraList = new MatchedList<>();
-
-        if(th.length() == 0)
-            return paraList;
-
-        if(th.length() == 1) {
-            if (th.next().equals("/")) {
-                return null;
-            } else {
-                throw new RuntimeException("illegal argument in definition of class " + className + " in: " + th);
-            }
-        }
-
-        String type, name;
-
-        while (th.hasNext()){
-            type = th.assertToken(Token.Type.IDENTIFIER).s();
-            name = th.assertToken(Token.Type.IDENTIFIER).s();
-
-            paraList.add(name, new XJLNVariable(validateType(type)));
-
-            if(th.hasNext()){
-                th.assertToken(",");
-                th.assertHasNext();
-            }
-        }
-
-        return paraList;
+        return code;
     }
 
     private String validateType(String type){

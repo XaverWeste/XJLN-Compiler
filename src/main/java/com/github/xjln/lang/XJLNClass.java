@@ -9,11 +9,11 @@ public final class XJLNClass extends XJLNClassStatic {
     public final boolean abstrakt;
     public final String[] generics;
     public final String[] superClasses;
-    public final MatchedList<String, XJLNVariable> parameter;
+    public final MatchedList<String, String> parameter;
     public final HashMap<String, XJLNField> fields;
     public final HashMap<String, XJLNMethod> methods;
 
-    public XJLNClass(boolean abstrakt, String name, String[] generics, MatchedList<String, XJLNVariable> parameter, String[] superClasses, HashMap<String, String> aliases){
+    public XJLNClass(boolean abstrakt, String name, String[] generics, MatchedList<String, String> parameter, String[] superClasses, HashMap<String, String> aliases){
         super(name, aliases);
 
         this.abstrakt = abstrakt;

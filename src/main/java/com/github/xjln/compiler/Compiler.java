@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Set;
 
 public class Compiler {
@@ -56,12 +57,12 @@ public class Compiler {
     }
 
     private void clearFolder(File folder, boolean delete){
-        for(File file:folder.listFiles())
+        for(File file: Objects.requireNonNull(folder.listFiles()))
             if(file.isDirectory())
                 clearFolder(file, true);
             else if(file.getName().endsWith(".class") && !file.delete())
                 throw new RuntimeException("failed to delete " + file.getPath());
-        if(delete && folder.listFiles().length == 0)
+        if(delete && Objects.requireNonNull(folder.listFiles()).length == 0)
             if(!folder.delete())
                 throw new RuntimeException("unable to clear folder " + folder.getPath());
     }
