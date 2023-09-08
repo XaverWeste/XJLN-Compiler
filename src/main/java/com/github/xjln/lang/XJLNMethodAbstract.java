@@ -17,4 +17,11 @@ public sealed class XJLNMethodAbstract permits XJLNMethod{
         this.parameterTypes = parameterTypes;
         this.returnType = returnType;
     }
+
+    public XJLNMethodAbstract(boolean inner, String name, MatchedList<String, String> parametetTypes, String returnType){
+        this.inner = inner;
+        this.name = name;
+        this.parameterTypes = parameterTypes;
+        this.returnType = returnType;
+    }
 }
