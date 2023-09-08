@@ -11,4 +11,10 @@ public final class XJLNMethod extends XJLNMethodAbstract{
 
         this.code = code;
     }
+
+    public XJLNMethod(XJLNMethodAbstract abstractMethod, Strung[] code){
+        super(abstractMethod);
+
+        this.code = code;
+    }
 }
