@@ -24,4 +24,8 @@ public sealed class XJLNMethodAbstract permits XJLNMethod{
         this.parameterTypes = parameterTypes;
         this.returnType = returnType;
     }
+
+    public XJLNMethod implementMethod(String[] code){
+        return new XJLNMethod(this, code);
+    }
 }
