@@ -142,8 +142,33 @@ class Parser {
         current = new XJLNEnum(className, values);
     }
 
-    private void parseInterface(){
-        //TODO interface parsing
+    private XJLNInterface parseInterface(String line){
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("def");
+
+        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        th.assertNull();
+
+        HashMap<String, XJLNMethodAbstract> methods = new HashMap<>();
+
+        while (sc.hasNextLine()){
+            line = sc.nextLine().trim();
+
+            if(line.equals("end"))
+                return new XJLNInterface(methods, uses);
+
+            if(!line.equals("")) {
+                XJLNMethodAbstract method = parseMethod(line, false);
+                String desc = Compiler.toDesc(method);
+
+                if(methods.containsKey(desc))
+                    throw new RuntimeException("Method " + desc + " is already defined in Interface " + name);
+
+                methods.put(desc, method);
+            }
+        }
+
+        throw new RuntimeException("Interface " + name + " was not closed");
     }
 
     private XJLNClass parseRecord(String line){

@@ -85,6 +85,10 @@ public class Compiler {
         };
     }
 
+    public static String toDesc(XJLNMethodAbstract method){
+        return method.name; //TODO
+    }
+
     public static String validateName(String name){
         name = name.replace("/", ".");
         name = name.replace("\\", ".");
