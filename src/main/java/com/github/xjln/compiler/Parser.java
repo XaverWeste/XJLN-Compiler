@@ -143,15 +143,22 @@ class Parser {
     }
 
     private void parseInterface(){
-
+        //TODO interface parsing
     }
 
-    private void parseRecord(){
-
+    private XJLNClass parseRecord(String line){
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("def");
+        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        th.assertToken("=");
+        th.assertToken("[");
+        HashMap<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
+        th.assertNull();
+        return new XJLNClass(false, name, null, parameter, new String[0], uses);
     }
 
     private void parseClass(){
-
+        //TODO class parsing
     }
 
     private XJLNField parseField(String line, boolean staticContext){
