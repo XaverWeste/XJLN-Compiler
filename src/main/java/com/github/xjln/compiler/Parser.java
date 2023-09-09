@@ -5,7 +5,6 @@ import com.github.xjln.utility.MatchedList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -13,14 +12,13 @@ import java.util.Scanner;
 class Parser {
 
     private HashMap<String, String> uses;
-    private XJLNClass mainClass;
-    private Compilable current;
-    private String path;
-    private String className;
+    private HashMap<String, Compilable> classes;
+    private XJLNClass main;
+    private String src;
     private Scanner sc;
 
     public HashMap<String, Compilable> parseFile(File file) {
-        HashMap<String, Compilable> classes = new HashMap<>();
+        classes = new HashMap<>();
         resetUse();
         try {
             sc = new Scanner(file);
@@ -28,35 +26,26 @@ class Parser {
             throw new RuntimeException("file " + file.getPath() + " not found");
         }
 
-        path = file.getPath();
-        path = path.substring(0, path.length() - 5);
-        mainClass = null;
+        src = file.getPath();
+        src = src.substring(0, src.length() - 5);
 
         String line;
         while (sc.hasNextLine()) {
             line = sc.nextLine().trim();
             if (!line.equals("") && !line.startsWith("#")) {
                 if (line.startsWith("use ")) parseUseDef(line);
-                else if(line.startsWith("def ")){
-                    parseDef(line);
-                    if(className != null) {
-                        String name = className.split("\\.")[className.split("\\.").length - 1];
-                        if (uses.containsKey(name))
-                            throw new RuntimeException("class " + className + " already exist in: " + line);
-                        uses.put(name, className);
-                        classes.put(className, current);
-                    }
-                } else throw new RuntimeException("illegal argument in: " + line);
+                else throw new RuntimeException("illegal argument in: " + line);
             }
         }
 
-        if(!classes.containsKey("Main") && mainClass != null){
-            classes.put(Compiler.validateName(path + ".Main"), mainClass);
-            if(!uses.containsKey("Main"))
-                uses.put("Main", Compiler.validateName(path + ".Main"));
-        }
+        HashMap<String, Compilable> result = classes;
 
-        return classes;
+        src = null;
+        classes = null;
+        uses = null;
+        main = null;
+
+        return result;
     }
 
     private void resetUse(){
@@ -119,36 +108,31 @@ class Parser {
             }
     }
 
-    private void parseDef(String line){
+    private void parseEnumDef(String line){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
-        className = th.assertToken(Token.Type.IDENTIFIER).s();
-        className = Compiler.validateName(path + "." + className);
-
-        if(th.current().s().equalsIgnoreCase("main"))
-            throw new RuntimeException("name \"main\" is not allowed for " + className);
-
-        if(th.assertToken("=", "[", "(").s().equals("=")) parseEnumDef(th);
-    }
-
-    private void parseEnumDef(TokenHandler th){
+        String name = Compiler.validateName(src + "." + th.assertToken(Token.Type.IDENTIFIER).s());
+        th.assertToken("=");
         ArrayList<String> values = new ArrayList<>();
         values.add(th.assertToken(Token.Type.IDENTIFIER).s());
 
         while (th.hasNext()){
             th.assertToken("|");
-            if(values.contains(th.assertToken(Token.Type.IDENTIFIER).s())) throw new RuntimeException("value " + th.current().s() + " already exist for enum " + className);
+            if(values.contains(th.assertToken(Token.Type.IDENTIFIER).s())) throw new RuntimeException("value " + th.current().s() + " already exist for enum " + name);
             values.add(th.current().s());
         }
 
-        current = new XJLNEnum(className, values);
+        if(classes.containsKey(name))
+            throw new RuntimeException("Enum " + name + " already exist");
+
+        classes.put(name, new XJLNEnum(name, values));
     }
 
-    private XJLNInterface parseInterface(String line){
+    private void parseInterface(String line){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
 
-        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        String name = Compiler.validateName(src + "." + th.assertToken(Token.Type.IDENTIFIER).s());;
         th.assertNull();
 
         HashMap<String, XJLNMethodAbstract> methods = new HashMap<>();
@@ -157,7 +141,7 @@ class Parser {
             line = sc.nextLine().trim();
 
             if(line.equals("end"))
-                return new XJLNInterface(methods, uses);
+                break;
 
             if(!line.equals("")) {
                 XJLNMethodAbstract method = parseMethod(line, false);
@@ -173,24 +157,35 @@ class Parser {
             }
         }
 
-        throw new RuntimeException("Interface " + name + " was not closed");
+        if(!line.equals("end"))
+            throw new RuntimeException("Interface " + name + " was not closed");
+
+        if(classes.containsKey(name))
+            throw new RuntimeException("Interface " + name + " already exist");
+
+        classes.put(name, new XJLNInterface(methods, uses));
     }
 
-    private XJLNClass parseRecord(String line){
+    private void parseRecord(String line){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
-        String name = th.assertToken(Token.Type.IDENTIFIER).s();
+        String name = Compiler.validateName(src + "." + th.assertToken(Token.Type.IDENTIFIER).s());
         th.assertToken("=");
         th.assertToken("[");
         MatchedList<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
         th.assertNull();
-        return new XJLNClass(false, name, null, parameter, new String[0], uses);
+
+        if(classes.containsKey(name))
+            throw new RuntimeException("Data Class " + name + " already exist");
+
+        classes.put(name, new XJLNClass(false, name, null, parameter, new String[0], uses));
     }
 
     private void parseClass(String line){
         boolean abstrakt = false;
         boolean inner = false;
-        boolean statik = false;
+        boolean statik;
+        String name;
         ArrayList<String> superClasses = new ArrayList<>();
         HashMap<String, XJLNField> fields = new HashMap<>();
         HashMap<String, XJLNMethodAbstract> methods = new HashMap<>();
@@ -208,7 +203,7 @@ class Parser {
             th.assertToken(Token.Type.IDENTIFIER);
         }
 
-        className = th.current().s();
+        name = Compiler.validateName(src + "." + th.current().s());
         th.assertToken("[");
 
         MatchedList<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
@@ -238,14 +233,14 @@ class Parser {
                     String desc = Compiler.toDesc(method);
 
                     if(methods.containsKey(desc))
-                        throw new RuntimeException("Method " + desc + " is already defined in Class " + className);
+                        throw new RuntimeException("Method " + desc + " is already defined in Class " + name);
 
                     methods.put(desc, method);
                 }else{
                     XJLNField field = parseField(line, statik);
 
                     if(fields.containsKey(field.name()))
-                        throw new RuntimeException("Field " + field.name() + " is already defined in Class " + className);
+                        throw new RuntimeException("Field " + field.name() + " is already defined in Class " + name);
 
                     fields.put(field.name(), field);
                 }
@@ -253,9 +248,9 @@ class Parser {
         }
 
         if(!line.equals("end"))
-            throw new RuntimeException("Class " + className + " was not closed");
+            throw new RuntimeException("Class " + name + " was not closed");
 
-        //TODO return class
+        //TODO register class
     }
 
     private XJLNField parseField(String line, boolean staticContext){
@@ -302,10 +297,10 @@ class Parser {
             initValue = null;
 
         if(type == null && initValue == null)
-            throw new RuntimeException("Expected Type or Value for Field " + name + " in Class " + className); //TODO check className reference
+            throw new RuntimeException("Expected Type or Value for Field " + name + " in File " + src);
 
         if(staticContext && constant && initValue == null)
-            throw new RuntimeException("Expected Value for Field " + name + " in Class " + className);
+            throw new RuntimeException("Expected Value for Field " + name + " in File " + src);
 
         return new XJLNField(inner, constant, type, name, initValue);
     }
@@ -460,7 +455,7 @@ class Parser {
         }
 
         if(i > 0)
-            throw new RuntimeException("method in class " + className + " was not closed");
+            throw new RuntimeException("method in File " + src + " was not closed");
 
         return code;
     }
@@ -472,6 +467,6 @@ class Parser {
             String[] sa = type.split("\\[");
             return "[".repeat(Math.max(0, sa.length - 1)) + Compiler.validateName(sa[sa.length - 1]);
         }
-        return Compiler.validateName(path + "\\" + type);
+        return Compiler.validateName(src + "\\" + type);
     }
 }

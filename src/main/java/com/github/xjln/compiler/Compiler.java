@@ -43,7 +43,7 @@ public class Compiler {
         Compiler.srcFolders = srcFolders;
         validateFolders();
 
-        System.out.println("XJLN: finished Compilation");
+        System.out.println("XJLN: finished Compilation successful");
     }
 
     private void validateFolders(){
