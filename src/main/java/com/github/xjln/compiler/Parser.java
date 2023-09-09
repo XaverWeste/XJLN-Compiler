@@ -1,9 +1,11 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.lang.*;
+import com.github.xjln.utility.MatchedList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -161,6 +163,9 @@ class Parser {
                 XJLNMethodAbstract method = parseMethod(line, false);
                 String desc = Compiler.toDesc(method);
 
+                if(method instanceof XJLNMethod)
+                    throw new RuntimeException("Interface " + name + " should not contain non abstract Method " + desc);
+
                 if(methods.containsKey(desc))
                     throw new RuntimeException("Method " + desc + " is already defined in Interface " + name);
 
@@ -177,13 +182,80 @@ class Parser {
         String name = th.assertToken(Token.Type.IDENTIFIER).s();
         th.assertToken("=");
         th.assertToken("[");
-        HashMap<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
+        MatchedList<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
         th.assertNull();
         return new XJLNClass(false, name, null, parameter, new String[0], uses);
     }
 
-    private void parseClass(){
-        //TODO class parsing
+    private void parseClass(String line){
+        boolean abstrakt = false;
+        boolean inner = false;
+        boolean statik = false;
+        ArrayList<String> superClasses = new ArrayList<>();
+        HashMap<String, XJLNField> fields = new HashMap<>();
+        HashMap<String, XJLNMethodAbstract> methods = new HashMap<>();
+
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("def");
+
+        if(th.assertToken(Token.Type.IDENTIFIER).equals("abstract")){
+            abstrakt = true;
+            th.assertToken(Token.Type.IDENTIFIER);
+        }
+
+        if(th.current().equals("inner")){
+            inner = true;
+            th.assertToken(Token.Type.IDENTIFIER);
+        }
+
+        className = th.current().s();
+        th.assertToken("[");
+
+        MatchedList<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
+        statik = parameter == null;
+
+        if(statik)
+            th.assertNull();
+        else if(th.hasNext()){
+            th.assertToken("=>");
+            th.assertHasNext();
+
+            while(th.hasNext()){
+                superClasses.add(th.assertToken(Token.Type.IDENTIFIER) + "[" + th.getInBracket().toString() + "]");
+                if(th.hasNext()){
+                    th.assertToken(",");
+                    th.assertHasNext();
+                }
+            }
+        }
+
+        while (sc.hasNextLine()) {
+            line = sc.nextLine().trim();
+
+            if(!line.equals("")){
+                if(line.startsWith("def ")){
+                    XJLNMethodAbstract method = parseMethod(line, statik);
+                    String desc = Compiler.toDesc(method);
+
+                    if(methods.containsKey(desc))
+                        throw new RuntimeException("Method " + desc + " is already defined in Class " + className);
+
+                    methods.put(desc, method);
+                }else{
+                    XJLNField field = parseField(line, statik);
+
+                    if(fields.containsKey(field.name()))
+                        throw new RuntimeException("Field " + field.name() + " is already defined in Class " + className);
+
+                    fields.put(field.name(), field);
+                }
+            }
+        }
+
+        if(!line.equals("end"))
+            throw new RuntimeException("Class " + className + " was not closed");
+
+        //TODO return class
     }
 
     private XJLNField parseField(String line, boolean staticContext){
@@ -242,7 +314,7 @@ class Parser {
         boolean inner = false;
         String name;
         ArrayList<String> genericTypes = null;
-        HashMap<String, XJLNParameter> parameter;
+        MatchedList<String, XJLNParameter> parameter;
         String returnType = "void";
 
         boolean abstrakt = false;
@@ -313,17 +385,20 @@ class Parser {
             }else
                 code.addAll(parseCode());
 
-            return new XJLNMethod(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]));
-        }else {
+            return new XJLNMethod(staticContext, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]));
+        }else{
             if(th.current().equals("->") || th.current().equals("=") || th.current().equals("{"))
                 throw new RuntimeException("Method " + name + " should not be abstract");
 
-            return new XJLNMethodAbstract(inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType);
+            if(staticContext)
+                throw new RuntimeException("Method " + name + " should not be abstract in a static Class");
+
+            return new XJLNMethodAbstract(staticContext, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType);
         }
     }
 
-    private HashMap<String, XJLNParameter> parseParameterList(TokenHandler th){
-        HashMap<String, XJLNParameter> parameterList = new HashMap<>();
+    private MatchedList<String, XJLNParameter> parseParameterList(TokenHandler th){
+        MatchedList<String, XJLNParameter> parameterList = new MatchedList<>();
 
         if(th.length() == 1){
             if(th.next().equals("/"))
@@ -357,10 +432,10 @@ class Parser {
             }else
                 th.last();
 
-            if(parameterList.containsKey(name))
+            if(parameterList.hasKey(name))
                 throw new RuntimeException("Parameter " + name + " is already defined");
 
-            parameterList.put(name, new XJLNParameter(constant, type, name, value == null ? null : value.toString()));
+            parameterList.add(name, new XJLNParameter(constant, type, name, value == null ? null : value.toString()));
 
             if(th.hasNext()){
                 th.assertToken(",");

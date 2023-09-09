@@ -4,8 +4,8 @@ import javassist.bytecode.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        //new Compiler("src/test/java/Clazz", "src/test/java");
-        printClass("Main");
+        new Compiler("src/test/java/Clazz", "src/test/java");
+        //printClass("Main");
     }
 
     public static void printClass(String name) throws Exception{

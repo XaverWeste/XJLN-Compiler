@@ -1,5 +1,7 @@
 package com.github.xjln.lang;
 
+import com.github.xjln.utility.MatchedList;
+
 import java.util.HashMap;
 
 public final class XJLNClass extends XJLNClassStatic {
@@ -7,11 +9,11 @@ public final class XJLNClass extends XJLNClassStatic {
     public final boolean abstrakt;
     public final String[] generics;
     public final String[] superClasses;
-    public final HashMap<String, XJLNParameter> parameter;
+    public final MatchedList<String, XJLNParameter> parameter;
     public final HashMap<String, XJLNField> fields;
-    public final HashMap<String, XJLNMethod> methods;
+    public final HashMap<String, XJLNMethodAbstract> methods;
 
-    public XJLNClass(boolean abstrakt, String name, String[] generics, HashMap<String, XJLNParameter> parameter, String[] superClasses, HashMap<String, String> aliases){
+    public XJLNClass(boolean abstrakt, String name, String[] generics, MatchedList<String, XJLNParameter> parameter, String[] superClasses, HashMap<String, String> aliases){
         super(name, aliases);
 
         this.abstrakt = abstrakt;
@@ -30,7 +32,7 @@ public final class XJLNClass extends XJLNClassStatic {
         fields.put(name, field);
     }
 
-    public void addMethod(String name, XJLNMethod method){
+    public void addMethod(String name, XJLNMethodAbstract method){
         if(methods.containsKey(name))
             throw new RuntimeException("Method " + name + " already exist in Class " + this.name);
 

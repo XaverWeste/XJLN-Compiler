@@ -42,6 +42,8 @@ public class Compiler {
         classes = new HashMap<>();
         Compiler.srcFolders = srcFolders;
         validateFolders();
+
+        System.out.println("XJLN: finished Compilation");
     }
 
     private void validateFolders(){
@@ -86,7 +88,16 @@ public class Compiler {
     }
 
     public static String toDesc(XJLNMethodAbstract method){
-        return method.name; //TODO
+        StringBuilder desc = new StringBuilder();
+        if(method.statik)
+            desc.append("static ");
+        desc.append("(");
+        for(XJLNParameter p:method.parameterTypes.getValueList())
+            desc.append(p.type()).append(", ");
+        if(!desc.toString().endsWith("("))
+            desc.deleteCharAt(desc.length() - 2);
+        desc.append(") ").append(method.name);
+        return desc.toString();
     }
 
     public static String validateName(String name){
@@ -98,7 +109,7 @@ public class Compiler {
     public static String toIdentifier(String operators){
         StringBuilder sb = new StringBuilder();
         for(char c:operators.toCharArray())
-            sb.append(OPERATOR_LIST.getSecond(String.valueOf(c))).append("_");
+            sb.append(OPERATOR_LIST.getValue(String.valueOf(c))).append("_");
         if(sb.length() > 0)
             sb.deleteCharAt(sb.length() - 1);
         return sb.toString();
