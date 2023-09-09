@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-class Parser {
+public class Parser {
 
     private HashMap<String, String> uses;
     private HashMap<String, Compilable> classes;
-    private XJLNClass main;
+    private XJLNClassStatic main;
     private String src;
     private Scanner sc;
 
@@ -29,16 +29,26 @@ class Parser {
         src = file.getPath();
         src = src.substring(0, src.length() - 5);
 
+        main = new XJLNClassStatic(Compiler.validateName(src + ".Main"), uses);
+        uses.put("Main", Compiler.validateName(src + ".Main"));
+
         String line;
         while (sc.hasNextLine()) {
             line = sc.nextLine().trim();
             if (!line.equals("") && !line.startsWith("#")) {
-                if (line.startsWith("use ")) parseUseDef(line);
-                else throw new RuntimeException("illegal argument in: " + line);
+                if (line.startsWith("use "))
+                    parseUseDef(line);
+                else if(line.startsWith("def "))
+                    parseDef(line);
+                else if(line.startsWith("main "))
+                    parseMain(line);
+                else
+                    main.addStaticField(parseField(line, true));
             }
         }
 
         HashMap<String, Compilable> result = classes;
+        result.put(main.name, main);
 
         src = null;
         classes = null;
@@ -52,6 +62,7 @@ class Parser {
         uses = new HashMap<>();
         uses.put("RuntimeException", "java/lang/RuntimeException");
         uses.put("var", "com.github.xjln.utility.Var");
+        uses.put("String", "java/lang/String");
     }
 
     private void parseUseDef(String line){
@@ -108,7 +119,47 @@ class Parser {
             }
     }
 
-    private void parseEnumDef(String line){
+    private void parseMain(String line){
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("main");
+        String[] code;
+
+        if(th.hasNext()){
+            th.assertToken("->");
+            StringBuilder sb = new StringBuilder();
+
+            while(th.hasNext())
+                sb.append(th.next().s()).append(" ");
+
+            code = new String[]{sb.toString()};
+        }else
+            code = parseCode().toArray(new String[0]);
+
+        main.addStaticMethod(new XJLNMethod(true, false, "static_([String]) main", null, null, "void", code));
+    }
+
+    private void parseDef(String line){
+        TokenHandler th = Lexer.toToken(line);
+        th.assertToken("def");
+
+        while (th.current().equals(Token.Type.IDENTIFIER) && th.hasNext())
+            th.current();
+
+        if(th.hasNext()) {
+            switch (th.current().s()) {
+                case "(" -> main.addStaticMethod((XJLNMethod) parseMethod(line, true));
+                case "[" -> parseClass(line);
+                case "=" -> {
+                    if (th.next().equals("[")) parseRecord(line);
+                    else parseEnum(line);
+                }
+                default -> throw new RuntimeException("Expected one of (,[,= got " + th.current().s() + " in: " + line);
+            }
+        }else
+            parseInterface(line);
+    }
+
+    private void parseEnum(String line){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
         String name = Compiler.validateName(src + "." + th.assertToken(Token.Type.IDENTIFIER).s());
@@ -132,7 +183,7 @@ class Parser {
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
 
-        String name = Compiler.validateName(src + "." + th.assertToken(Token.Type.IDENTIFIER).s());;
+        String name = Compiler.validateName(src + "." + th.assertToken(Token.Type.IDENTIFIER).s());
         th.assertNull();
 
         HashMap<String, XJLNMethodAbstract> methods = new HashMap<>();
@@ -183,7 +234,6 @@ class Parser {
 
     private void parseClass(String line){
         boolean abstrakt = false;
-        boolean inner = false;
         boolean statik;
         String name;
         ArrayList<String> genericTypes = null;
@@ -196,11 +246,6 @@ class Parser {
 
         if(th.assertToken(Token.Type.IDENTIFIER).equals("abstract")){
             abstrakt = true;
-            th.assertToken(Token.Type.IDENTIFIER);
-        }
-
-        if(th.current().equals("inner")){
-            inner = true;
             th.assertToken(Token.Type.IDENTIFIER);
         }
 
@@ -266,8 +311,7 @@ class Parser {
             throw new RuntimeException("Class " + name + " was not closed");
 
         if(classes.containsKey(name)){
-            if(classes.get(name) instanceof XJLNClass){
-                XJLNClass clazz = (XJLNClass) classes.get(name);
+            if(classes.get(name) instanceof XJLNClass clazz){
                 if(!clazz.staticMethods.values().isEmpty() || !clazz.staticFields.values().isEmpty())
                     throw new RuntimeException("Class " + name + " already exist");
                 else{
@@ -428,7 +472,7 @@ class Parser {
             if(staticContext)
                 throw new RuntimeException("Method " + name + " should not be abstract in a static Class");
 
-            return new XJLNMethodAbstract(staticContext, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType);
+            return new XJLNMethodAbstract(false, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType);
         }
     }
 

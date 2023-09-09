@@ -1,5 +1,7 @@
 package com.github.xjln.lang;
 
+import com.github.xjln.compiler.Compiler;
+
 import java.util.HashMap;
 
 public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
@@ -38,17 +40,19 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
         }
     }
 
-    public void addStaticField(String name, XJLNField field){
-        if(staticFields.containsKey(name))
-            throw new RuntimeException("Field " + name + " already exist in Class " + name);
+    public void addStaticField(XJLNField field){
+        if(staticFields.containsKey(field.name()))
+            throw new RuntimeException("Field " + field.name() + " already exist in Class " + name);
 
-        staticFields.put(name, field);
+        staticFields.put(field.name(), field);
     }
 
-    public void addStaticMethod(String name, XJLNMethod method){
-        if(staticMethods.containsKey(name))
-            throw new RuntimeException("Method " + name + " already exist in Class " + this.name);
+    public void addStaticMethod(XJLNMethod method){
+        String methodName = Compiler.toDesc(method);
 
-        staticMethods.put(name, method);
+        if(staticMethods.containsKey(methodName))
+            throw new RuntimeException("Method " + methodName + " already exist in Class " + this.name);
+
+        staticMethods.put(methodName, method);
     }
 }

@@ -90,10 +90,10 @@ public class Compiler {
     public static String toDesc(XJLNMethodAbstract method){
         StringBuilder desc = new StringBuilder();
         if(method.statik)
-            desc.append("static ");
+            desc.append("static_");
         desc.append("(");
         for(XJLNParameter p:method.parameterTypes.getValueList())
-            desc.append(p.type()).append(", ");
+            desc.append(p.type()).append(",");
         if(!desc.toString().endsWith("("))
             desc.deleteCharAt(desc.length() - 2);
         desc.append(") ").append(method.name);
