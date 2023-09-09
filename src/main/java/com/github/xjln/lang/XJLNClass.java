@@ -25,6 +25,18 @@ public final class XJLNClass extends XJLNClassStatic {
         this.methods = new HashMap<>();
     }
 
+    public XJLNClass(XJLNClassStatic staticClass, boolean abstrakt, String[] generics, MatchedList<String, XJLNParameter> parameter, String[] superClasses){
+        super(staticClass);
+
+        this.abstrakt = abstrakt;
+        this.generics = generics;
+        this.parameter = parameter;
+        this.superClasses = superClasses;
+
+        this.fields = new HashMap<>();
+        this.methods = new HashMap<>();
+    }
+
     public void addField(String name, XJLNField field){
         if(fields.containsKey(name))
             throw new RuntimeException("Field " + name + " already exist in Class " + name);

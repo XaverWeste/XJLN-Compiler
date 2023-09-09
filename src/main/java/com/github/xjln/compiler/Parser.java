@@ -186,6 +186,7 @@ class Parser {
         boolean inner = false;
         boolean statik;
         String name;
+        ArrayList<String> genericTypes = null;
         ArrayList<String> superClasses = new ArrayList<>();
         HashMap<String, XJLNField> fields = new HashMap<>();
         HashMap<String, XJLNMethodAbstract> methods = new HashMap<>();
@@ -204,7 +205,21 @@ class Parser {
         }
 
         name = Compiler.validateName(src + "." + th.current().s());
-        th.assertToken("[");
+
+        if(th.assertToken("<", "[").equals("<")){
+            genericTypes = new ArrayList<>();
+            genericTypes.add(th.assertToken(Token.Type.IDENTIFIER).s());
+            th.assertHasNext();
+
+            while (th.assertToken(">", ",").equals(",")){
+                if(genericTypes.contains(th.assertToken(Token.Type.IDENTIFIER).s()))
+                    throw new RuntimeException("Generic Type " + th.current() + " is already defined in Class " + name);
+
+                genericTypes.add(th.current().s());
+                th.assertHasNext();
+            }
+            th.assertToken("[");
+        }
 
         MatchedList<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
         statik = parameter == null;
@@ -250,7 +265,32 @@ class Parser {
         if(!line.equals("end"))
             throw new RuntimeException("Class " + name + " was not closed");
 
-        //TODO register class
+        if(classes.containsKey(name)){
+            if(classes.get(name) instanceof XJLNClass){
+                XJLNClass clazz = (XJLNClass) classes.get(name);
+                if(!clazz.staticMethods.values().isEmpty() || !clazz.staticFields.values().isEmpty())
+                    throw new RuntimeException("Class " + name + " already exist");
+                else{
+                    clazz.staticFields.putAll(fields);
+                    for(String desc: methods.keySet()){
+                        if(methods.get(desc) instanceof XJLNMethod)
+                            clazz.staticMethods.put(desc, (XJLNMethod) methods.get(desc));
+                        else
+                            throw new RuntimeException("internal Parser error");
+                    }
+                }
+            }else if(classes.get(name) instanceof XJLNClassStatic){
+                XJLNClass clazz = new XJLNClass((XJLNClassStatic) classes.get(name), abstrakt, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses.toArray(new String[0]));
+                classes.remove(name);
+                classes.put(name, clazz);
+            }else
+                throw new RuntimeException("Class " + name + " already exist");
+        }else{
+            if(statik)
+                classes.put(name, new XJLNClassStatic(name, uses, fields, methods));
+            else
+                classes.put(name, new XJLNClass(abstrakt, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses.toArray(new String[0]), uses));
+        }
     }
 
     private XJLNField parseField(String line, boolean staticContext){
