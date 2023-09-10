@@ -48,7 +48,7 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
     }
 
     public void addStaticMethod(XJLNMethod method){
-        String methodName = Compiler.toDesc(method);
+        String methodName = Compiler.toCompilerDesc(method);
 
         if(staticMethods.containsKey(methodName))
             throw new RuntimeException("Method " + methodName + " already exist in Class " + this.name);

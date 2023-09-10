@@ -4,8 +4,12 @@ import com.github.xjln.lang.*;
 import com.github.xjln.utility.MatchedList;
 
 import javassist.*;
+import javassist.bytecode.AccessFlag;
+import javassist.bytecode.ClassFile;
+import javassist.bytecode.MethodInfo;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,18 +46,23 @@ public class Compiler {
         classes = new HashMap<>();
         Compiler.srcFolders = srcFolders;
         validateFolders();
-
+        for(String folder:srcFolders)
+            parseFolder(new File(folder));
+        compile();
         System.out.println("XJLN: finished Compilation successful");
     }
 
     private void validateFolders(){
         Path compiled = Paths.get("compiled");
-        if(!Files.exists(compiled) && !new File("compiled").mkdirs()) throw new RuntimeException("unable to validate compiled folder");
-        else clearFolder(compiled.toFile(), false);
+        if(!Files.exists(compiled) && !new File("compiled").mkdirs())
+            throw new RuntimeException("unable to validate compiled folder");
+        else
+            clearFolder(compiled.toFile(), false);
         for (String srcFolder : srcFolders){
-            if (!Files.exists(Paths.get(srcFolder))) throw new RuntimeException("unable to find source folder " + srcFolder);
+            if (!Files.exists(Paths.get(srcFolder)))
+                throw new RuntimeException("unable to find source folder " + srcFolder);
             try {
-                ClassPool.getDefault().appendClassPath("compiled" + srcFolder);
+                ClassPool.getDefault().appendClassPath("compiled/" + srcFolder);
             }catch (NotFoundException ignored){}
         }
     }
@@ -65,8 +74,50 @@ public class Compiler {
             else if(file.getName().endsWith(".class") && !file.delete())
                 throw new RuntimeException("failed to delete " + file.getPath());
         if(delete && Objects.requireNonNull(folder.listFiles()).length == 0)
-            if(!folder.delete())
-                throw new RuntimeException("unable to clear folder " + folder.getPath());
+            delete = folder.delete();
+    }
+
+    private void parseFolder(File folder){
+        for(File file: Objects.requireNonNull(folder.listFiles())){
+            if(file.isDirectory())
+                parseFolder(file);
+            else if(file.getName().endsWith(".xjln"))
+                classes.putAll(parser.parseFile(file));
+        }
+    }
+
+    private void compile(){
+        for(String name: classes.keySet()){
+            Compilable compilable = classes.get(name);
+            if(compilable instanceof XJLNInterface)
+                compileInterface((XJLNInterface) compilable);
+        }
+    }
+
+    private void writeFile(ClassFile cf){
+        ClassPool cp = ClassPool.getDefault();
+        CtClass ct = cp.makeClass(cf);
+        try {
+            ct.writeFile("compiled");
+        }catch(CannotCompileException | IOException e){
+            throw new RuntimeException("Failed to write output File", e);
+        }
+    }
+
+    private void compileInterface(XJLNInterface xjlnInterface){
+        ClassFile cf = new ClassFile(true, xjlnInterface.name(), null);
+
+        for(XJLNMethodAbstract method:xjlnInterface.methods().values()){
+            if(method instanceof XJLNMethod){
+                throw new RuntimeException("Interface " + xjlnInterface.name() + " should not contain non abstract Method " + method.name);
+            }else{
+                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method.name, toDesc(method));
+                mInfo.setAccessFlags(AccessFlag.setPublic(AccessFlag.ABSTRACT));
+                cf.addMethod2(mInfo);
+            }
+        }
+
+        writeFile(cf);
     }
 
     public static String toDesc(String type){
@@ -89,11 +140,25 @@ public class Compiler {
 
     public static String toDesc(XJLNMethodAbstract method){
         StringBuilder desc = new StringBuilder();
+
+        desc.append("(");
+
+        for(XJLNParameter parameter:method.parameterTypes.getValueList())
+            desc.append(toDesc(parameter.type()));
+
+        desc.append(")").append(toDesc(method.returnType));
+
+        return desc.toString();
+    }
+
+    public static String toCompilerDesc(XJLNMethodAbstract method){
+        StringBuilder desc = new StringBuilder();
         if(method.statik)
             desc.append("static_");
         desc.append("(");
-        for(XJLNParameter p:method.parameterTypes.getValueList())
-            desc.append(p.type()).append(",");
+        if(method.parameterTypes != null)
+            for(XJLNParameter p:method.parameterTypes.getValueList())
+                desc.append(p.type()).append(",");
         if(!desc.toString().endsWith("("))
             desc.deleteCharAt(desc.length() - 2);
         desc.append(") ").append(method.name);

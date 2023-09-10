@@ -3,8 +3,6 @@ package com.github.xjln.lang;
 import com.github.xjln.compiler.Compiler;
 import com.github.xjln.utility.MatchedList;
 
-import java.util.HashMap;
-
 public sealed class XJLNMethodAbstract permits XJLNMethod{
 
     public final boolean statik;
@@ -38,6 +36,6 @@ public sealed class XJLNMethodAbstract permits XJLNMethod{
 
     @Override
     public String toString() {
-        return Compiler.toDesc(this);
+        return Compiler.toCompilerDesc(this);
     }
 }

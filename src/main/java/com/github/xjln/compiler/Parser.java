@@ -143,7 +143,7 @@ public class Parser {
         th.assertToken("def");
 
         while (th.current().equals(Token.Type.IDENTIFIER) && th.hasNext())
-            th.current();
+            th.next();
 
         if(th.hasNext()) {
             switch (th.current().s()) {
@@ -194,12 +194,9 @@ public class Parser {
             if(line.equals("end"))
                 break;
 
-            if(!line.equals("")) {
+            if(!line.equals("") && !line.startsWith("#")){
                 XJLNMethodAbstract method = parseMethod(line, false);
-                String desc = Compiler.toDesc(method);
-
-                if(method instanceof XJLNMethod)
-                    throw new RuntimeException("Interface " + name + " should not contain non abstract Method " + desc);
+                String desc = Compiler.toCompilerDesc(method);
 
                 if(methods.containsKey(desc))
                     throw new RuntimeException("Method " + desc + " is already defined in Interface " + name);
@@ -214,7 +211,7 @@ public class Parser {
         if(classes.containsKey(name))
             throw new RuntimeException("Interface " + name + " already exist");
 
-        classes.put(name, new XJLNInterface(methods, uses));
+        classes.put(name, new XJLNInterface(name, methods, uses));
     }
 
     private void parseRecord(String line){
@@ -287,10 +284,10 @@ public class Parser {
         while (sc.hasNextLine()) {
             line = sc.nextLine().trim();
 
-            if(!line.equals("")){
+            if(!line.equals("") && !line.startsWith("#")){
                 if(line.startsWith("def ")){
                     XJLNMethodAbstract method = parseMethod(line, statik);
-                    String desc = Compiler.toDesc(method);
+                    String desc = Compiler.toCompilerDesc(method);
 
                     if(methods.containsKey(desc))
                         throw new RuntimeException("Method " + desc + " is already defined in Class " + name);
@@ -464,7 +461,10 @@ public class Parser {
             }else
                 code.addAll(parseCode());
 
-            return new XJLNMethod(staticContext, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]));
+            if(inner)
+                throw new RuntimeException("Inner Method " + name + " should not be abstract");
+
+            return new XJLNMethod(staticContext, false, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]));
         }else{
             if(th.current().equals("->") || th.current().equals("=") || th.current().equals("{"))
                 throw new RuntimeException("Method " + name + " should not be abstract");
@@ -508,7 +508,7 @@ public class Parser {
                         value.append(th.current().toString()).append(" ");
                 }
                 th.last();
-            }else
+            }else if(th.current().equals(","))
                 th.last();
 
             if(parameterList.hasKey(name))

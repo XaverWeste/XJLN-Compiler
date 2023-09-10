@@ -1,6 +1,14 @@
-use java/lang/System
+#use java/lang/System
 
-main -> System:out:println("Hello World!")
+#main -> System:out:println("Hello World!")
+
+def Interface
+
+    def abstract test() :: int
+
+    def abstract test(int i) :: double
+
+end
 
 ############# syntax preview ###################
 #
