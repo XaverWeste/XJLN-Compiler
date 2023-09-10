@@ -62,6 +62,6 @@ public final class XJLNClass extends XJLNClassStatic {
     }
 
     public XJLNMethodAbstract generateDefaultInit(){
-        return new XJLNMethodAbstract(false, false, "init", null, parameter, "void");
+        return new XJLNMethodAbstract(false, false, "init", null, parameter, "void", aliases);
     }
 }

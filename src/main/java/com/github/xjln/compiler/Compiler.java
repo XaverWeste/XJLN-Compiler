@@ -176,7 +176,7 @@ public class Compiler {
         writeFile(cf);
     }
 
-    public static String toDesc(String type){
+    private String toDesc(String type){
         if(type.startsWith("["))
             return "[" + toDesc(type.substring(1));
 
@@ -194,13 +194,24 @@ public class Compiler {
         };
     }
 
-    public static String toDesc(XJLNMethodAbstract method){
+    private String toDesc(XJLNMethodAbstract method){
         StringBuilder desc = new StringBuilder();
 
         desc.append("(");
 
-        for(XJLNParameter parameter:method.parameterTypes.getValueList())
-            desc.append(toDesc(parameter.type()));
+        for(XJLNParameter parameter:method.parameterTypes.getValueList()) {
+            String type = parameter.type();
+
+            if(!PRIMITIVES.contains(type)) {
+                if (method.genericTypes != null && method.isGeneric(type))
+                    type = "java/lang/Object";
+                else if (method.aliases.containsKey(type))
+                    type = method.aliases.get(type);
+                else throw new RuntimeException("illegal type " + type + " in Method " + method.name);
+            }
+
+            desc.append(toDesc(type));
+        }
 
         desc.append(")").append(toDesc(method.returnType));
 

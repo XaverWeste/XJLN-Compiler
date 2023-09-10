@@ -6,7 +6,7 @@ def Interface
 
     def abstract test() :: int
 
-    def abstract test(int i) :: double
+    def abstract test<E>(E i) :: double
 
 end
 

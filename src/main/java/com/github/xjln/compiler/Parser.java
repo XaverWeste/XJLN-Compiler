@@ -135,7 +135,7 @@ public class Parser {
         }else
             code = parseCode().toArray(new String[0]);
 
-        main.addStaticMethod(new XJLNMethod(true, false, "static_([String]) main", null, null, "void", code));
+        main.addStaticMethod(new XJLNMethod(true, false, "static_([String]) main", null, null, "void", code, uses));
     }
 
     private void parseDef(String line){
@@ -517,7 +517,7 @@ public class Parser {
             if(inner)
                 throw new RuntimeException("Inner Method " + name + " should not be abstract");
 
-            return new XJLNMethod(staticContext, false, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]));
+            return new XJLNMethod(staticContext, false, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]), uses);
         }else{
             if(th.current().equals("->") || th.current().equals("=") || th.current().equals("{"))
                 throw new RuntimeException("Method " + name + " should not be abstract");
@@ -525,7 +525,7 @@ public class Parser {
             if(staticContext)
                 throw new RuntimeException("Method " + name + " should not be abstract in a static Class");
 
-            return new XJLNMethodAbstract(false, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType);
+            return new XJLNMethodAbstract(false, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, uses);
         }
     }
 
