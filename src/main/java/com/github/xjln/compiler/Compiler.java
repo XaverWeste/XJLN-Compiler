@@ -91,6 +91,8 @@ public class Compiler {
                 compileInterface((XJLNInterface) compilable);
             else if(compilable instanceof XJLNClass && ((XJLNClass) compilable).isDataClass)
                 compileDataClass((XJLNClass) compilable);
+            else if(compilable instanceof XJLNClass)
+                compileClass((XJLNClass) compilable);
         }
     }
 
@@ -164,6 +166,14 @@ public class Compiler {
         mInfo.setCodeAttribute(code.toCodeAttribute());
 
         return mInfo;
+    }
+
+    private void compileClass(XJLNClass clazz){
+        ClassFile cf = new ClassFile(false, clazz.name, null);
+
+        //TODO
+
+        writeFile(cf);
     }
 
     public static String toDesc(String type){

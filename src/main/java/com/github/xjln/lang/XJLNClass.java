@@ -1,5 +1,6 @@
 package com.github.xjln.lang;
 
+import com.github.xjln.compiler.Compiler;
 import com.github.xjln.utility.MatchedList;
 
 import java.util.HashMap;
@@ -11,8 +12,8 @@ public final class XJLNClass extends XJLNClassStatic {
     public final String[] generics;
     public final String[] superClasses;
     public final MatchedList<String, XJLNParameter> parameter;
-    public final HashMap<String, XJLNField> fields;
-    public final HashMap<String, XJLNMethodAbstract> methods;
+    private final HashMap<String, XJLNField> fields;
+    private final HashMap<String, XJLNMethodAbstract> methods;
 
     public XJLNClass(boolean isDataClass, boolean abstrakt, String name, String[] generics, MatchedList<String, XJLNParameter> parameter, String[] superClasses, HashMap<String, String> aliases){
         super(name, aliases);
@@ -47,11 +48,17 @@ public final class XJLNClass extends XJLNClassStatic {
         fields.put(name, field);
     }
 
-    public void addMethod(String name, XJLNMethodAbstract method){
-        if(methods.containsKey(name))
-            throw new RuntimeException("Method " + name + " already exist in Class " + this.name);
+    public void addMethod(XJLNMethodAbstract method){
+        String methodName = Compiler.toCompilerDesc(method);
 
-        methods.put(name, method);
+        if(methods.containsKey(methodName))
+            throw new RuntimeException("Method " + methodName + " already exist in Class " + name);
+
+        methods.put(methodName, method);
+    }
+
+    public boolean hasStatic(){
+        return staticMethods.size() > 0 || staticFields.size() > 0;
     }
 
     public XJLNMethodAbstract generateDefaultInit(){

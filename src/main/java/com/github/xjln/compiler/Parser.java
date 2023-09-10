@@ -231,12 +231,8 @@ public class Parser {
 
     private void parseClass(String line){
         boolean abstrakt = false;
-        boolean statik;
         String name;
         ArrayList<String> genericTypes = null;
-        ArrayList<String> superClasses = new ArrayList<>();
-        HashMap<String, XJLNField> fields = new HashMap<>();
-        HashMap<String, XJLNMethodAbstract> methods = new HashMap<>();
 
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
@@ -264,74 +260,131 @@ public class Parser {
         }
 
         MatchedList<String, XJLNParameter> parameter = parseParameterList(th.getInBracket());
-        statik = parameter == null;
 
-        if(statik)
+        if(parameter == null){
             th.assertNull();
-        else if(th.hasNext()){
-            th.assertToken("=>");
-            th.assertHasNext();
 
-            while(th.hasNext()){
-                superClasses.add(th.assertToken(Token.Type.IDENTIFIER) + "[" + th.getInBracket().toString() + "]");
-                if(th.hasNext()){
-                    th.assertToken(",");
-                    th.assertHasNext();
-                }
-            }
-        }
+            if(abstrakt)
+                throw new RuntimeException("Abstract Class " + name + " should not be static");
 
-        while (sc.hasNextLine()) {
-            line = sc.nextLine().trim();
+            if(genericTypes != null)
+                throw new RuntimeException("Static Class " + name + " should not be Generic");
 
-            if(!line.equals("") && !line.startsWith("#")){
-                if(line.startsWith("def ")){
-                    XJLNMethodAbstract method = parseMethod(line, statik);
-                    String desc = Compiler.toCompilerDesc(method);
+            XJLNClassStatic clazz;
 
-                    if(methods.containsKey(desc))
-                        throw new RuntimeException("Method " + desc + " is already defined in Class " + name);
-
-                    methods.put(desc, method);
-                }else{
-                    XJLNField field = parseField(line, statik);
-
-                    if(fields.containsKey(field.name()))
-                        throw new RuntimeException("Field " + field.name() + " is already defined in Class " + name);
-
-                    fields.put(field.name(), field);
-                }
-            }
-        }
-
-        if(!line.equals("end"))
-            throw new RuntimeException("Class " + name + " was not closed");
-
-        if(classes.containsKey(name)){
-            if(classes.get(name) instanceof XJLNClass clazz){
-                if(!clazz.staticMethods.values().isEmpty() || !clazz.staticFields.values().isEmpty())
-                    throw new RuntimeException("Class " + name + " already exist");
-                else{
-                    clazz.staticFields.putAll(fields);
-                    for(String desc: methods.keySet()){
-                        if(methods.get(desc) instanceof XJLNMethod)
-                            clazz.staticMethods.put(desc, (XJLNMethod) methods.get(desc));
-                        else
-                            throw new RuntimeException("internal Parser error");
-                    }
-                }
-            }else if(classes.get(name) instanceof XJLNClassStatic){
-                XJLNClass clazz = new XJLNClass((XJLNClassStatic) classes.get(name), abstrakt, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses.toArray(new String[0]));
-                classes.remove(name);
+            if(classes.containsKey(name)){
+                if(classes.get(name) instanceof XJLNClass xjlnClass){
+                    if(xjlnClass.hasStatic())
+                        throw new RuntimeException("Static Class " + name + " is already defined");
+                    else
+                        clazz = xjlnClass;
+                }else
+                    throw new RuntimeException("Static Class " + name + " is already defined");
+            }else {
+                clazz = new XJLNClassStatic(name, uses);
                 classes.put(name, clazz);
-            }else
-                throw new RuntimeException("Class " + name + " already exist");
+            }
+
+            while (sc.hasNextLine()) {
+                line = sc.nextLine().trim();
+
+                if(!line.equals("") && !line.startsWith("#")){
+                    if(line.startsWith("def "))
+                        clazz.addStaticMethod((XJLNMethod) parseMethod(line, true));
+                    else
+                        clazz.addStaticField(parseField(line, true));
+                }
+            }
+
         }else{
-            if(statik)
-                classes.put(name, new XJLNClassStatic(name, uses, fields, methods));
-            else
-                classes.put(name, new XJLNClass(false, abstrakt, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses.toArray(new String[0]), uses));
+            ArrayList<String> superClasses = null;
+
+            if(th.hasNext()){
+                superClasses = new ArrayList<>();
+                ArrayList<String> superTypes = new ArrayList<>();
+
+                th.assertToken("=>");
+                th.assertHasNext();
+
+                while(th.hasNext()){
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(th.assertToken(Token.Type.IDENTIFIER).s());
+
+                    if(superTypes.contains(th.current().s()))
+                        throw new RuntimeException("Class " + name + " already extends " + sb);
+
+                    superTypes.add(th.current().s());
+
+                    if(th.hasNext() && !th.assertToken(",", "<", "[").equals(",")){
+                        if(th.current().equals("<")){
+                            sb.append("<");
+                            genericTypes = new ArrayList<>();
+                            genericTypes.add(th.assertToken(Token.Type.IDENTIFIER).s());
+                            sb.append(th.current());
+                            th.assertHasNext();
+
+                            while (th.assertToken(">", ",").equals(",")){
+                                if(genericTypes.contains(th.assertToken(Token.Type.IDENTIFIER).s()))
+                                    throw new RuntimeException("Generic Type " + th.current() + " is already defined in Class " + name);
+
+                                genericTypes.add(th.current().s());
+                                sb.append(th.current());
+                                th.assertHasNext();
+                            }
+
+                            sb.append(">");
+
+                            if(th.hasNext()){
+                                th.assertToken("[", ",");
+                                th.assertHasNext();
+                            }
+                        }
+
+                        if(th.current().equals("[")){
+                            sb.append("[").append(th.getInBracket()).append("]");
+
+                            if(th.hasNext()){
+                                th.assertToken(",");
+                                th.assertHasNext();
+                            }
+                        }
+                    }
+
+                    superClasses.add(sb.toString());
+                }
+            }
+
+            XJLNClass clazz;
+
+            if(classes.containsKey(name)){
+                if(classes.get(name) instanceof XJLNClass)
+                    throw new RuntimeException("Class " + name + " is already defined");
+                else if(classes.get(name) instanceof XJLNClassStatic) {
+                    clazz = new XJLNClass((XJLNClassStatic) classes.get(name), abstrakt, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses == null ? null : superClasses.toArray(new String[0]));
+
+                    classes.remove(name);
+                    classes.put(name, clazz);
+                }else
+                    throw new RuntimeException("Class " + name + " is already defined");
+            }else {
+                clazz = new XJLNClass(false, abstrakt, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses == null ? null : superClasses.toArray(new String[0]), uses);
+                classes.put(name, clazz);
+            }
+
+            while (sc.hasNextLine()) {
+                line = sc.nextLine().trim();
+
+                if(!line.equals("") && !line.startsWith("#")){
+                    if(line.startsWith("def "))
+                        clazz.addStaticMethod((XJLNMethod) parseMethod(line, false));
+                    else
+                        clazz.addStaticField(parseField(line, false));
+                }
+            }
+
         }
+        if(!line.equals("end"))
+            throw new RuntimeException("Static Class " + name + " was not closed");
     }
 
     private XJLNField parseField(String line, boolean staticContext){
