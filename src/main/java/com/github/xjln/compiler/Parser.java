@@ -226,7 +226,7 @@ public class Parser {
         if(classes.containsKey(name))
             throw new RuntimeException("Data Class " + name + " already exist");
 
-        classes.put(name, new XJLNClass(false, name, null, parameter, new String[0], uses));
+        classes.put(name, new XJLNClass(true, false, name, null, parameter, new String[0], uses));
     }
 
     private void parseClass(String line){
@@ -330,7 +330,7 @@ public class Parser {
             if(statik)
                 classes.put(name, new XJLNClassStatic(name, uses, fields, methods));
             else
-                classes.put(name, new XJLNClass(abstrakt, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses.toArray(new String[0]), uses));
+                classes.put(name, new XJLNClass(false, abstrakt, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses.toArray(new String[0]), uses));
         }
     }
 

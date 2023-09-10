@@ -10,6 +10,8 @@ def Interface
 
 end
 
+def DataClass = [const int i, double d]
+
 ############# syntax preview ###################
 #
 #use {String, System} from java/lang

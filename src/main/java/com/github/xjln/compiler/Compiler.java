@@ -4,9 +4,7 @@ import com.github.xjln.lang.*;
 import com.github.xjln.utility.MatchedList;
 
 import javassist.*;
-import javassist.bytecode.AccessFlag;
-import javassist.bytecode.ClassFile;
-import javassist.bytecode.MethodInfo;
+import javassist.bytecode.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -91,6 +89,8 @@ public class Compiler {
             Compilable compilable = classes.get(name);
             if(compilable instanceof XJLNInterface)
                 compileInterface((XJLNInterface) compilable);
+            else if(compilable instanceof XJLNClass && ((XJLNClass) compilable).isDataClass)
+                compileDataClass((XJLNClass) compilable);
         }
     }
 
@@ -116,6 +116,47 @@ public class Compiler {
                 cf.addMethod2(mInfo);
             }
         }
+
+        writeFile(cf);
+    }
+
+    private void compileDataClass(XJLNClass xjlnClass){
+        ClassFile cf = new ClassFile(false, xjlnClass.name, null);
+
+        for(XJLNParameter parameter:xjlnClass.parameter.getValueList()){
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), parameter.name(), toDesc(parameter.type()));
+            fInfo.setAccessFlags(parameter.constant() ? AccessFlag.setPublic(AccessFlag.FINAL) : AccessFlag.PUBLIC);
+            cf.addField2(fInfo);
+        }
+
+        MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "<init>", toDesc(xjlnClass.generateDefaultInit()));
+        mInfo.setAccessFlags(AccessFlag.PUBLIC);
+
+        Bytecode code = new Bytecode(cf.getConstPool());
+        code.addAload(0);
+        code.addInvokespecial("java/lang/Object", "<init>", "()V");
+
+        int i = 0;
+
+        for(XJLNParameter parameter:xjlnClass.parameter.getValueList()){
+            code.addAload(0);
+            i += 1;
+
+            switch(parameter.type()){
+                case "int", "byte", "char", "short", "boolean" -> code.addIload(i);
+                case "double" -> code.addDload(i);
+                case "long" -> code.addLload(i);
+                case "float" -> code.addFload(i);
+                default -> code.addAload(i);
+            }
+
+            code.addPutfield(xjlnClass.name, parameter.name(), toDesc(parameter.type()));
+        }
+
+        code.addReturn(null);
+
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
 
         writeFile(cf);
     }

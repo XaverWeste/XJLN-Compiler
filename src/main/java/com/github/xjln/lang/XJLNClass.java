@@ -6,6 +6,7 @@ import java.util.HashMap;
 
 public final class XJLNClass extends XJLNClassStatic {
 
+    public final boolean isDataClass;
     public final boolean abstrakt;
     public final String[] generics;
     public final String[] superClasses;
@@ -13,9 +14,10 @@ public final class XJLNClass extends XJLNClassStatic {
     public final HashMap<String, XJLNField> fields;
     public final HashMap<String, XJLNMethodAbstract> methods;
 
-    public XJLNClass(boolean abstrakt, String name, String[] generics, MatchedList<String, XJLNParameter> parameter, String[] superClasses, HashMap<String, String> aliases){
+    public XJLNClass(boolean isDataClass, boolean abstrakt, String name, String[] generics, MatchedList<String, XJLNParameter> parameter, String[] superClasses, HashMap<String, String> aliases){
         super(name, aliases);
 
+        this.isDataClass = isDataClass;
         this.abstrakt = abstrakt;
         this.generics = generics;
         this.parameter = parameter;
@@ -33,6 +35,7 @@ public final class XJLNClass extends XJLNClassStatic {
         this.parameter = parameter;
         this.superClasses = superClasses;
 
+        this.isDataClass = false;
         this.fields = new HashMap<>();
         this.methods = new HashMap<>();
     }
@@ -49,5 +52,9 @@ public final class XJLNClass extends XJLNClassStatic {
             throw new RuntimeException("Method " + name + " already exist in Class " + this.name);
 
         methods.put(name, method);
+    }
+
+    public XJLNMethodAbstract generateDefaultInit(){
+        return new XJLNMethodAbstract(false, false, "init", null, parameter, "void");
     }
 }
