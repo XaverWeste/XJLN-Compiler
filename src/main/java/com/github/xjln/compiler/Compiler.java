@@ -129,16 +129,22 @@ public class Compiler {
             cf.addField2(fInfo);
         }
 
-        MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "<init>", toDesc(xjlnClass.generateDefaultInit()));
+        cf.addMethod2(compileDefaultInit(xjlnClass, cf.getConstPool()));
+
+        writeFile(cf);
+    }
+
+    private MethodInfo compileDefaultInit(XJLNClass clazz, ConstPool cp){
+        MethodInfo mInfo = new MethodInfo(cp, "<init>", toDesc(clazz.generateDefaultInit()));
         mInfo.setAccessFlags(AccessFlag.PUBLIC);
 
-        Bytecode code = new Bytecode(cf.getConstPool());
+        Bytecode code = new Bytecode(cp);
         code.addAload(0);
         code.addInvokespecial("java/lang/Object", "<init>", "()V");
 
         int i = 0;
 
-        for(XJLNParameter parameter:xjlnClass.parameter.getValueList()){
+        for(XJLNParameter parameter:clazz.parameter.getValueList()){
             code.addAload(0);
             i += 1;
 
@@ -150,15 +156,14 @@ public class Compiler {
                 default -> code.addAload(i);
             }
 
-            code.addPutfield(xjlnClass.name, parameter.name(), toDesc(parameter.type()));
+            code.addPutfield(clazz.name, parameter.name(), toDesc(parameter.type()));
         }
 
         code.addReturn(null);
 
         mInfo.setCodeAttribute(code.toCodeAttribute());
-        cf.addMethod2(mInfo);
 
-        writeFile(cf);
+        return mInfo;
     }
 
     public static String toDesc(String type){
