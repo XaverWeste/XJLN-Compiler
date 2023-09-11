@@ -64,4 +64,13 @@ public final class XJLNClass extends XJLNClassStatic {
     public XJLNMethodAbstract generateDefaultInit(){
         return new XJLNMethodAbstract(false, false, "init", null, parameter, "void", aliases);
     }
+
+    @Override
+    public boolean isGeneric(String type) {
+        for(String generic:generics)
+            if(generic.equals(type))
+                return true;
+
+        return false;
+    }
 }

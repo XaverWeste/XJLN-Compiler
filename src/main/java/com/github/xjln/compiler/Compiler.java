@@ -113,7 +113,7 @@ public class Compiler {
             if(method instanceof XJLNMethod){
                 throw new RuntimeException("Interface " + xjlnInterface.name() + " should not contain non abstract Method " + method.name);
             }else{
-                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method.name, toDesc(method));
+                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method.name, toDesc(method, xjlnInterface));
                 mInfo.setAccessFlags(AccessFlag.setPublic(AccessFlag.ABSTRACT));
                 cf.addMethod2(mInfo);
             }
@@ -137,7 +137,7 @@ public class Compiler {
     }
 
     private MethodInfo compileDefaultInit(XJLNClass clazz, ConstPool cp){
-        MethodInfo mInfo = new MethodInfo(cp, "<init>", toDesc(clazz.generateDefaultInit()));
+        MethodInfo mInfo = new MethodInfo(cp, "<init>", toDesc(clazz.generateDefaultInit(), clazz));
         mInfo.setAccessFlags(AccessFlag.PUBLIC);
 
         Bytecode code = new Bytecode(cp);
@@ -194,7 +194,7 @@ public class Compiler {
         };
     }
 
-    private String toDesc(XJLNMethodAbstract method){
+    private String toDesc(XJLNMethodAbstract method, Compilable c){
         StringBuilder desc = new StringBuilder();
 
         desc.append("(");
@@ -203,7 +203,7 @@ public class Compiler {
             String type = parameter.type();
 
             if(!PRIMITIVES.contains(type)) {
-                if (method.genericTypes != null && method.isGeneric(type))
+                if ((method.genericTypes != null && method.isGeneric(type)) || c.isGeneric(type))
                     type = "java/lang/Object";
                 else if (method.aliases.containsKey(type))
                     type = method.aliases.get(type);

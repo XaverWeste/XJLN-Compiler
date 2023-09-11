@@ -18,4 +18,9 @@ public class XJLNEnum implements Compilable {
                 return true;
         return false;
     }
+
+    @Override
+    public boolean isGeneric(String type) {
+        return false;
+    }
 }

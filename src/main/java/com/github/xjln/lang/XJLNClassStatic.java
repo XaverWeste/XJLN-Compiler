@@ -41,4 +41,9 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
 
         staticMethods.put(methodName, method);
     }
+
+    @Override
+    public boolean isGeneric(String type) {
+        return false;
+    }
 }
