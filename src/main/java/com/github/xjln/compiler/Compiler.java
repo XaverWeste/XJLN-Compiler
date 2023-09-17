@@ -34,6 +34,9 @@ public class Compiler {
 
     private final Parser parser;
 
+    private XJLNClassStatic currentClass;
+    private XJLNMethodAbstract currentMethod;
+
     /**
      * creates a new instance of the XJLN-Compiler and starts compiling
      * @param main the path to the .xjln file with the main method (if there is no main method or no main method should be executed the parameter should be null)
@@ -200,14 +203,21 @@ public class Compiler {
         }
     }
 
-    private void compileMethod(){
+    private String validateType(String type){
+        if(PRIMITIVES.contains(type))
+            return type;
 
+        if(currentClass instanceof XJLNClass && currentClass.isGeneric(type))
+            return "java/lang/Object";
+
+        if(!currentClass.aliases.containsKey(type))
+            throw new RuntimeException("illegal Type " + type);
+
+        return currentClass.aliases.get(type);
     }
 
-    private int accessFlag(boolean privatE, boolean constant, boolean statik){
-        int accessFlag = 0;
-
-        accessFlag += privatE ? AccessFlag.PRIVATE : AccessFlag.PUBLIC;
+    private int accessFlag(boolean inner, boolean constant, boolean statik){
+        int accessFlag = inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC;
 
         if(constant)
             accessFlag += AccessFlag.FINAL;
@@ -240,21 +250,10 @@ public class Compiler {
 
         desc.append("(");
 
-        for(XJLNParameter parameter:method.parameterTypes.getValueList()) {
-            String type = parameter.type();
+        for(XJLNParameter parameter:method.parameterTypes.getValueList())
+            desc.append(toDesc(validateType(parameter.type())));
 
-            if(!PRIMITIVES.contains(type)) {
-                if ((method.genericTypes != null && method.isGeneric(type)) || c.isGeneric(type))
-                    type = "java/lang/Object";
-                else if (method.aliases.containsKey(type))
-                    type = method.aliases.get(type);
-                else throw new RuntimeException("illegal type " + type + " in Method " + method.name);
-            }
-
-            desc.append(toDesc(type));
-        }
-
-        desc.append(")").append(toDesc(method.returnType));
+        desc.append(")").append(toDesc(validateType(method.returnType)));
 
         return desc.toString();
     }

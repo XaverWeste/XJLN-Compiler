@@ -50,7 +50,6 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
         return staticFields.isEmpty() && staticMethods.isEmpty();
     }
 
-    @Override
     public boolean isGeneric(String type) {
         return false;
     }
