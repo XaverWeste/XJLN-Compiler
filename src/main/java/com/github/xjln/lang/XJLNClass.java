@@ -45,7 +45,7 @@ public final class XJLNClass extends XJLNClassStatic {
         if(fields.containsKey(field.name()))
             throw new RuntimeException("Field " + field.name() + " already exist in Class " + name);
 
-        fields.put(name, field);
+        fields.put(field.name(), field);
     }
 
     public void addMethod(XJLNMethodAbstract method){
@@ -55,6 +55,10 @@ public final class XJLNClass extends XJLNClassStatic {
             throw new RuntimeException("Method " + methodName + " already exist in Class " + name);
 
         methods.put(methodName, method);
+    }
+
+    public HashMap<String, XJLNField> getFields(){
+        return fields;
     }
 
     public boolean hasStatic(){

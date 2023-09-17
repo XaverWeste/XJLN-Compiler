@@ -177,8 +177,9 @@ public class Compiler {
         //static Fields
         compileFields(cf, clazz.getStaticFields(), true);
 
-        //static Methods
-
+        //non-static Fields
+        if(clazz instanceof XJLNClass)
+            compileFields(cf, ((XJLNClass) clazz).getFields(), false);
 
         writeFile(cf);
     }

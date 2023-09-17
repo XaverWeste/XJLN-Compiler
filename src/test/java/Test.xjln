@@ -1,5 +1,11 @@
-def Clazz[/]
+def Clazz[]
 
     int i
+
+end
+
+def Clazz[/]
+
+    int j
 
 end
