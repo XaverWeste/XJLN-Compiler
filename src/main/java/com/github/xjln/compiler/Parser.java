@@ -62,7 +62,6 @@ public class Parser {
         uses = new HashMap<>();
         uses.put("RuntimeException", "java/lang/RuntimeException");
         uses.put("var", "com.github.xjln.utility.Var");
-        uses.put("String", "java/lang/String");
     }
 
     private void parseUseDef(String line){
@@ -285,10 +284,10 @@ public class Parser {
                 classes.put(name, clazz);
             }
 
-            while (sc.hasNextLine()) {
+            while (sc.hasNextLine() && !line.equals("end")) {
                 line = sc.nextLine().trim();
 
-                if(!line.equals("") && !line.startsWith("#")){
+                if(!line.equals("") && !line.startsWith("#") && !line.equals("end")){
                     if(line.startsWith("def "))
                         clazz.addStaticMethod((XJLNMethod) parseMethod(line, true));
                     else
@@ -371,14 +370,14 @@ public class Parser {
                 classes.put(name, clazz);
             }
 
-            while (sc.hasNextLine()) {
+            while (sc.hasNextLine() && !line.equals("end")) {
                 line = sc.nextLine().trim();
 
-                if(!line.equals("") && !line.startsWith("#")){
+                if(!line.equals("") && !line.startsWith("#") && !line.equals("end")){
                     if(line.startsWith("def "))
-                        clazz.addStaticMethod((XJLNMethod) parseMethod(line, false));
+                        clazz.addMethod(parseMethod(line, false));
                     else
-                        clazz.addStaticField(parseField(line, false));
+                        clazz.addField(parseField(line, false));
                 }
             }
 

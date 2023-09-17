@@ -91,8 +91,8 @@ public class Compiler {
                 compileInterface((XJLNInterface) compilable);
             else if(compilable instanceof XJLNClass && ((XJLNClass) compilable).isDataClass)
                 compileDataClass((XJLNClass) compilable);
-            else if(compilable instanceof XJLNClass)
-                compileClass((XJLNClass) compilable);
+            else if(compilable instanceof XJLNClassStatic)
+                compileClass((XJLNClassStatic) compilable);
         }
     }
 
@@ -168,12 +168,52 @@ public class Compiler {
         return mInfo;
     }
 
-    private void compileClass(XJLNClass clazz){
+    private void compileClass(XJLNClassStatic clazz){
+        if(clazz.name.endsWith(".Main") && clazz.isEmpty())
+            return;
+
         ClassFile cf = new ClassFile(false, clazz.name, null);
 
-        //TODO
+        //static Fields
+        compileFields(cf, clazz.getStaticFields(), true);
+
+        //static Methods
+
 
         writeFile(cf);
+    }
+
+    private void compileFields(ClassFile cf, HashMap<String, XJLNField> fields, boolean statik){
+        ConstPool cp = cf.getConstPool();
+
+        for(String fieldName : fields.keySet()){
+            XJLNField field = fields.get(fieldName);
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), fieldName, toDesc(field.type()));
+            fInfo.setAccessFlags(accessFlag(field.inner(), field.constant(), statik));
+
+            try {
+                cf.addField(fInfo);
+            }catch (DuplicateMemberException e){
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private void compileMethod(){
+
+    }
+
+    private int accessFlag(boolean privatE, boolean constant, boolean statik){
+        int accessFlag = 0;
+
+        accessFlag += privatE ? AccessFlag.PRIVATE : AccessFlag.PUBLIC;
+
+        if(constant)
+            accessFlag += AccessFlag.FINAL;
+        if(statik)
+            accessFlag += AccessFlag.STATIC;
+
+        return accessFlag;
     }
 
     private String toDesc(String type){

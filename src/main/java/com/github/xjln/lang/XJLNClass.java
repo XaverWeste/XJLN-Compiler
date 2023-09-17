@@ -41,9 +41,9 @@ public final class XJLNClass extends XJLNClassStatic {
         this.methods = new HashMap<>();
     }
 
-    public void addField(String name, XJLNField field){
-        if(fields.containsKey(name))
-            throw new RuntimeException("Field " + name + " already exist in Class " + name);
+    public void addField(XJLNField field){
+        if(fields.containsKey(field.name()))
+            throw new RuntimeException("Field " + field.name() + " already exist in Class " + name);
 
         fields.put(name, field);
     }
@@ -63,6 +63,11 @@ public final class XJLNClass extends XJLNClassStatic {
 
     public XJLNMethodAbstract generateDefaultInit(){
         return new XJLNMethodAbstract(false, false, "init", null, parameter, "void", aliases);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return super.isEmpty() && fields.isEmpty() && methods.isEmpty();
     }
 
     @Override

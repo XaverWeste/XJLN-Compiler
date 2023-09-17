@@ -42,6 +42,14 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
         staticMethods.put(methodName, method);
     }
 
+    public HashMap<String, XJLNField> getStaticFields(){
+        return staticFields;
+    }
+
+    public boolean isEmpty(){
+        return staticFields.isEmpty() && staticMethods.isEmpty();
+    }
+
     @Override
     public boolean isGeneric(String type) {
         return false;
