@@ -95,13 +95,20 @@ public class Compiler {
             else if(compilable instanceof XJLNClass && ((XJLNClass) compilable).isDataClass)
                 compileDataClass((XJLNClass) compilable);
             else if(compilable instanceof XJLNClassStatic)
-                compileClass((XJLNClassStatic) compilable);
+                compileClassFirstIteration((XJLNClassStatic) compilable);
         }
+
+        for(Compilable clazz: classes.values())
+            if(clazz instanceof XJLNClassStatic)
+                compileClassSecondIteration((XJLNClassStatic) clazz);
     }
 
     private void writeFile(ClassFile cf){
         ClassPool cp = ClassPool.getDefault();
-        CtClass ct = cp.makeClass(cf);
+        writeFile(cp.makeClass(cf));
+    }
+
+    private void writeFile(CtClass ct){
         try {
             ct.writeFile("compiled");
         }catch(CannotCompileException | IOException e){
@@ -116,7 +123,7 @@ public class Compiler {
             if(method instanceof XJLNMethod){
                 throw new RuntimeException("Interface " + xjlnInterface.name() + " should not contain non abstract Method " + method.name);
             }else{
-                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method.name, toDesc(method, xjlnInterface));
+                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method.name, toDesc(method));
                 mInfo.setAccessFlags(AccessFlag.setPublic(AccessFlag.ABSTRACT));
                 cf.addMethod2(mInfo);
             }
@@ -140,7 +147,7 @@ public class Compiler {
     }
 
     private MethodInfo compileDefaultInit(XJLNClass clazz, ConstPool cp){
-        MethodInfo mInfo = new MethodInfo(cp, "<init>", toDesc(clazz.generateDefaultInit(), clazz));
+        MethodInfo mInfo = new MethodInfo(cp, "<init>", toDesc(clazz.generateDefaultInit()));
         mInfo.setAccessFlags(AccessFlag.PUBLIC);
 
         Bytecode code = new Bytecode(cp);
@@ -171,7 +178,7 @@ public class Compiler {
         return mInfo;
     }
 
-    private void compileClass(XJLNClassStatic clazz){
+    private void compileClassFirstIteration(XJLNClassStatic clazz){
         if(clazz.name.endsWith(".Main") && clazz.isEmpty())
             return;
 
@@ -184,7 +191,29 @@ public class Compiler {
         if(clazz instanceof XJLNClass)
             compileFields(cf, ((XJLNClass) clazz).getFields(), false);
 
-        writeFile(cf);
+        //static Methods
+        compileMethods(cf, clazz.getStaticMethods(), true);
+
+        //non-static Methods
+        if(clazz instanceof XJLNClass)
+            compileMethods(cf, ((XJLNClass) clazz).getMethods(), false);
+
+        //Constructor
+
+
+        ClassPool.getDefault().makeClass(cf);
+    }
+
+    private void compileClassSecondIteration(XJLNClassStatic clazz){
+        CtClass ct;
+
+        try {
+            ct = ClassPool.getDefault().get(clazz.name);
+        }catch (NotFoundException e){
+            throw new RuntimeException(e);
+        }
+
+        writeFile(ct);
     }
 
     private void compileFields(ClassFile cf, HashMap<String, XJLNField> fields, boolean statik){
@@ -197,6 +226,22 @@ public class Compiler {
 
             try {
                 cf.addField(fInfo);
+            }catch (DuplicateMemberException e){
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private void compileMethods(ClassFile cf, HashMap<String, ? extends XJLNMethodAbstract> methods, boolean statik){
+        ConstPool cp = cf.getConstPool();
+
+        for(String methodName : methods.keySet()){
+            XJLNMethodAbstract method = methods.get(methodName);
+            MethodInfo mInfo = new MethodInfo(cp, methodName, toDesc(method));
+            mInfo.setAccessFlags(accessFlag(method.inner, false, statik));
+
+            try {
+                cf.addMethod(mInfo);
             }catch (DuplicateMemberException e){
                 throw new RuntimeException(e);
             }
@@ -245,7 +290,7 @@ public class Compiler {
         };
     }
 
-    private String toDesc(XJLNMethodAbstract method, Compilable c){
+    private String toDesc(XJLNMethodAbstract method){
         StringBuilder desc = new StringBuilder();
 
         desc.append("(");

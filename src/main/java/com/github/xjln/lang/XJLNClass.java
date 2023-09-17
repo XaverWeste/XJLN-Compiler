@@ -60,6 +60,9 @@ public final class XJLNClass extends XJLNClassStatic {
     public HashMap<String, XJLNField> getFields(){
         return fields;
     }
+    public HashMap<String, XJLNMethodAbstract> getMethods(){
+        return methods;
+    }
 
     public boolean hasStatic(){
         return staticMethods.size() > 0 || staticFields.size() > 0;

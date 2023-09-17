@@ -46,6 +46,10 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
         return staticFields;
     }
 
+    public HashMap<String, XJLNMethod> getStaticMethods(){
+        return staticMethods;
+    }
+
     public boolean isEmpty(){
         return staticFields.isEmpty() && staticMethods.isEmpty();
     }
