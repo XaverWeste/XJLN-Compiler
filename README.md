@@ -1,4 +1,4 @@
-# <img src="https://github.com/XaverWeste/XJLN-Compiler/res/XJLN-Logo.png"  style="width:200px;height:200px;" alt="">
+# ![alt text](https://github.com/XaverWeste/XJLN-Compiler/blob/next/res/XJLN-Logo.png?raw=true)
 
 # !!!Important!!!
 ### This branch is currently being restructured and revised, so the compiler is not working. For a working version of the compiler see Main branch and/or last releases.
