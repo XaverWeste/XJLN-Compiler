@@ -1,3 +1,5 @@
+# <img src="https://github.com/XaverWeste/XJLN-Compiler/res/XJLN-Logo.png"  style="width:200px;height:200px;" alt="">
+
 # !!!Important!!!
 ### This branch is currently being restructured and revised, so the compiler is not working. For a working version of the compiler see Main branch and/or last releases.
 
@@ -28,7 +30,7 @@ main -> System:out:println("Hello World!")
 ``` XJLN
 use {System, String} from java/lang
 
-main
+def main([String] args)
     String string = "Hello World!"
     system:out:println(string)
 end
