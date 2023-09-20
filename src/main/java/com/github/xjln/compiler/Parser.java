@@ -149,7 +149,7 @@ public class Parser {
                 case "(" -> main.addStaticMethod((XJLNMethod) parseMethod(line, true));
                 case "[" -> parseClass(line);
                 case "=" -> {
-                    if (th.next().equals("[")) parseRecord(line);
+                    if (th.next().equals("[")) parseDataClass(line);
                     else parseEnum(line);
                 }
                 default -> throw new RuntimeException("Expected one of (,[,= got " + th.current().s() + " in: " + line);
@@ -213,7 +213,7 @@ public class Parser {
         classes.put(name, new XJLNInterface(name, methods, uses));
     }
 
-    private void parseRecord(String line){
+    private void parseDataClass(String line){
         TokenHandler th = Lexer.toToken(line);
         th.assertToken("def");
         String name = Compiler.validateName(src + "." + th.assertToken(Token.Type.IDENTIFIER).s());
@@ -369,6 +369,8 @@ public class Parser {
                 clazz = new XJLNClass(false, abstrakt, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, superClasses == null ? null : superClasses.toArray(new String[0]), uses);
                 classes.put(name, clazz);
             }
+
+            clazz.addStaticField(new XJLNField(true, true, clazz.name, "this", null));
 
             while (sc.hasNextLine() && !line.equals("end")) {
                 line = sc.nextLine().trim();

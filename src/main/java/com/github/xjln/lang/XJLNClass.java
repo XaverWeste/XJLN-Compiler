@@ -79,9 +79,10 @@ public final class XJLNClass extends XJLNClassStatic {
 
     @Override
     public boolean isGeneric(String type) {
-        for(String generic:generics)
-            if(generic.equals(type))
-                return true;
+        if(generics != null)
+            for(String generic:generics)
+                if(generic.equals(type))
+                    return true;
 
         return false;
     }

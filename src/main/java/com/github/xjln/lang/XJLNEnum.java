@@ -23,4 +23,9 @@ public class XJLNEnum implements Compilable {
     public boolean isGeneric(String type) {
         return false;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

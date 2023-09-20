@@ -7,4 +7,9 @@ public record XJLNInterface(String name, HashMap<String, XJLNMethodAbstract> met
     public boolean isGeneric(String type) {
         return false;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

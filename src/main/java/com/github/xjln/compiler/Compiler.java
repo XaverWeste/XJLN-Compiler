@@ -53,7 +53,7 @@ public class Compiler {
         System.out.println("XJLN: finished Compilation successful");
     }
 
-    private void validateFolders(){
+    private void validateFolders() throws RuntimeException{
         Path compiled = Paths.get("compiled");
         if(!Files.exists(compiled) && !new File("compiled").mkdirs())
             throw new RuntimeException("unable to validate compiled folder");
@@ -68,7 +68,7 @@ public class Compiler {
         }
     }
 
-    private void clearFolder(File folder, boolean delete){
+    private void clearFolder(File folder, boolean delete) throws RuntimeException{
         for(File file: Objects.requireNonNull(folder.listFiles()))
             if(file.isDirectory())
                 clearFolder(file, true);
@@ -108,7 +108,7 @@ public class Compiler {
         writeFile(cp.makeClass(cf));
     }
 
-    private void writeFile(CtClass ct){
+    private void writeFile(CtClass ct) throws RuntimeException{
         try {
             ct.writeFile("compiled");
         }catch(CannotCompileException | IOException e){
@@ -116,7 +116,7 @@ public class Compiler {
         }
     }
 
-    private void compileInterface(XJLNInterface xjlnInterface){
+    private void compileInterface(XJLNInterface xjlnInterface) throws RuntimeException{
         ClassFile cf = new ClassFile(true, xjlnInterface.name(), null);
 
         for(XJLNMethodAbstract method:xjlnInterface.methods().values()){
@@ -179,8 +179,11 @@ public class Compiler {
     }
 
     private void compileClassFirstIteration(XJLNClassStatic clazz){
-        if(clazz.name.endsWith(".Main") && clazz.isEmpty())
+        if(clazz.name.endsWith(".Main") && clazz.isEmpty()) {
+            classes.remove(clazz.name);
             return;
+        }
+        currentClass = clazz;
 
         ClassFile cf = new ClassFile(false, clazz.name, null);
 
@@ -199,12 +202,18 @@ public class Compiler {
             compileMethods(cf, ((XJLNClass) clazz).getMethods(), false);
 
         //Constructor
+        if(clazz instanceof XJLNClass) {
+            MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "<init>", toDesc(((XJLNClass) clazz).generateDefaultInit()));
+            mInfo.setAccessFlags(AccessFlag.PUBLIC);
+            cf.addMethod2(mInfo);
+        }
 
-
+        currentClass = null;
         ClassPool.getDefault().makeClass(cf);
     }
 
-    private void compileClassSecondIteration(XJLNClassStatic clazz){
+    private void compileClassSecondIteration(XJLNClassStatic clazz) throws RuntimeException{
+        currentClass = clazz;
         CtClass ct;
 
         try {
@@ -213,16 +222,53 @@ public class Compiler {
             throw new RuntimeException(e);
         }
 
+        ClassFile cf = ct.getClassFile();
+
+        //static Methods
+        for(String method:clazz.getStaticMethods().keySet()){
+            currentMethod = clazz.getStaticMethods().get(method);
+
+            try {
+                ct.removeMethod(ct.getMethod(currentMethod.name, toDesc(currentMethod)));
+                ct.addMethod(CtMethod.make(compileMethod(true), ct));
+            }catch(NotFoundException ignore){
+                throw new RuntimeException("internal Compiler error");
+            }catch(CannotCompileException e){
+                throw new RuntimeException(e);
+            }
+
+            currentMethod = null;
+        }
+
+        //non-static Methods
+        if(clazz instanceof XJLNClass) {
+            for (String method : ((XJLNClass) clazz).getMethods().keySet()) {
+                currentMethod = clazz.getStaticMethods().get(method);
+
+                try {
+                    ct.removeMethod(ct.getMethod(currentMethod.name, toDesc(currentMethod)));
+                    ct.addMethod(CtMethod.make(compileMethod(false), ct));
+                } catch (NotFoundException ignore) {
+                    throw new RuntimeException("internal Compiler error");
+                } catch (CannotCompileException e) {
+                    throw new RuntimeException(e);
+                }
+
+                currentMethod = null;
+            }
+        }
+
+        currentClass = null;
         writeFile(ct);
     }
 
-    private void compileFields(ClassFile cf, HashMap<String, XJLNField> fields, boolean statik){
+    private void compileFields(ClassFile cf, HashMap<String, XJLNField> fields, boolean statik) throws RuntimeException{
         ConstPool cp = cf.getConstPool();
 
         for(String fieldName : fields.keySet()){
             XJLNField field = fields.get(fieldName);
-            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), fieldName, toDesc(field.type()));
-            fInfo.setAccessFlags(accessFlag(field.inner(), field.constant(), statik));
+            FieldInfo fInfo = new FieldInfo(cp, fieldName, toDesc(field.type()));
+            fInfo.setAccessFlags(accessFlag(field.inner(), field.constant(), statik, false));
 
             try {
                 cf.addField(fInfo);
@@ -232,13 +278,13 @@ public class Compiler {
         }
     }
 
-    private void compileMethods(ClassFile cf, HashMap<String, ? extends XJLNMethodAbstract> methods, boolean statik){
+    private void compileMethods(ClassFile cf, HashMap<String, ? extends XJLNMethodAbstract> methods, boolean statik) throws RuntimeException{
         ConstPool cp = cf.getConstPool();
 
         for(String methodName : methods.keySet()){
             XJLNMethodAbstract method = methods.get(methodName);
-            MethodInfo mInfo = new MethodInfo(cp, methodName, toDesc(method));
-            mInfo.setAccessFlags(accessFlag(method.inner, false, statik));
+            MethodInfo mInfo = new MethodInfo(cp, method.name, toDesc(method));
+            mInfo.setAccessFlags(accessFlag(method.inner, false, statik, !(method instanceof XJLNMethod)));
 
             try {
                 cf.addMethod(mInfo);
@@ -248,8 +294,36 @@ public class Compiler {
         }
     }
 
-    private String validateType(String type){
-        if(PRIMITIVES.contains(type))
+    private String compileMethod(boolean statik) throws RuntimeException{
+        StringBuilder result = new StringBuilder();
+
+        if(currentMethod.name.equals("main")){
+            if(!currentClass.name.endsWith(".Main"))
+                throw new RuntimeException("Method main is not allowed in Class " + currentClass.name);
+
+            result.append("public static void main(String[] args){");
+        }else{
+            result.append(currentMethod.inner ? "private " : "public ");
+
+            if(statik)
+                result.append("static ");
+
+            result.append(validateType(currentMethod.returnType)).append(" ").append(currentMethod.name).append("(");
+
+            for(XJLNParameter p:currentMethod.parameterTypes.getValueList())
+                result.append(validateType(p.type())).append(" ").append(p.name()).append(",");
+
+            if(!result.toString().endsWith("("))
+                result.deleteCharAt(result.length() - 1);
+
+            result.append("){");
+        }
+
+        return result.append("}").toString();
+    }
+
+    private String validateType(String type) throws RuntimeException{
+        if(PRIMITIVES.contains(type) || type.equals("void"))
             return type;
 
         if(currentClass instanceof XJLNClass && currentClass.isGeneric(type))
@@ -261,13 +335,15 @@ public class Compiler {
         return currentClass.aliases.get(type);
     }
 
-    private int accessFlag(boolean inner, boolean constant, boolean statik){
+    private int accessFlag(boolean inner, boolean constant, boolean statik, boolean abstrakt){
         int accessFlag = inner ? AccessFlag.PRIVATE : AccessFlag.PUBLIC;
 
         if(constant)
             accessFlag += AccessFlag.FINAL;
         if(statik)
             accessFlag += AccessFlag.STATIC;
+        if(abstrakt)
+            accessFlag += AccessFlag.ABSTRACT;
 
         return accessFlag;
     }

@@ -57,4 +57,9 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
     public boolean isGeneric(String type) {
         return false;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

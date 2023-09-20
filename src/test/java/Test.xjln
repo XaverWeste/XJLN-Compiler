@@ -1,11 +1,3 @@
-def Clazz[]
-
-    int i
-
-end
-
-def Clazz[/]
-
-    int j
+def test()
 
 end
