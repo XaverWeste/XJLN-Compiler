@@ -1,3 +1,5 @@
+![Build](https://github.com/XaverWeste/XJLN-Compiler/actions/workflows/maven.yml/badge.svg)
+
 # XJLN-Compiler
 XJLN Compiler for Java Virtual Machine
 
