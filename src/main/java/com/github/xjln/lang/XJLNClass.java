@@ -1,6 +1,7 @@
 package com.github.xjln.lang;
 
 import com.github.xjln.compiler.Compiler;
+import com.github.xjln.compiler.Lexer;
 import com.github.xjln.utility.MatchedList;
 
 import java.util.HashMap;
@@ -26,6 +27,8 @@ public final class XJLNClass extends XJLNClassStatic {
 
         this.fields = new HashMap<>();
         this.methods = new HashMap<>();
+
+        createSuperClassFields();
     }
 
     public XJLNClass(XJLNClassStatic staticClass, boolean abstrakt, String[] generics, MatchedList<String, XJLNParameter> parameter, String[] superClasses){
@@ -39,6 +42,26 @@ public final class XJLNClass extends XJLNClassStatic {
         this.isDataClass = false;
         this.fields = new HashMap<>();
         this.methods = new HashMap<>();
+
+        createSuperClassFields();
+    }
+
+    private void createSuperClassFields(){
+        if(superClasses != null) {
+            for (String s : superClasses) {
+                String name = Lexer.toToken(s).next().s();
+
+                addField(new XJLNField(false, true, name, name, s));
+            }
+        }
+    }
+
+    public void createParameterFields(){
+        for(XJLNParameter p:parameter.getValueList()){
+            try{
+                addField(p.toField());
+            }catch (RuntimeException ignored){}
+        }
     }
 
     public void addField(XJLNField field){

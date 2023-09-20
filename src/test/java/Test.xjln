@@ -1,3 +1,3 @@
-def test()
+def Test[int i, long l]
 
 end

@@ -191,8 +191,10 @@ public class Compiler {
         compileFields(cf, clazz.getStaticFields(), true);
 
         //non-static Fields
-        if(clazz instanceof XJLNClass)
+        if(clazz instanceof XJLNClass){
+            ((XJLNClass) clazz).createParameterFields();
             compileFields(cf, ((XJLNClass) clazz).getFields(), false);
+        }
 
         //static Methods
         compileMethods(cf, clazz.getStaticMethods(), true);
@@ -222,8 +224,6 @@ public class Compiler {
             throw new RuntimeException(e);
         }
 
-        ClassFile cf = ct.getClassFile();
-
         //static Methods
         for(String method:clazz.getStaticMethods().keySet()){
             currentMethod = clazz.getStaticMethods().get(method);
@@ -245,16 +245,39 @@ public class Compiler {
             for (String method : ((XJLNClass) clazz).getMethods().keySet()) {
                 currentMethod = clazz.getStaticMethods().get(method);
 
-                try {
-                    ct.removeMethod(ct.getMethod(currentMethod.name, toDesc(currentMethod)));
-                    ct.addMethod(CtMethod.make(compileMethod(false), ct));
-                } catch (NotFoundException ignore) {
-                    throw new RuntimeException("internal Compiler error");
-                } catch (CannotCompileException e) {
-                    throw new RuntimeException(e);
+                if(!currentMethod.name.equals("init")) {
+                    try {
+                        ct.removeMethod(ct.getMethod(currentMethod.name, toDesc(currentMethod)));
+                        ct.addMethod(CtMethod.make(compileMethod(false), ct));
+                    } catch (NotFoundException ignore) {
+                        throw new RuntimeException("internal Compiler error");
+                    } catch (CannotCompileException e) {
+                        throw new RuntimeException(e);
+                    }
+                }else{
+                    try {
+                        ct.removeMethod(ct.getMethod("<init>", toDesc(currentMethod)));
+                        ct.addConstructor(CtNewConstructor.make(compileMethod(false), ct));
+                    } catch (NotFoundException ignore) {
+                        throw new RuntimeException("internal Compiler error");
+                    } catch (CannotCompileException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
 
                 currentMethod = null;
+            }
+
+            if(!((XJLNClass) clazz).getMethods().containsKey("init")){
+                try{
+                    currentMethod = ((XJLNClass) clazz).generateDefaultInit();
+                    ct.removeConstructor(ct.getConstructor(toDesc(currentMethod)));
+                    ct.addConstructor(CtNewConstructor.make(compileMethod(false), ct));
+                }catch (CannotCompileException e){
+                    throw new RuntimeException(e);
+                } catch (NotFoundException ignored) {
+                    throw new RuntimeException("internal Compiler error");
+                }
             }
         }
 
@@ -266,14 +289,16 @@ public class Compiler {
         ConstPool cp = cf.getConstPool();
 
         for(String fieldName : fields.keySet()){
-            XJLNField field = fields.get(fieldName);
-            FieldInfo fInfo = new FieldInfo(cp, fieldName, toDesc(field.type()));
-            fInfo.setAccessFlags(accessFlag(field.inner(), field.constant(), statik, false));
+            if(!fieldName.equals("this")) {
+                XJLNField field = fields.get(fieldName);
+                FieldInfo fInfo = new FieldInfo(cp, fieldName, toDesc(field.type()));
+                fInfo.setAccessFlags(accessFlag(field.inner(), field.constant(), statik, false));
 
-            try {
-                cf.addField(fInfo);
-            }catch (DuplicateMemberException e){
-                throw new RuntimeException(e);
+                try {
+                    cf.addField(fInfo);
+                } catch (DuplicateMemberException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }
@@ -296,6 +321,7 @@ public class Compiler {
 
     private String compileMethod(boolean statik) throws RuntimeException{
         StringBuilder result = new StringBuilder();
+        boolean isConstructor = false;
 
         if(currentMethod.name.equals("main")){
             if(!currentClass.name.endsWith(".Main"))
@@ -303,12 +329,20 @@ public class Compiler {
 
             result.append("public static void main(String[] args){");
         }else{
-            result.append(currentMethod.inner ? "private " : "public ");
+            if(currentMethod.name.equals("init")){
+                if(currentClass.name.endsWith(".Main"))
+                    throw new RuntimeException("Method init is not allowed in Class " + currentClass.name);
 
-            if(statik)
-                result.append("static ");
+                isConstructor = true;
+                result.append("public ").append(currentClass.name.split("\\.")[currentClass.name.split("\\.").length - 1]).append("(");
+            }else {
+                result.append(currentMethod.inner ? "private " : "public ");
 
-            result.append(validateType(currentMethod.returnType)).append(" ").append(currentMethod.name).append("(");
+                if (statik)
+                    result.append("static ");
+
+                result.append(validateType(currentMethod.returnType)).append(" ").append(currentMethod.name).append("(");
+            }
 
             for(XJLNParameter p:currentMethod.parameterTypes.getValueList())
                 result.append(validateType(p.type())).append(" ").append(p.name()).append(",");
@@ -317,6 +351,13 @@ public class Compiler {
                 result.deleteCharAt(result.length() - 1);
 
             result.append("){");
+        }
+
+        if(isConstructor){
+            assert currentClass instanceof XJLNClass;
+
+            for(XJLNParameter p:((XJLNClass) currentClass).parameter.getValueList())
+                result.append("this.").append(p.name()).append(" = ").append(p.name()).append(";");
         }
 
         return result.append("}").toString();

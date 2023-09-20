@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-class Lexer {
+public class Lexer {
 
     public static TokenHandler toToken(String line){
         List<Token> tokens = new ArrayList<>();

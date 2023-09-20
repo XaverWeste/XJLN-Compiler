@@ -1,6 +1,6 @@
 package com.github.xjln.compiler;
 
-record Token(String s, Type t){
+public record Token(String s, Type t){
 
     enum Type{SIMPLE, IDENTIFIER, NUMBER, STRING, OPERATOR}
 
