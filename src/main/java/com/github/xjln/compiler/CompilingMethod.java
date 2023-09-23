@@ -57,9 +57,9 @@ public class CompilingMethod {
         public void add(String name, Var var){
             vars.put(name, var);
         }
-
     }
 
+    public final String[] genericTypes;
     private final Stack<Scope> scopes;
     private final String[] code;
     private int currentLine;
@@ -69,6 +69,7 @@ public class CompilingMethod {
         currentLine = -1;
         scopes = new Stack<>();
         scopes.push(new Scope(method));
+        genericTypes = method.genericTypes;
     }
 
     public boolean hasNextLine(){

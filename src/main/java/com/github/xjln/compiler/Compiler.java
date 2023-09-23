@@ -36,6 +36,7 @@ public class Compiler {
 
     private XJLNClassStatic currentClass;
     private XJLNMethodAbstract currentMethod;
+    private CompilingMethod compilingMethod;
 
     /**
      * creates a new instance of the XJLN-Compiler and starts compiling
@@ -364,10 +365,81 @@ public class Compiler {
 
     private String compileCode(){
         StringBuilder code = new StringBuilder();
+        assert currentMethod instanceof XJLNMethod;
+        compilingMethod = new CompilingMethod((XJLNMethod) currentMethod);
 
+        while (compilingMethod.hasNextLine())
+            code.append(compileStatement());
 
-
+        compilingMethod = null;
         return code.toString();
+    }
+
+    private String compileStatement(){
+        TokenHandler th = Lexer.toToken(compilingMethod.nextLine());
+
+        return switch (th.next().s()){
+            case "if" -> compileIf();
+            case "while" -> compileWhile();
+            case "for" -> compileFor();
+
+            default -> {
+                th.last();
+                Token first = th.assertToken(Token.Type.IDENTIFIER);
+                if(th.next().t() == Token.Type.IDENTIFIER){
+                    if (compilingMethod.scope().varExist(first.s()))
+                        throw new RuntimeException("Variable " + first.s() + " is already defined in Method " + toCompilerDesc(currentMethod) + " in Class " + currentClass.name);
+
+                    if(th.hasNext()){
+                        Token second = th.current();
+                        th.assertToken("=");
+                        th.assertHasNext();
+
+                        String[] calc = compileCalc(th);
+
+                        if(!calc[0].equals(first.s()))
+                            throw new RuntimeException("Type " + calc[0] + " is not allowed for variable " + second.s() + " in Method " + toCompilerDesc(currentMethod) + " in Class " + currentClass.name);
+
+                        compilingMethod.scope().add(second.s(), new CompilingMethod.Scope.Var(first.s()));
+
+                        yield first.s() + " " + second.s() + "=" + calc[1] + ";";
+                    }else{
+                        compilingMethod.scope().add(first.s(), new CompilingMethod.Scope.Var(th.current().s()));
+                        yield first.s() + " " + th.current().s() + ";";
+                    }
+                }else if(th.current().equals("=")){
+                    String[] calc = compileCalc(th);
+
+                    if(compilingMethod.scope().varExist(first.s())){
+                        if(!compilingMethod.scope().areTypesAllowed(first.s(), calc[0]))
+                            throw new RuntimeException("Type " + calc[0] + " is not allowed for variable" + first.s() + " in Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name);
+                    }else
+                        compilingMethod.scope().add(first.s(), new CompilingMethod.Scope.Var(calc[0]));
+
+                    yield first.s() +"=" + calc[1] + ";";
+                }else{
+                    th.last();
+                    th.last();
+                    yield compileCalc(th)[1] + ";";
+                }
+            }
+        };
+    }
+
+    private String compileIf(){
+        return null;//TODO
+    }
+
+    private String compileWhile(){
+        return null;//TODO
+    }
+
+    private String compileFor(){
+        return null;//TODO
+    }
+
+    private String[] compileCalc(TokenHandler th){
+        return new String[2];//TODO
     }
 
     private String validateType(String type) throws RuntimeException{
