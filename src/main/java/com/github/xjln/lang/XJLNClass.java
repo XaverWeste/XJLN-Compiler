@@ -91,8 +91,8 @@ public final class XJLNClass extends XJLNClassStatic {
         return staticMethods.size() > 0 || staticFields.size() > 0;
     }
 
-    public XJLNMethodAbstract generateDefaultInit(){
-        return new XJLNMethodAbstract(false, false, "init", null, parameter, "void", aliases);
+    public XJLNMethod generateDefaultInit(){
+        return new XJLNMethod(false, false, "init", null, parameter, "void", new String[0], aliases);
     }
 
     @Override

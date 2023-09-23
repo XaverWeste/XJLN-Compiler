@@ -322,17 +322,12 @@ public class Compiler {
     private String compileMethod(boolean statik) throws RuntimeException{
         StringBuilder result = new StringBuilder();
         boolean isConstructor = false;
+        boolean isAbstract = !(currentMethod instanceof XJLNMethod);
 
-        if(currentMethod.name.equals("main")){
-            if(!currentClass.name.endsWith(".Main"))
-                throw new RuntimeException("Method main is not allowed in Class " + currentClass.name);
-
+        if(currentMethod.name.equals("main"))
             result.append("public static void main(String[] args){");
-        }else{
+        else{
             if(currentMethod.name.equals("init")){
-                if(currentClass.name.endsWith(".Main"))
-                    throw new RuntimeException("Method init is not allowed in Class " + currentClass.name);
-
                 isConstructor = true;
                 result.append("public ").append(currentClass.name.split("\\.")[currentClass.name.split("\\.").length - 1]).append("(");
             }else {
@@ -340,6 +335,8 @@ public class Compiler {
 
                 if (statik)
                     result.append("static ");
+                if (isAbstract)
+                    result.append("abstract");
 
                 result.append(validateType(currentMethod.returnType)).append(" ").append(currentMethod.name).append("(");
             }
@@ -360,7 +357,17 @@ public class Compiler {
                 result.append("this.").append(p.name()).append(" = ").append(p.name()).append(";");
         }
 
+        result.append(compileCode());
+
         return result.append("}").toString();
+    }
+
+    private String compileCode(){
+        StringBuilder code = new StringBuilder();
+
+
+
+        return code.toString();
     }
 
     private String validateType(String type) throws RuntimeException{
