@@ -581,6 +581,7 @@ public class Parser {
 
     private ArrayList<String> parseCode(){
         ArrayList<String> code = new ArrayList<>();
+
         int i = 1;
         while (i > 0 && sc.hasNextLine()) {
             String line = sc.nextLine().trim();
@@ -594,6 +595,8 @@ public class Parser {
 
         if(i > 0)
             throw new RuntimeException("method in File " + src + " was not closed");
+
+        code.add("end");
 
         return code;
     }

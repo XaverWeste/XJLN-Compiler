@@ -358,7 +358,10 @@ public class Compiler {
                 result.append("this.").append(p.name()).append(" = ").append(p.name()).append(";");
         }
 
+        assert currentMethod instanceof XJLNMethod;
+        compilingMethod = new CompilingMethod((XJLNMethod) currentMethod);
         result.append(compileCode());
+        compilingMethod = null;
 
         return result.append("}").toString();
     }
@@ -366,22 +369,31 @@ public class Compiler {
     private String compileCode(){
         StringBuilder code = new StringBuilder();
         assert currentMethod instanceof XJLNMethod;
-        compilingMethod = new CompilingMethod((XJLNMethod) currentMethod);
 
-        while (compilingMethod.hasNextLine())
-            code.append(compileStatement());
+        while (compilingMethod.hasNextLine()) {
+            if(compilingMethod.nextLine().equals("end") || compilingMethod.currentLine().equals("else"))
+                return code.toString();
+            else
+                code.append(compileStatement(Lexer.toToken(compilingMethod.currentLine())));
+        }
 
-        compilingMethod = null;
-        return code.toString();
+        throw new RuntimeException("Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name + " was not closed");
     }
 
-    private String compileStatement(){
-        TokenHandler th = Lexer.toToken(compilingMethod.nextLine());
-
+    private String compileStatement(TokenHandler th){
         return switch (th.next().s()){
-            case "if" -> compileIf();
-            case "while" -> compileWhile();
-            case "for" -> compileFor();
+            case "if" -> compileIf(th);
+            case "while" -> compileWhile(th);
+            case "for" -> compileFor(th);
+
+            case "return" -> {
+                String[] calc = compileCalc(th);
+
+                if(!calc[0].equals(currentMethod.returnType))
+                    throw new RuntimeException("Expected Type " + currentMethod.returnType + " got " + calc[0] + " in " + th);
+
+                yield "return" + calc[1] + ";";
+            }
 
             default -> {
                 th.last();
@@ -426,15 +438,31 @@ public class Compiler {
         };
     }
 
-    private String compileIf(){
+    private String compileIf(TokenHandler th){
         return null;//TODO
     }
 
-    private String compileWhile(){
-        return null;//TODO
+    private String compileWhile(TokenHandler th){
+        String[] calc = compileCalc(th);
+
+        if(!calc[0].equals("boolean") && !calc[0].equals("java/lang/Boolean"))
+            throw new RuntimeException("expected boolean in " + th);
+
+        String code;
+        compilingMethod.newScope();
+
+        if(!th.hasNext())
+            code =  "while(" + calc[1] + "){" + compileCode() + "}";
+        else {
+            th.assertToken("->");
+            code = "while(" + calc[1] + "){" + compileStatement(th) + "}";
+        }
+
+        compilingMethod.lastScope();
+        return code;
     }
 
-    private String compileFor(){
+    private String compileFor(TokenHandler th){
         return null;//TODO
     }
 
