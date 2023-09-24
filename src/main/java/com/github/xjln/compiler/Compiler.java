@@ -8,6 +8,7 @@ import javassist.bytecode.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -467,7 +468,90 @@ public class Compiler {
     }
 
     private String[] compileCalc(TokenHandler th){
-        return new String[2];//TODO
+        String arg = null; //TODO
+        String type = null;
+
+        th.assertHasNext();
+        String[] current = compileCalcArg(th);
+
+        while (th.hasNext()){
+
+        }
+
+        return new String[]{arg, type};//TODO
+    }
+
+    private String[] compileCalcArg(TokenHandler th){
+        String arg;
+        String type;
+
+        switch (th.next().t()){
+            case STRING -> {
+                type = "java/lang/String";
+                arg = th.current().s();
+            }
+            case NUMBER -> {
+                type = getPrimitiveType(th.current().s());
+                arg = th.current().s();
+            }
+            default -> throw new RuntimeException("illegal argument in " + th);
+        }
+
+        return new String[]{type, arg};
+    }
+
+    private String getMethodReturnType(String clazz, String method, String...parameterTypes){
+        String classLang = getClassLang(clazz);
+
+        if(classLang == null)
+            return null;
+
+        return switch (classLang){
+            case "XJLN" -> null; //TODO
+            case "JAVA" -> {
+                try {
+                    Class<?> javaClass = Class.forName(clazz);
+
+                    for(Method m:javaClass.getMethods()){
+                        boolean matches = true;
+
+                        if(parameterTypes.length == m.getParameterTypes().length) {
+                            for (int i = 0; i < parameterTypes.length; i++) {
+                                if (parameterTypes[i].equals(m.getParameterTypes()[i].toString().split(" ")[1])) {
+                                    matches = false;
+                                    break;
+                                }
+                            }
+                        }else
+                            matches = false;
+
+                        if(matches)
+                            yield m.getReturnType().toString().split(" ")[1];
+                    }
+
+                    yield null;
+                } catch (ClassNotFoundException ignored) {
+                    yield null;
+                }
+            }
+            default -> null;
+        };
+    }
+
+    private String getClassLang(String clazz){
+        if(PRIMITIVES.contains(clazz))
+            return "PRIMITIVE";
+        if(classes.containsKey(clazz))
+            return "XJLN";
+        try{
+            Class.forName(clazz);
+            return "JAVA";
+        }catch (ClassNotFoundException ignored){}
+        try{
+            ClassPool.getDefault().get(clazz);
+            return "UNKNOWN";
+        }catch (NotFoundException ignored){}
+        return null;
     }
 
     private String validateType(String type) throws RuntimeException{
