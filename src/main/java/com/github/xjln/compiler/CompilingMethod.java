@@ -9,31 +9,7 @@ public class CompilingMethod {
 
     public static class Scope{
 
-        public static class Var{
-            final String allowedTypes;
-
-            public Var(String allowedTypes){
-                this.allowedTypes = allowedTypes;
-            }
-
-            public boolean areTypesAllowed(String types){
-                for(String type:types.split(","))
-                    if(!isTypeAllowed(type))
-                        return false;
-
-                return true;
-            }
-
-            private boolean isTypeAllowed(String type){
-                for(String allowedType:allowedTypes.split(","))
-                    if(allowedType.equals(type))
-                        return true;
-
-                return false;
-            }
-        }
-
-        final HashMap<String, Var> vars;
+        final HashMap<String, String> vars;
 
         public Scope(Scope scope){
             vars = new HashMap<>();
@@ -43,18 +19,18 @@ public class CompilingMethod {
         public Scope(XJLNMethod method){
             vars = new HashMap<>();
             for(String name:method.parameterTypes.getKeyList())
-                vars.put(name, new Var(method.parameterTypes.getValue(name).type()));
+                vars.put(name, method.parameterTypes.getValue(name).type());
         }
 
         public boolean varExist(String name){
             return vars.containsKey(name);
         }
 
-        public boolean areTypesAllowed(String varName, String types){
-            return vars.get(varName).areTypesAllowed(types);
+        public String getType(String name){
+            return vars.get(name);
         }
 
-        public void add(String name, Var var){
+        public void add(String name, String var){
             vars.put(name, var);
         }
     }

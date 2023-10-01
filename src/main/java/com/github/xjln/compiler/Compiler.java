@@ -413,21 +413,21 @@ public class Compiler {
                         if(!calc[0].equals(first.s()))
                             throw new RuntimeException("Type " + calc[0] + " is not allowed for variable " + second.s() + " in Method " + toCompilerDesc(currentMethod) + " in Class " + currentClass.name);
 
-                        compilingMethod.scope().add(second.s(), new CompilingMethod.Scope.Var(first.s()));
+                        compilingMethod.scope().add(second.s(), first.s());
 
                         yield first.s() + " " + second.s() + "=" + calc[1] + ";";
                     }else{
-                        compilingMethod.scope().add(first.s(), new CompilingMethod.Scope.Var(th.current().s()));
+                        compilingMethod.scope().add(first.s(), th.current().s());
                         yield first.s() + " " + th.current().s() + ";";
                     }
                 }else if(th.current().equals("=")){
                     String[] calc = compileCalc(th);
 
                     if(compilingMethod.scope().varExist(first.s())){
-                        if(!compilingMethod.scope().areTypesAllowed(first.s(), calc[0]))
+                        if(!compilingMethod.scope().getType(first.s()).equals(calc[0]))
                             throw new RuntimeException("Type " + calc[0] + " is not allowed for variable" + first.s() + " in Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name);
                     }else
-                        compilingMethod.scope().add(first.s(), new CompilingMethod.Scope.Var(calc[0]));
+                        compilingMethod.scope().add(first.s(), calc[0]);
 
                     yield first.s() +"=" + calc[1] + ";";
                 }else{
@@ -440,7 +440,25 @@ public class Compiler {
     }
 
     private String compileIf(TokenHandler th){
-        return null;//TODO
+        String[] calc = compileCalc(th);
+
+        if(!calc[0].equals("boolean") && !calc[0].equals("java/lang/Boolean"))
+            throw new RuntimeException("expected boolean in " + th);
+
+        String code;
+        compilingMethod.newScope();
+
+        if(!th.hasNext())
+            code =  "if(" + calc[1] + "){" + compileCode() + "}";
+        else {
+            th.assertToken("->");
+            code = "if(" + calc[1] + "){" + compileStatement(th) + "}";
+        }
+
+        //TODO else
+
+        compilingMethod.lastScope();
+        return code;
     }
 
     private String compileWhile(TokenHandler th){
@@ -478,7 +496,7 @@ public class Compiler {
 
         }
 
-        return new String[]{arg, type};//TODO
+        return new String[]{arg, type};
     }
 
     private String[] compileCalcArg(TokenHandler th){
@@ -494,10 +512,18 @@ public class Compiler {
                 type = getPrimitiveType(th.current().s());
                 arg = th.current().s();
             }
+            case SIMPLE -> {
+                if(th.current().equals("(")){
+                    String[] result = compileCalc(th);
+                    th.assertToken(")");
+                    arg = result[0];
+                    type = result[1];
+                }else throw new RuntimeException("illegal argument in " + th);
+            }
             default -> throw new RuntimeException("illegal argument in " + th);
         }
 
-        return new String[]{type, arg};
+        return new String[]{arg, type};
     }
 
     private String getMethodReturnType(String clazz, String method, String...parameterTypes){
@@ -507,7 +533,21 @@ public class Compiler {
             return null;
 
         return switch (classLang){
-            case "XJLN" -> null; //TODO
+            case "XJLN" -> {
+                String desc = toCompilerDesc(method, parameterTypes);
+
+                if(classes.get(clazz) instanceof XJLNClassStatic xjlnClassStatic){
+                    if(xjlnClassStatic.getStaticMethods().containsKey(desc))
+                        yield xjlnClassStatic.getStaticMethods().get(desc).returnType;
+
+                    if(xjlnClassStatic instanceof XJLNClass && ((XJLNClass) xjlnClassStatic).getMethods().containsKey(desc))
+                        yield ((XJLNClass) xjlnClassStatic).getMethods().get(desc).returnType;
+
+                    yield null;
+                }else if(classes.get(clazz) instanceof XJLNInterface xjlnInterface)
+                    yield xjlnInterface.methods().containsKey(desc) ? xjlnInterface.methods().get(desc).returnType : null;
+                else yield null;
+            }
             case "JAVA" -> {
                 try {
                     Class<?> javaClass = Class.forName(clazz);
@@ -523,6 +563,9 @@ public class Compiler {
                                 }
                             }
                         }else
+                            matches = false;
+
+                        if(matches && !m.getName().equals(method))
                             matches = false;
 
                         if(matches)
@@ -613,8 +656,6 @@ public class Compiler {
 
     public static String toCompilerDesc(XJLNMethodAbstract method){
         StringBuilder desc = new StringBuilder();
-        if(method.statik)
-            desc.append("static_");
         desc.append("(");
         if(method.parameterTypes != null)
             for(XJLNParameter p:method.parameterTypes.getValueList())
@@ -622,6 +663,20 @@ public class Compiler {
         if(!desc.toString().endsWith("("))
             desc.deleteCharAt(desc.length() - 2);
         desc.append(") ").append(method.name);
+        return desc.toString();
+    }
+
+    public String toCompilerDesc(String name, String[] types){
+        StringBuilder desc = new StringBuilder();
+
+        desc.append("(");
+        if(types != null)
+            for(String type:types)
+                desc.append(type).append(",");
+        if(!desc.toString().endsWith("("))
+            desc.deleteCharAt(desc.length() - 2);
+        desc.append(") ").append(name);
+
         return desc.toString();
     }
 

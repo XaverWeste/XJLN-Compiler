@@ -65,7 +65,7 @@ public final class XJLNClass extends XJLNClassStatic {
     }
 
     public void addField(XJLNField field){
-        if(fields.containsKey(field.name()))
+        if(fields.containsKey(field.name()) || staticFields.containsKey(field.name()))
             throw new RuntimeException("Field " + field.name() + " already exist in Class " + name);
 
         fields.put(field.name(), field);
@@ -74,7 +74,25 @@ public final class XJLNClass extends XJLNClassStatic {
     public void addMethod(XJLNMethodAbstract method){
         String methodName = Compiler.toCompilerDesc(method);
 
-        if(methods.containsKey(methodName))
+        if(methods.containsKey(methodName) || staticMethods.containsKey(methodName))
+            throw new RuntimeException("Method " + methodName + " already exist in Class " + name);
+
+        methods.put(methodName, method);
+    }
+
+    @Override
+    public void addStaticField(XJLNField field) {
+        if(fields.containsKey(field.name()) || staticFields.containsKey(field.name()))
+            throw new RuntimeException("Field " + field.name() + " already exist in Class " + name);
+
+        staticFields.put(field.name(), field);
+    }
+
+    @Override
+    public void addStaticMethod(XJLNMethod method) {
+        String methodName = Compiler.toCompilerDesc(method);
+
+        if(methods.containsKey(methodName) || staticMethods.containsKey(methodName))
             throw new RuntimeException("Method " + methodName + " already exist in Class " + name);
 
         methods.put(methodName, method);
