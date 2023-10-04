@@ -486,17 +486,49 @@ public class Compiler {
     }
 
     private String[] compileCalc(TokenHandler th){
-        String arg = null; //TODO
-        String type = null;
-
         th.assertHasNext();
         String[] current = compileCalcArg(th);
 
-        while (th.hasNext()){
+        StringBuilder arg = new StringBuilder(current[0]);
+        String type = current[1];
 
+        while (th.hasNext()){
+            if(!th.next().equals(Token.Type.OPERATOR)) {
+                th.last();
+                return new String[]{arg.toString(), type};
+            }
+
+            Token operator = th.current();
+            current = compileCalcArg(th);
+
+            if(PRIMITIVES.contains(type)){
+                switch(type){
+                    case "boolean" -> {
+                        if(!current[1].equals("boolean"))
+                            throw new RuntimeException("expected type boolean in: " + th);
+                        if(!PRIMITIVE_BOOLEAN_OPERATORS.contains(operator.s()))
+                            throw new RuntimeException("operator " + operator + " is not defined for type boolean and boolean");
+
+                        arg.append(" ").append(operator).append(" ").append(current[0]);
+                    }
+
+                    case "int", "double", "short", "long", "float" -> {
+                        if(!Set.of("int", "double", "short", "long", "float").contains(current[1]))
+                            throw new RuntimeException("expected type " + type + " in: " + th);
+                        if(!PRIMITIVE_NUMBER_OPERATORS.contains(operator.s()))
+                            throw new RuntimeException("operator " + operator + " is not defined for type " + type + " and " + current[1]);
+
+                        arg.append(" ").append(operator).append(" ").append(current[0]);
+                    }
+
+                    default -> throw new RuntimeException("not yet implemented"); //TODO
+                }
+            }else{
+                //TODO
+            }
         }
 
-        return new String[]{arg, type};
+        return new String[]{arg.toString(), type};
     }
 
     private String[] compileCalcArg(TokenHandler th){
