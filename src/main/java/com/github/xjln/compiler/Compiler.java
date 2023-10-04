@@ -327,7 +327,7 @@ public class Compiler {
         boolean isAbstract = !(currentMethod instanceof XJLNMethod);
 
         if(currentMethod.name.equals("main"))
-            result.append("public static void main(String[] args){");
+            result.append("public static void main(String[] args){\n");
         else{
             if(currentMethod.name.equals("init")){
                 isConstructor = true;
@@ -349,7 +349,7 @@ public class Compiler {
             if(!result.toString().endsWith("("))
                 result.deleteCharAt(result.length() - 1);
 
-            result.append("){");
+            result.append("){\n");
         }
 
         if(isConstructor){
@@ -364,7 +364,7 @@ public class Compiler {
         result.append(compileCode());
         compilingMethod = null;
 
-        return result.append("}").toString();
+        return result.append("}\n").toString();
     }
 
     private String compileCode(){
@@ -393,7 +393,7 @@ public class Compiler {
                 if(!calc[0].equals(currentMethod.returnType))
                     throw new RuntimeException("Expected Type " + currentMethod.returnType + " got " + calc[0] + " in " + th);
 
-                yield "return" + calc[1] + ";";
+                yield "return" + calc[1] + ";\n";
             }
 
             default -> {
@@ -415,10 +415,10 @@ public class Compiler {
 
                         compilingMethod.scope().add(second.s(), first.s());
 
-                        yield first.s() + " " + second.s() + "=" + calc[1] + ";";
+                        yield first.s() + " " + second.s() + "=" + calc[1] + ";\n";
                     }else{
                         compilingMethod.scope().add(first.s(), th.current().s());
-                        yield first.s() + " " + th.current().s() + ";";
+                        yield first.s() + " " + th.current().s() + ";\n";
                     }
                 }else if(th.current().equals("=")){
                     String[] calc = compileCalc(th);
@@ -429,11 +429,11 @@ public class Compiler {
                     }else
                         compilingMethod.scope().add(first.s(), calc[0]);
 
-                    yield first.s() +"=" + calc[1] + ";";
+                    yield first.s() +"=" + calc[1] + ";\n";
                 }else{
                     th.last();
                     th.last();
-                    yield compileCalc(th)[1] + ";";
+                    yield compileCalc(th)[1] + ";\n";
                 }
             }
         };
@@ -449,10 +449,10 @@ public class Compiler {
         compilingMethod.newScope();
 
         if(!th.hasNext())
-            code =  "if(" + calc[1] + "){" + compileCode() + "}";
+            code =  "if(" + calc[1] + "){\n" + compileCode() + "}\n";
         else {
             th.assertToken("->");
-            code = "if(" + calc[1] + "){" + compileStatement(th) + "}";
+            code = "if(" + calc[1] + "){\n" + compileStatement(th) + "}\n";
         }
 
         //TODO else
@@ -471,10 +471,10 @@ public class Compiler {
         compilingMethod.newScope();
 
         if(!th.hasNext())
-            code =  "while(" + calc[1] + "){" + compileCode() + "}";
+            code =  "while(" + calc[1] + "){\n" + compileCode() + "}\n";
         else {
             th.assertToken("->");
-            code = "while(" + calc[1] + "){" + compileStatement(th) + "}";
+            code = "while(" + calc[1] + "){\n" + compileStatement(th) + "}\n";
         }
 
         compilingMethod.lastScope();
@@ -524,7 +524,12 @@ public class Compiler {
                     default -> throw new RuntimeException("not yet implemented"); //TODO
                 }
             }else{
-                //TODO
+                String returnType = getMethodReturnType(type, toIdentifier(operator.s()), current[1]);
+
+                if(returnType == null)
+                    throw new RuntimeException("Operator " + operator + " is not defined for type " + type + " and " + current[1]);
+
+                arg.append(".").append(toIdentifier(operator.s())).append("(").append(current[0]).append(")");
             }
         }
 
