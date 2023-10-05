@@ -381,6 +381,22 @@ public class Compiler {
         throw new RuntimeException("Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name + " was not closed");
     }
 
+    public String testCompiler(XJLNMethod m){
+        currentMethod = m;
+        currentClass = new XJLNClassStatic("TestClass", new HashMap<>());
+        compilingMethod = new CompilingMethod(m);
+        StringBuilder code = new StringBuilder();
+
+        while (compilingMethod.hasNextLine()) {
+            if(compilingMethod.nextLine().equals("end") || compilingMethod.currentLine().equals("else"))
+                return code.toString();
+            else
+                code.append(compileStatement(Lexer.toToken(compilingMethod.currentLine())));
+        }
+
+        throw new RuntimeException("Method was not closed");
+    }
+
     private String compileStatement(TokenHandler th){
         return switch (th.next().s()){
             case "if" -> compileIf(th);
@@ -390,10 +406,10 @@ public class Compiler {
             case "return" -> {
                 String[] calc = compileCalc(th);
 
-                if(!calc[0].equals(currentMethod.returnType))
-                    throw new RuntimeException("Expected Type " + currentMethod.returnType + " got " + calc[0] + " in " + th);
+                if(!calc[1].equals(currentMethod.returnType))
+                    throw new RuntimeException("Expected Type " + currentMethod.returnType + " got " + calc[1] + " in " + th);
 
-                yield "return" + calc[1] + ";\n";
+                yield "return" + calc[0] + ";\n";
             }
 
             default -> {
@@ -410,12 +426,12 @@ public class Compiler {
 
                         String[] calc = compileCalc(th);
 
-                        if(!calc[0].equals(first.s()))
-                            throw new RuntimeException("Type " + calc[0] + " is not allowed for variable " + second.s() + " in Method " + toCompilerDesc(currentMethod) + " in Class " + currentClass.name);
+                        if(!calc[1].equals(first.s()))
+                            throw new RuntimeException("Type " + calc[1] + " is not allowed for variable " + second.s() + " in Method " + toCompilerDesc(currentMethod) + " in Class " + currentClass.name);
 
                         compilingMethod.scope().add(second.s(), first.s());
 
-                        yield first.s() + " " + second.s() + "=" + calc[1] + ";\n";
+                        yield first.s() + " " + second.s() + "=" + calc[0] + ";\n";
                     }else{
                         compilingMethod.scope().add(first.s(), th.current().s());
                         yield first.s() + " " + th.current().s() + ";\n";
@@ -424,12 +440,14 @@ public class Compiler {
                     String[] calc = compileCalc(th);
 
                     if(compilingMethod.scope().varExist(first.s())){
-                        if(!compilingMethod.scope().getType(first.s()).equals(calc[0]))
-                            throw new RuntimeException("Type " + calc[0] + " is not allowed for variable" + first.s() + " in Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name);
-                    }else
-                        compilingMethod.scope().add(first.s(), calc[0]);
+                        if(!compilingMethod.scope().getType(first.s()).equals(calc[1]))
+                            throw new RuntimeException("Type " + calc[1] + " is not allowed for variable" + first.s() + " in Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name);
 
-                    yield first.s() +"=" + calc[1] + ";\n";
+                        yield first.s() + " = " + calc[0] + ";\n";
+                    }
+
+                    compilingMethod.scope().add(first.s(), calc[1]);
+                    yield calc[1] + " " + first.s() + " = " + calc[0] + ";\n";
                 }else{
                     th.last();
                     th.last();
@@ -698,7 +716,7 @@ public class Compiler {
             for(XJLNParameter p:method.parameterTypes.getValueList())
                 desc.append(p.type()).append(",");
         if(!desc.toString().endsWith("("))
-            desc.deleteCharAt(desc.length() - 2);
+            desc.deleteCharAt(desc.length() - 1);
         desc.append(") ").append(method.name);
         return desc.toString();
     }
@@ -735,12 +753,12 @@ public class Compiler {
     public static String getPrimitiveType(String value){
         if(value.contains(".")){
             try{
-                Float.parseFloat(value);
-                return "float";
-            }catch (NumberFormatException ignored){}
-            try{
                 Double.parseDouble(value);
                 return "double";
+            }catch (NumberFormatException ignored){}
+            try{
+                Float.parseFloat(value);
+                return "float";
             }catch (NumberFormatException ignored){}
         }else{
             try{

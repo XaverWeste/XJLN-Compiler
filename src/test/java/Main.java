@@ -1,10 +1,20 @@
 import com.github.xjln.compiler.Compiler;
+import com.github.xjln.compiler.CompilingMethod;
+import com.github.xjln.lang.XJLNMethod;
+import com.github.xjln.utility.MatchedList;
 import javassist.ClassPool;
 import javassist.bytecode.*;
 
+import java.util.HashMap;
+
 public class Main {
     public static void main(String[] args) throws Exception {
-        new Compiler("src/test/java/Clazz", "src/test/java");
+        //new Compiler("src/test/java/Clazz", "src/test/java");
+        Compiler c = new Compiler(null);
+        System.out.println(c.testCompiler(new XJLNMethod(false, false, "test", null, new MatchedList<>(), "void", new String[]{
+                "i = 55.5 5 + 777777",
+                "end"
+        }, new HashMap<>())));
         //printClass("Test");
     }
 

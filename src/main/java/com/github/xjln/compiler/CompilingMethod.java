@@ -49,11 +49,12 @@ public class CompilingMethod {
     }
 
     public boolean hasNextLine(){
-        return currentLine < code.length;
+        return currentLine + 1 < code.length;
     }
 
     public String nextLine(){
-        return code[currentLine++];
+        currentLine += 1;
+        return code[currentLine];
     }
 
     public String currentLine(){
