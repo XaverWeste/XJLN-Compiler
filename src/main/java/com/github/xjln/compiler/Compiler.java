@@ -451,7 +451,7 @@ public class Compiler {
                 }else{
                     th.last();
                     th.last();
-                    yield compileCalc(th)[1] + ";\n";
+                    yield compileCall(th)[1] + ";\n";
                 }
             }
         };
@@ -568,17 +568,76 @@ public class Compiler {
                 arg = th.current().s();
             }
             case SIMPLE -> {
-                if(th.current().equals("(")){
-                    String[] result = compileCalc(th);
-                    th.assertToken(")");
-                    arg = result[0];
-                    type = result[1];
-                }else throw new RuntimeException("illegal argument in " + th);
+                switch (th.current().s()){
+                    case "(" -> {
+                        String[] result = compileCalc(th);
+                        th.assertToken(")");
+                        arg = result[0];
+                        type = result[1];
+                    }
+                    case "{" -> {
+                        th.last();
+                        String[] result = compileCalc(th);
+                        arg = result[0];
+                        type = result[1];
+                    }
+                    default -> throw new RuntimeException("illegal argument in " + th);
+                }
+            }
+            case IDENTIFIER -> {
+                th.last();
+                String[] result = compileCalc(th);
+                arg = result[0];
+                type = result[1];
             }
             default -> throw new RuntimeException("illegal argument in " + th);
         }
 
         return new String[]{arg, type};
+    }
+
+    private String[] compileCall(TokenHandler th){
+        StringBuilder arg = new StringBuilder();
+        String type = currentClass.name;
+
+        if(th.hasNext()){
+            if(th.current().equals("{")){
+                //TODO
+            }else {
+                switch (th.next().s()) {
+                    case ":" -> {
+                        //todo
+                    }
+                    case "(" -> {
+                        //todo
+                    }
+                    case "[" -> {
+                        //todo
+                    }
+                }
+            }
+
+            while (th.hasNext()){
+                //TODO
+            }
+        }else{
+            if(th.current().equals("{"))
+                throw new RuntimeException("illegal argument in: " + th);
+
+            if(!currentMethod.statik){
+                assert currentClass instanceof XJLNClass;
+
+                if(currentClass.getStaticFields().get(th.current().s()) != null)
+                    return new String[]{th.current().s(), currentClass.getStaticFields().get(th.current().s()).type()};
+            }
+
+            if(currentClass.getStaticFields().get(th.current().s()) != null){
+                arg.append(th.current().s());
+                type = currentClass.getStaticFields().get(th.current().s()).type();
+            }else throw new RuntimeException("Field " + th.current() + " does not exist in: " + th);
+        }
+
+        return new String[]{arg.toString(), type};
     }
 
     private String getMethodReturnType(String clazz, String method, String...parameterTypes){

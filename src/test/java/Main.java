@@ -12,7 +12,7 @@ public class Main {
         //new Compiler("src/test/java/Clazz", "src/test/java");
         Compiler c = new Compiler(null);
         System.out.println(c.testCompiler(new XJLNMethod(false, false, "test", null, new MatchedList<>(), "void", new String[]{
-                "i = 55.5 5 + 777777",
+                "i = 55.5 + 777777",
                 "end"
         }, new HashMap<>())));
         //printClass("Test");
