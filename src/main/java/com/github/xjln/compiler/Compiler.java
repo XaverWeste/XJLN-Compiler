@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
@@ -577,7 +578,7 @@ public class Compiler {
                     }
                     case "{" -> {
                         th.last();
-                        String[] result = compileCalc(th);
+                        String[] result = compileCall(th);
                         arg = result[0];
                         type = result[1];
                     }
@@ -586,7 +587,7 @@ public class Compiler {
             }
             case IDENTIFIER -> {
                 th.last();
-                String[] result = compileCalc(th);
+                String[] result = compileCall(th);
                 arg = result[0];
                 type = result[1];
             }
@@ -600,44 +601,80 @@ public class Compiler {
         StringBuilder arg = new StringBuilder();
         String type = currentClass.name;
 
-        if(th.hasNext()){
-            if(th.current().equals("{")){
+        Token identifier = th.current();
+
+        if(th.hasNext() && Set.of("{", ":", "[", "(").contains(th.next().s())){
+            if(identifier.equals("{")){
                 //TODO
-            }else {
-                switch (th.next().s()) {
-                    case ":" -> {
-                        //todo
-                    }
+            }else{
+                switch (th.current().s()) {
+                    case ":" -> th.last();
+                    case "[" -> arg.append("new ").append(validateType(identifier.s())).append("(").append(th.getInBracket()).append(")");
                     case "(" -> {
-                        //todo
-                    }
-                    case "[" -> {
-                        //todo
+                        String[] parameter = compileParameterList(th.getInBracket());
+                        arg.append(identifier.s()).append("(").append(parameter[0]).append(")");
+
+                        String returnType = getMethodReturnType(type, identifier.s(), Arrays.copyOfRange(parameter, 1, parameter.length));
+
+                        if(returnType == null)
+                            throw new RuntimeException("Method " + identifier + " is not defined for Class " + type);
+
+                        type = returnType;
                     }
                 }
             }
 
             while (th.hasNext()){
-                //TODO
+                if(!th.next().equals(":")){
+                    th.last();
+                    break;
+                }
+
+                identifier = th.assertToken(Token.Type.IDENTIFIER);
+
+                if(th.hasNext()){
+                    if(th.next().equals("(")){
+                        String[] parameter = compileParameterList(th.getInBracket());
+                        arg.append(identifier.s()).append("(").append(parameter[0]).append(")");
+
+                        String returnType = getMethodReturnType(type, identifier.s(), Arrays.copyOfRange(parameter, 1, parameter.length));
+
+                        if(returnType == null)
+                            throw new RuntimeException("Method " + identifier + " is not defined for Class " + type);
+
+                        type = returnType;
+                    }else{
+                        th.last();
+                        //TODO
+                    }
+                }
             }
         }else{
-            if(th.current().equals("{"))
+            th.last();
+
+            if(identifier.equals("{"))
                 throw new RuntimeException("illegal argument in: " + th);
 
             if(!currentMethod.statik){
                 assert currentClass instanceof XJLNClass;
 
-                if(currentClass.getStaticFields().get(th.current().s()) != null)
-                    return new String[]{th.current().s(), currentClass.getStaticFields().get(th.current().s()).type()};
+                if(currentClass.getStaticFields().get(identifier.s()) != null)
+                    return new String[]{identifier.s(), currentClass.getStaticFields().get(identifier.s()).type()};
             }
 
-            if(currentClass.getStaticFields().get(th.current().s()) != null){
-                arg.append(th.current().s());
-                type = currentClass.getStaticFields().get(th.current().s()).type();
-            }else throw new RuntimeException("Field " + th.current() + " does not exist in: " + th);
+            if(currentClass.getStaticFields().get(identifier.s()) != null){
+                arg.append(identifier.s());
+                type = currentClass.getStaticFields().get(identifier.s()).type();
+            }else throw new RuntimeException("Field " + identifier + " does not exist in: " + th);
         }
 
         return new String[]{arg.toString(), type};
+    }
+
+    private String[] compileParameterList(TokenHandler th){
+        StringBuilder arg = new StringBuilder();
+
+        return new String[]{arg.toString()};
     }
 
     private String getMethodReturnType(String clazz, String method, String...parameterTypes){
