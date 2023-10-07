@@ -1,3 +1,4 @@
 def Test[int i, long l]
 
+    def abstract test() :: short
 end

@@ -110,7 +110,7 @@ public final class XJLNClass extends XJLNClassStatic {
     }
 
     public XJLNMethod generateDefaultInit(){
-        return new XJLNMethod(false, false, "init", null, parameter, "void", new String[0], aliases);
+        return new XJLNMethod(false, false, "init", null, parameter, "void", new String[]{"end"}, aliases);
     }
 
     @Override

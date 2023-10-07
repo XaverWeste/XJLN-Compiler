@@ -515,16 +515,16 @@ public class Parser {
             }else
                 code.addAll(parseCode());
 
-            if(inner)
-                throw new RuntimeException("Inner Method " + name + " should not be abstract");
-
-            return new XJLNMethod(staticContext, false, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]), uses);
+            return new XJLNMethod(staticContext, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, code.toArray(new String[0]), uses);
         }else{
             if(th.current().equals("->") || th.current().equals("=") || th.current().equals("{"))
                 throw new RuntimeException("Method " + name + " should not be abstract");
 
             if(staticContext)
                 throw new RuntimeException("Method " + name + " should not be abstract in a static Class");
+
+            if(inner)
+                throw new RuntimeException("Inner Method " + name + " should not be abstract");
 
             return new XJLNMethodAbstract(false, inner, name, genericTypes == null ? null : genericTypes.toArray(new String[0]), parameter, returnType, uses);
         }

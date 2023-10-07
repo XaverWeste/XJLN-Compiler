@@ -246,7 +246,7 @@ public class Compiler {
         //non-static Methods
         if(clazz instanceof XJLNClass) {
             for (String method : ((XJLNClass) clazz).getMethods().keySet()) {
-                currentMethod = clazz.getStaticMethods().get(method);
+                currentMethod = ((XJLNClass) clazz).getMethods().get(method);
 
                 if(!currentMethod.name.equals("init")) {
                     try {
@@ -339,7 +339,7 @@ public class Compiler {
                 if (statik)
                     result.append("static ");
                 if (isAbstract)
-                    result.append("abstract");
+                    result.append("abstract ");
 
                 result.append(validateType(currentMethod.returnType)).append(" ").append(currentMethod.name).append("(");
             }
@@ -349,6 +349,9 @@ public class Compiler {
 
             if(!result.toString().endsWith("("))
                 result.deleteCharAt(result.length() - 1);
+
+            if(isAbstract)
+                return result.append(");").toString();
 
             result.append("){\n");
         }
@@ -382,22 +385,6 @@ public class Compiler {
         throw new RuntimeException("Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name + " was not closed");
     }
 
-    public String testCompiler(XJLNMethod m){
-        currentMethod = m;
-        currentClass = new XJLNClassStatic("TestClass", new HashMap<>());
-        compilingMethod = new CompilingMethod(m);
-        StringBuilder code = new StringBuilder();
-
-        while (compilingMethod.hasNextLine()) {
-            if(compilingMethod.nextLine().equals("end") || compilingMethod.currentLine().equals("else"))
-                return code.toString();
-            else
-                code.append(compileStatement(Lexer.toToken(compilingMethod.currentLine())));
-        }
-
-        throw new RuntimeException("Method was not closed");
-    }
-
     private String compileStatement(TokenHandler th){
         return switch (th.next().s()){
             case "if" -> compileIf(th);
@@ -410,7 +397,7 @@ public class Compiler {
                 if(!calc[1].equals(currentMethod.returnType))
                     throw new RuntimeException("Expected Type " + currentMethod.returnType + " got " + calc[1] + " in " + th);
 
-                yield "return" + calc[0] + ";\n";
+                yield "return " + calc[0] + ";\n";
             }
 
             default -> {
@@ -813,7 +800,7 @@ public class Compiler {
                 desc.append(p.type()).append(",");
         if(!desc.toString().endsWith("("))
             desc.deleteCharAt(desc.length() - 1);
-        desc.append(") ").append(method.name);
+        desc.append(")").append(method.name);
         return desc.toString();
     }
 
@@ -826,7 +813,7 @@ public class Compiler {
                 desc.append(type).append(",");
         if(!desc.toString().endsWith("("))
             desc.deleteCharAt(desc.length() - 2);
-        desc.append(") ").append(name);
+        desc.append(")").append(name);
 
         return desc.toString();
     }
