@@ -510,8 +510,52 @@ public class Parser {
 
                 code.add(statement.toString());
             }else if(th.current().equals("{")){
-                throw new RuntimeException("Statement \"" + th + "\" is currently not supported");
-                //TODO {...}
+                boolean first = true;
+
+                while (sc.hasNextLine() && !line.equals("}")){
+                    line = sc.nextLine().trim();
+                    if(!line.equals("") && !line.equals("}")){
+                        if(!line.startsWith("("))
+                            throw new RuntimeException("Illegal Statement " + th);
+
+                        StringBuilder condition = new StringBuilder();
+
+                        if(first){
+                            first = false;
+                            condition.append("if ");
+                        }else
+                            condition.append("else if ");
+
+                        th = Lexer.toToken(line);
+                        th.getInBracket();
+
+                        boolean parse = false;
+
+                        if(th.hasNext())
+                            th.assertToken("->", "=");
+                        else
+                            parse = true;
+
+                        condition.append(th.toStringNonMarked());
+                        code.add(condition.toString());
+
+                        if(parse)
+                            code.addAll(parseCode());
+                    }
+                }
+
+                StringBuilder parameterTypes = new StringBuilder();
+
+                for(XJLNParameter p: parameter.getValueList())
+                    parameterTypes.append("\" + ").append(p.name()).append(" + \", ");
+
+                if(parameterTypes.length() > 0)
+                    parameterTypes.deleteCharAt(parameterTypes.length() - 2);
+
+                code.add("throw RuntimeException[\"Method " + name + " is not defined for " + parameterTypes + "\"]");
+
+                if(!line.equals("}"))
+                    throw new RuntimeException("Method " + name + " was not closed");
             }else
                 code.addAll(parseCode());
 

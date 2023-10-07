@@ -382,7 +382,7 @@ public class Compiler {
                 code.append(compileStatement(Lexer.toToken(compilingMethod.currentLine())));
         }
 
-        throw new RuntimeException("Method " + toCompilerDesc(currentMethod) + " of Class " + currentClass.name + " was not closed");
+        return code.toString();
     }
 
     private String compileStatement(TokenHandler th){

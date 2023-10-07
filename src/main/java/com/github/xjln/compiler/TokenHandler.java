@@ -163,4 +163,10 @@ public class TokenHandler {
         //for(Token t:tokens) sb.append(t.s()).append(" ");
         return sb.toString();
     }
+
+    public String toStringNonMarked(){
+        StringBuilder sb = new StringBuilder();
+        for(Token t:tokens) sb.append(t.s()).append(" ");
+        return sb.toString();
+    }
 }
