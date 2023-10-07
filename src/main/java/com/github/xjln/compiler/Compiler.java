@@ -391,13 +391,14 @@ public class Compiler {
             case "while" -> compileWhile(th);
             case "for" -> compileFor(th);
 
-            case "return" -> {
+            case "return", "throw" -> {
+                Token first = th.current();
                 String[] calc = compileCalc(th);
 
-                if(!calc[1].equals(currentMethod.returnType))
+                if(first.equals("return") && !calc[1].equals(currentMethod.returnType))
                     throw new RuntimeException("Expected Type " + currentMethod.returnType + " got " + calc[1] + " in " + th);
 
-                yield "return " + calc[0] + ";\n";
+                yield first + " " + calc[0] + ";\n";
             }
 
             default -> {
