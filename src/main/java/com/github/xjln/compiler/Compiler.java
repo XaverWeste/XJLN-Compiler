@@ -29,7 +29,7 @@ public class Compiler {
 
     public  static final Set<String> PRIMITIVES                  = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
     private static final Set<String> PRIMITIVE_NUMBER_OPERATORS  = Set.of("+", "-", "*", "/", "!=", "==", ">=", "<=", "<", ">", "%", "=");
-    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=", "&", "|");
+    private static final Set<String> PRIMITIVE_BOOLEAN_OPERATORS = Set.of("==", "!=", "=", "&&", "||");
 
     private static String[] srcFolders = new String[0];
     private static HashMap<String, Compilable> classes;
@@ -509,6 +509,7 @@ public class Compiler {
             current = compileCalcArg(th);
 
             if(PRIMITIVES.contains(type)){
+                operator = new Token(toJavaOperator(operator.s()), Token.Type.OPERATOR);
                 switch(type){
                     case "boolean" -> {
                         if(!current[1].equals("boolean"))
@@ -762,6 +763,14 @@ public class Compiler {
         return accessFlag;
     }
 
+    private String toJavaOperator(String primitiveOperator){
+        return switch (primitiveOperator){
+            case "|" -> "||";
+            case "&" -> "&&";
+            default -> primitiveOperator;
+        };
+    }
+
     private String toDesc(String type){
         if(type.startsWith("["))
             return "[" + toDesc(type.substring(1));
@@ -859,5 +868,9 @@ public class Compiler {
             }catch (NumberFormatException ignored){}
         }
         throw new RuntimeException("internal compiler error");
+    }
+
+    public static Compilable getClass(String name){
+        return classes.get(name);
     }
 }
