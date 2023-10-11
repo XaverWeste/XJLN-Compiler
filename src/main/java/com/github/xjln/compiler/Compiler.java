@@ -12,10 +12,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class Compiler {
 
@@ -462,7 +459,7 @@ public class Compiler {
             code = "if(" + calc[1] + "){\n" + compileStatement(th) + "}\n";
         }
 
-        //TODO else
+        //TODO ifs else case
 
         compilingMethod.lastScope();
         return code;
@@ -489,7 +486,7 @@ public class Compiler {
     }
 
     private String compileFor(TokenHandler th){
-        return null;//TODO
+        return null;//TODO for loop
     }
 
     private String[] compileCalc(TokenHandler th){
@@ -535,9 +532,11 @@ public class Compiler {
                 String returnType = getMethodReturnType(type, toIdentifier(operator.s()), current[1]);
 
                 if(returnType == null)
-                    throw new RuntimeException("Operator " + operator + " is not defined for type " + type + " and " + current[1]);
+                    throw new RuntimeException("Operator " + operator + " is not defined for " + type + " and " + current[1]);
 
                 arg.append(".").append(toIdentifier(operator.s())).append("(").append(current[0]).append(")");
+
+                type = returnType;
             }
         }
 
@@ -549,6 +548,10 @@ public class Compiler {
         String type;
 
         switch (th.next().t()){
+            case CHAR -> {
+                type = "char";
+                arg = th.current().s();
+            }
             case STRING -> {
                 type = "java/lang/String";
                 arg = th.current().s();
@@ -580,7 +583,7 @@ public class Compiler {
                 arg = result[0];
                 type = result[1];
             }
-            default -> throw new RuntimeException("illegal argument in " + th);
+            default -> throw new RuntimeException("illegal argument in " + th); //TODO operator calling
         }
 
         return new String[]{arg, type};
@@ -594,7 +597,7 @@ public class Compiler {
 
         if(th.hasNext() && Set.of("{", ":", "[", "(").contains(th.next().s())){
             if(identifier.equals("{")){
-                //TODO
+                //TODO array initialisation in calculations
             }else{
                 switch (th.current().s()) {
                     case ":" -> th.last();
@@ -634,7 +637,14 @@ public class Compiler {
                         type = returnType;
                     }else{
                         th.last();
-                        //TODO
+                        String fieldType = getFieldType(type, th.current().s());
+
+                        arg.append(".").append(th.current().s());
+
+                        if(fieldType == null)
+                            throw new RuntimeException("Field " + th.current() + " is not defined in Class " + type);
+
+                        type = fieldType;
                     }
                 }
             }
@@ -662,8 +672,23 @@ public class Compiler {
 
     private String[] compileParameterList(TokenHandler th){
         StringBuilder arg = new StringBuilder();
+        ArrayList<String> result = new ArrayList<>();
 
-        return new String[]{arg.toString()};
+        while (th.hasNext()){
+            String[] calc = compileCalc(th);
+
+            result.add(calc[1]);
+            arg.append(calc[0]);
+
+            arg.append(",");
+        }
+
+        if(arg.charAt(arg.length() - 1) == ',')
+            arg.deleteCharAt(arg.length() - 1);
+
+        result.add(0, arg.toString());
+
+        return result.toArray(new String[0]);
     }
 
     private String getMethodReturnType(String clazz, String method, String...parameterTypes){
@@ -714,6 +739,35 @@ public class Compiler {
 
                     yield null;
                 } catch (ClassNotFoundException ignored) {
+                    yield null;
+                }
+            }
+            default -> null;
+        };
+    }
+
+    private String getFieldType(String clazz, String field){
+        String classLang = getClassLang(clazz);
+
+        if(classLang == null)
+            return null;
+
+        return switch (classLang){
+            case "XJLN" -> {
+                if(classes.get(clazz) instanceof XJLNClassStatic classStatic){
+                    if(classStatic.getStaticFields().containsKey(field))
+                        yield classStatic.getStaticFields().get(field).type();
+
+                    if(classStatic instanceof XJLNClass xjlnClass && xjlnClass.getFields().containsKey(field))
+                        yield xjlnClass.getFields().get(field).type();
+
+                    yield null;
+                }else yield null;
+            }
+            case "JAVA" -> {
+                try {
+                    yield Class.forName(clazz).getField(field).getType().toString().split(" ")[1];
+                } catch (ClassNotFoundException | NoSuchFieldException ignored) {
                     yield null;
                 }
             }
@@ -849,23 +903,23 @@ public class Compiler {
                 Double.parseDouble(value);
                 return "double";
             }catch (NumberFormatException ignored){}
-            try{
+            /*try{
                 Float.parseFloat(value);
                 return "float";
-            }catch (NumberFormatException ignored){}
+            }catch (NumberFormatException ignored){}*/
         }else{
-            try{
+            /*try{
                 Short.parseShort(value);
                 return "short";
-            }catch (NumberFormatException ignored){}
+            }catch (NumberFormatException ignored){}*/
             try{
                 Integer.parseInt(value);
                 return "int";
             }catch (NumberFormatException ignored){}
-            try{
+            /*try{
                 Long.parseLong(value);
                 return "long";
-            }catch (NumberFormatException ignored){}
+            }catch (NumberFormatException ignored){}*/
         }
         throw new RuntimeException("internal compiler error");
     }
