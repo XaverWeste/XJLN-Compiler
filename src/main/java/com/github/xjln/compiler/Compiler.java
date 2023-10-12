@@ -583,7 +583,22 @@ public class Compiler {
                 arg = result[0];
                 type = result[1];
             }
-            default -> throw new RuntimeException("illegal argument in " + th); //TODO operator calling
+            case OPERATOR -> {
+                String operator = th.current().s();
+
+                th.assertToken(Token.Type.IDENTIFIER);
+
+                String[] call = compileCall(th);
+
+                String returnType = getMethodReturnType(call[1], toIdentifier(operator));
+
+                if(returnType == null)
+                    throw new RuntimeException("Operator " + operator + " is not defined for " + call[1]);
+
+                arg = call[0] + "." + toIdentifier(operator) + "()";
+                type = returnType;
+            }
+            default -> throw new RuntimeException("illegal argument in " + th);
         }
 
         return new String[]{arg, type};
