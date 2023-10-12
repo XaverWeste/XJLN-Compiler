@@ -409,7 +409,10 @@ public class Parser {
         }else
             constant = false;
 
-        type = TokenHandler.assertToken(th.current(), Token.Type.IDENTIFIER).s();
+        if(th.current().equals("["))
+            type = parseArray(th);
+        else
+            type = TokenHandler.assertToken(th.current(), Token.Type.IDENTIFIER).s();
         th.assertHasNext();
 
         if(th.next().equals("=")){
@@ -621,6 +624,26 @@ public class Parser {
         }
 
         return parameterList;
+    }
+
+    private String parseArray(TokenHandler th){
+        int i = 1;
+
+        while (th.next().equals("["))
+            i++;
+
+        String type = th.current().s();
+        StringBuilder typeBuilder = new StringBuilder();
+
+        while (i > 0){
+            typeBuilder.append("[");
+            th.assertToken("]");
+            i--;
+        }
+
+        typeBuilder.append(type);
+
+        return typeBuilder.toString();
     }
 
     private ArrayList<String> parseCode(){

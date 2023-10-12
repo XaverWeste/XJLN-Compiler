@@ -437,7 +437,7 @@ public class Compiler {
                 }else{
                     th.last();
                     th.last();
-                    yield compileCall(th)[1] + ";\n";
+                    yield compileCall(th)[0] + ";\n";
                 }
             }
         };
@@ -612,7 +612,44 @@ public class Compiler {
 
         if(th.hasNext() && Set.of("{", ":", "[", "(").contains(th.next().s())){
             if(identifier.equals("{")){
-                //TODO array initialisation in calculations
+                TokenHandler array = th.getInBracket();
+
+                ArrayList<String> types = new ArrayList<>();
+                StringBuilder arrayArg = new StringBuilder();
+
+                while (array.hasNext()){
+                    String[] calc = compileCalc(array);
+
+                    types.add(calc[1]);
+                    arrayArg.append(calc[0]);
+
+                    if(array.hasNext()){
+                        arrayArg.append(array.assertToken(",").s());
+                        array.assertHasNext();
+                    }
+                }
+
+                if(types.isEmpty()) {
+                    arg.append("new Object");
+                    type = "[java.lang.Object";
+                }else{
+                    type = types.get(0);
+
+                    for(String t:types)
+                        if(!type.equals(t))
+                            throw new RuntimeException("Expected " + type + " got " + t + " in " + th);
+
+                    arg.append("new ").append(type);
+                    type = "[" + type;
+                }
+
+                for(char c:type.toCharArray()){
+                    if(c != '[')
+                        break;
+                    arg.append("[]");
+                }
+
+                arg.append("{").append(arrayArg).append("}");
             }else{
                 switch (th.current().s()) {
                     case ":" -> th.last();
@@ -762,6 +799,15 @@ public class Compiler {
     }
 
     private String getFieldType(String clazz, String field){
+        if(clazz.startsWith("[")) {
+            if(field.equals("length"))
+                return "int";
+            else if(field.length() == 1 && Character.isDigit(field.toCharArray()[0]))
+                return clazz.substring(1);
+            else
+                return null;
+        }
+
         String classLang = getClassLang(clazz);
 
         if(classLang == null)

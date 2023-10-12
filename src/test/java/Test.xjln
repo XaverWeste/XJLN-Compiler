@@ -1,4 +1,6 @@
-def Test[int i, long l]
+def Test[]
 
-    def abstract test() :: short
+    def test()
+        v = {}
+    end
 end
