@@ -248,7 +248,8 @@ public class Compiler {
                 if(!currentMethod.name.equals("init")) {
                     try {
                         ct.removeMethod(ct.getMethod(currentMethod.name, toDesc(currentMethod)));
-                        ct.addMethod(CtMethod.make(compileMethod(false), ct));
+                        String code = compileMethod(false);
+                        ct.addMethod(CtMethod.make(code, ct));
                     } catch (NotFoundException ignore) {
                         throw new RuntimeException("internal Compiler error");
                     } catch (CannotCompileException e) {
@@ -433,7 +434,7 @@ public class Compiler {
                     }
 
                     compilingMethod.scope().add(first.s(), calc[1]);
-                    yield calc[1] + " " + first.s() + " = " + calc[0] + ";\n";
+                    yield validateType(calc[1]) + " " + first.s() + " = " + calc[0] + ";\n";
                 }else{
                     th.last();
                     th.last();
@@ -611,7 +612,7 @@ public class Compiler {
         Token identifier = th.current();
 
         if(th.hasNext() && Set.of("{", ":", "[", "(").contains(th.next().s())){
-            if(identifier.equals("{")){
+            if(th.current().equals("{")){
                 TokenHandler array = th.getInBracket();
 
                 ArrayList<String> types = new ArrayList<>();
@@ -630,7 +631,7 @@ public class Compiler {
                 }
 
                 if(types.isEmpty()) {
-                    arg.append("new Object");
+                    arg.append("new Object[]");
                     type = "[java.lang.Object";
                 }else{
                     type = types.get(0);
@@ -639,14 +640,8 @@ public class Compiler {
                         if(!type.equals(t))
                             throw new RuntimeException("Expected " + type + " got " + t + " in " + th);
 
-                    arg.append("new ").append(type);
                     type = "[" + type;
-                }
-
-                for(char c:type.toCharArray()){
-                    if(c != '[')
-                        break;
-                    arg.append("[]");
+                    arg.append("new ").append(validateType(type));
                 }
 
                 arg.append("{").append(arrayArg).append("}");
@@ -674,7 +669,7 @@ public class Compiler {
                     break;
                 }
 
-                identifier = th.assertToken(Token.Type.IDENTIFIER);
+                identifier = th.assertToken(Token.Type.IDENTIFIER, Token.Type.NUMBER);
 
                 if(th.hasNext()){
                     if(th.next().equals("(")){
@@ -853,6 +848,10 @@ public class Compiler {
     }
 
     private String validateType(String type) throws RuntimeException{
+        if(type.startsWith("["))
+            return type.substring(1) + "[]";
+
+
         if(PRIMITIVES.contains(type) || type.equals("void"))
             return type;
 
