@@ -1,6 +1,6 @@
 def Test[]
 
     def test()
-        v = {1}
+        v = {1}:0
     end
 end

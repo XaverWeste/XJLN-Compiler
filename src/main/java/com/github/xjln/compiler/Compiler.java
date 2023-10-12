@@ -686,13 +686,28 @@ public class Compiler {
                         th.last();
                         String fieldType = getFieldType(type, th.current().s());
 
-                        arg.append(".").append(th.current().s());
+                        if(identifier.equals(Token.Type.NUMBER))
+                            arg.append("[").append(identifier.s()).append("]");
+                        else
+                            arg.append(".").append(identifier.s());
 
                         if(fieldType == null)
                             throw new RuntimeException("Field " + th.current() + " is not defined in Class " + type);
 
                         type = fieldType;
                     }
+                }else{
+                    String fieldType = getFieldType(type, th.current().s());
+
+                    if(identifier.equals(Token.Type.NUMBER))
+                        arg.append("[").append(identifier.s()).append("]");
+                    else
+                        arg.append(".").append(identifier.s());
+
+                    if(fieldType == null)
+                        throw new RuntimeException("Field " + th.current() + " is not defined in Class " + type);
+
+                    type = fieldType;
                 }
             }
         }else{
