@@ -160,7 +160,6 @@ public class TokenHandler {
                 sb.append(" |> ").append(tokens[i]).append(" <|  ");
             else
                 sb.append(tokens[i]).append(" ");
-        //for(Token t:tokens) sb.append(t.s()).append(" ");
         return sb.toString();
     }
 

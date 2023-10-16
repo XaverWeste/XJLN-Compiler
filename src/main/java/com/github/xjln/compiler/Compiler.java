@@ -609,9 +609,12 @@ public class Compiler {
         StringBuilder arg = new StringBuilder();
         String type = currentClass.name;
 
+        if(!th.isValid()) //bypasses bug //TODO fix bug
+            th.next();
+
         Token identifier = th.current();
 
-        if(th.hasNext() && Set.of("{", ":", "[", "(").contains(th.next().s())){
+        if(identifier.equals("{") || (th.hasNext() && Set.of("{", ":", "[", "(").contains(th.next().s()))){
             if(th.current().equals("{")){
                 TokenHandler array = th.getInBracket();
 
