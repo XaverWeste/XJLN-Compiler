@@ -867,8 +867,7 @@ public class Compiler {
 
     private String validateType(String type) throws RuntimeException{
         if(type.startsWith("["))
-            return type.substring(1) + "[]";
-
+            return validateType(type.substring(1)) + "[]";
 
         if(PRIMITIVES.contains(type) || type.equals("void"))
             return type;
