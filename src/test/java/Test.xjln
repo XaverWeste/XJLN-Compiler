@@ -1,6 +1,0 @@
-def Test[]
-
-    def test()
-        v = {{0, 1}, {2, 3}}
-    end
-end

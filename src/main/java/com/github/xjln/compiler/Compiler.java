@@ -869,11 +869,14 @@ public class Compiler {
         if(type.startsWith("["))
             return validateType(type.substring(1)) + "[]";
 
+        if(type.contains("."))
+            return type;
+
         if(PRIMITIVES.contains(type) || type.equals("void"))
             return type;
 
         if(currentClass instanceof XJLNClass && currentClass.isGeneric(type))
-            return "java/lang/Object";
+            return "java.lang.Object";
 
         if(!currentClass.aliases.containsKey(type))
             throw new RuntimeException("illegal Type " + type);
