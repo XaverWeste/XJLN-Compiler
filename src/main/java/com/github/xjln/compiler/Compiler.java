@@ -374,7 +374,7 @@ public class Compiler {
         assert currentMethod instanceof XJLNMethod;
 
         while (compilingMethod.hasNextLine()) {
-            if(compilingMethod.nextLine().equals("end") || compilingMethod.currentLine().equals("else"))
+            if(compilingMethod.nextLine().equals("end") || compilingMethod.currentLine().equals("else") || compilingMethod.currentLine().startsWith("elif "))
                 return code.toString();
             else
                 code.append(compileStatement(Lexer.toToken(compilingMethod.currentLine())));
@@ -450,20 +450,59 @@ public class Compiler {
         if(!calc[1].equals("boolean") && !calc[1].equals("java/lang/Boolean"))
             throw new RuntimeException("expected boolean in " + th + ", got " + calc[1]);
 
-        String code;
+        StringBuilder code = new StringBuilder();
         compilingMethod.newScope();
 
+        code.append("if(").append(calc[0]).append("){\n");
+
         if(!th.hasNext())
-            code =  "if(" + calc[0] + "){\n" + compileCode() + "}\n";
+            code.append(compileCode());
         else {
             th.assertToken("->");
-            code = "if(" + calc[0] + "){\n" + compileStatement(th) + "}\n";
+            code.append(compileStatement(th));
         }
 
-        //TODO ifs else case
+        code.append("}");
+
+        while(compilingMethod.currentLine().startsWith("elif ")){
+            th = Lexer.toToken(compilingMethod.currentLine());
+            th.assertToken("elif");
+            calc = compileCalc(th);
+
+            if(!calc[1].equals("boolean") && !calc[1].equals("java/lang/Boolean"))
+                throw new RuntimeException("expected boolean in " + th + ", got " + calc[1]);
+
+            code.append("else if(").append(calc[0]).append("){\n");
+
+            if(!th.hasNext())
+                code.append(compileCode());
+            else {
+                th.assertToken("->");
+                code.append(compileStatement(th));
+            }
+
+            code.append("}");
+        }
+
+        if(compilingMethod.currentLine().startsWith("else")){
+            th = Lexer.toToken(compilingMethod.currentLine());
+            th.assertToken("else");
+            th.assertNull();
+
+            code.append("else{");
+
+            if(!th.hasNext())
+                code.append(compileCode());
+            else {
+                th.assertToken("->");
+                code.append(compileStatement(th));
+            }
+
+            code.append("}");
+        }
 
         compilingMethod.lastScope();
-        return code;
+        return code.append("\n").toString();
     }
 
     private String compileWhile(TokenHandler th){

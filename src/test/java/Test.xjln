@@ -1,1 +1,6 @@
-def test() -> if true -> b = false
+def test()
+    if false
+    elif false
+    else
+    end
+end
