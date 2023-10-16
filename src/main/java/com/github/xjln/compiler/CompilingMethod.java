@@ -30,8 +30,8 @@ public class CompilingMethod {
             return vars.get(name);
         }
 
-        public void add(String name, String var){
-            vars.put(name, var);
+        public void add(String name, String type){
+            vars.put(name, type);
         }
     }
 

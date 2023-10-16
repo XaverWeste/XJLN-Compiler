@@ -447,17 +447,17 @@ public class Compiler {
     private String compileIf(TokenHandler th){
         String[] calc = compileCalc(th);
 
-        if(!calc[0].equals("boolean") && !calc[0].equals("java/lang/Boolean"))
-            throw new RuntimeException("expected boolean in " + th);
+        if(!calc[1].equals("boolean") && !calc[1].equals("java/lang/Boolean"))
+            throw new RuntimeException("expected boolean in " + th + ", got " + calc[1]);
 
         String code;
         compilingMethod.newScope();
 
         if(!th.hasNext())
-            code =  "if(" + calc[1] + "){\n" + compileCode() + "}\n";
+            code =  "if(" + calc[0] + "){\n" + compileCode() + "}\n";
         else {
             th.assertToken("->");
-            code = "if(" + calc[1] + "){\n" + compileStatement(th) + "}\n";
+            code = "if(" + calc[0] + "){\n" + compileStatement(th) + "}\n";
         }
 
         //TODO ifs else case
@@ -487,7 +487,7 @@ public class Compiler {
     }
 
     private String compileFor(TokenHandler th){
-        return null;//TODO for loop
+        throw new RuntimeException("not yet implemented");//TODO for loop
     }
 
     private String[] compileCalc(TokenHandler th){
@@ -498,7 +498,7 @@ public class Compiler {
         String type = current[1];
 
         while (th.hasNext()){
-            if(!th.next().equals(Token.Type.OPERATOR)) {
+            if(!th.next().equals(Token.Type.OPERATOR) || th.current().equals("->")) {
                 th.last();
                 return new String[]{arg.toString(), type};
             }
@@ -511,7 +511,7 @@ public class Compiler {
                 switch(type){
                     case "boolean" -> {
                         if(!current[1].equals("boolean"))
-                            throw new RuntimeException("expected type boolean in: " + th);
+                            throw new RuntimeException("expected type boolean in: " + th + ", got " + current[1]);
                         if(!PRIMITIVE_BOOLEAN_OPERATORS.contains(operator.s()))
                             throw new RuntimeException("operator " + operator + " is not defined for type boolean and boolean");
 
@@ -579,10 +579,15 @@ public class Compiler {
                 }
             }
             case IDENTIFIER -> {
-                th.last();
-                String[] result = compileCall(th);
-                arg = result[0];
-                type = result[1];
+                if(th.current().equals("true") || th.current().equals("false")){
+                    arg = th.current().s();
+                    type = "boolean";
+                }else {
+                    th.last();
+                    String[] result = compileCall(th);
+                    arg = result[0];
+                    type = result[1];
+                }
             }
             case OPERATOR -> {
                 String operator = th.current().s();
@@ -609,10 +614,7 @@ public class Compiler {
         StringBuilder arg = new StringBuilder();
         String type = currentClass.name;
 
-        if(!th.isValid()) //bypasses bug //TODO fix bug
-            th.next();
-
-        Token identifier = th.current();
+        Token identifier = th.next();
 
         if(identifier.equals("{") || (th.hasNext() && Set.of("{", ":", "[", "(").contains(th.next().s()))){
             if(th.current().equals("{")){
@@ -722,8 +724,10 @@ public class Compiler {
             if(!currentMethod.statik){
                 assert currentClass instanceof XJLNClass;
 
-                if(currentClass.getStaticFields().get(identifier.s()) != null)
-                    return new String[]{identifier.s(), currentClass.getStaticFields().get(identifier.s()).type()};
+                if(((XJLNClass) currentClass).getFields().get(identifier.s()) != null)
+                    return new String[]{identifier.s(), ((XJLNClass) currentClass).getFields().get(identifier.s()).type()};
+                else if(compilingMethod.scope().varExist(identifier.s()))
+                    return new String[]{identifier.s(), compilingMethod.scope().getType(identifier.s())};
             }
 
             if(currentClass.getStaticFields().get(identifier.s()) != null){
@@ -1001,7 +1005,7 @@ public class Compiler {
                 return "long";
             }catch (NumberFormatException ignored){}*/
         }
-        throw new RuntimeException("internal compiler error");
+        throw new RuntimeException("type error caused by: " + value);
     }
 
     public static Compilable getClass(String name){
