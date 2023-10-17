@@ -1,6 +1,0 @@
-def test()
-    if false
-    elif false
-    else
-    end
-end

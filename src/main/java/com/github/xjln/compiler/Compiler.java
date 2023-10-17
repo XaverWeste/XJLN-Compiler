@@ -387,7 +387,6 @@ public class Compiler {
         return switch (th.next().s()){
             case "if" -> compileIf(th);
             case "while" -> compileWhile(th);
-            case "for" -> compileFor(th);
 
             case "return", "throw" -> {
                 Token first = th.current();
@@ -508,25 +507,21 @@ public class Compiler {
     private String compileWhile(TokenHandler th){
         String[] calc = compileCalc(th);
 
-        if(!calc[0].equals("boolean") && !calc[0].equals("java/lang/Boolean"))
+        if(!calc[1].equals("boolean") && !calc[1].equals("java/lang/Boolean"))
             throw new RuntimeException("expected boolean in " + th);
 
         String code;
         compilingMethod.newScope();
 
         if(!th.hasNext())
-            code =  "while(" + calc[1] + "){\n" + compileCode() + "}\n";
+            code =  "while(" + calc[0] + "){\n" + compileCode() + "}\n";
         else {
             th.assertToken("->");
-            code = "while(" + calc[1] + "){\n" + compileStatement(th) + "}\n";
+            code = "while(" + calc[0] + "){\n" + compileStatement(th) + "}\n";
         }
 
         compilingMethod.lastScope();
         return code;
-    }
-
-    private String compileFor(TokenHandler th){
-        throw new RuntimeException("not yet implemented");//TODO for loop
     }
 
     private String[] compileCalc(TokenHandler th){
