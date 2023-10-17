@@ -1,0 +1,11 @@
+def Class[] => Interface
+
+    def test() :: int = 0
+
+end
+
+def Interface
+
+    def abstract test() :: int
+
+end

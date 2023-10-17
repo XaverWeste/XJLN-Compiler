@@ -1,14 +1,16 @@
 import com.github.xjln.compiler.Compiler;
+import com.github.xjln.compiler.CompilingMethod;
+import com.github.xjln.lang.XJLNMethod;
+import com.github.xjln.utility.MatchedList;
 import javassist.ClassPool;
 import javassist.bytecode.*;
+
+import java.util.HashMap;
 
 public class Main {
     public static void main(String[] args) throws Exception {
         new Compiler("src/test/java/Clazz", "src/test/java");
-        //printClass("Main");
-    }
-
-    public Main() throws Exception{
+        //printClass("Test");
     }
 
     public static void printClass(String name) throws Exception{

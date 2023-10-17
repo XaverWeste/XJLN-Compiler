@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-class Lexer {
+public class Lexer {
 
     public static TokenHandler toToken(String line){
         List<Token> tokens = new ArrayList<>();
@@ -72,9 +72,21 @@ class Lexer {
 
                 tokens.add(new Token(value.append("\"").toString(), Token.Type.STRING));
 
+            }else if(chars[i] == '\''){
+
+                if (chars.length >= i + 2 && chars[i + 2] == '\''){
+                    tokens.add(new Token("'" + chars[i + 1] + "'", Token.Type.CHAR));
+
+                    i += 3;
+                }else{
+                    tokens.add(new Token("'", Token.Type.SIMPLE));
+
+                    i++;
+                }
+
             }else if(!Set.of('\n', '\r', '\t', ' ').contains(chars[i])){
 
-                tokens.add(new Token(String.valueOf(chars[i]), Set.of('$', '§').contains(chars[i]) ? Token.Type.IDENTIFIER : Token.Type.SIMPLE));
+                tokens.add(new Token(String.valueOf(chars[i]), Token.Type.SIMPLE));
 
             }
 

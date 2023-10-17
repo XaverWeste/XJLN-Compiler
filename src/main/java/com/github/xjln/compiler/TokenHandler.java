@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-class TokenHandler {
+public class TokenHandler {
 
     private final Token[] tokens;
     private int index;
@@ -117,12 +117,14 @@ class TokenHandler {
         throw new RuntimeException("expected one of " + string + ", " + arrayToString(types) + " got " + token.t().toString() + " in: " + this);
     }
 
-    public static void assertToken(Token token, String string) throws RuntimeException {
+    public static Token assertToken(Token token, String string) throws RuntimeException {
         if(!token.equals(string)) throw new RuntimeException("expected " + string + " got " + token.s());
+        return token;
     }
 
-    public static void assertToken(Token token, Token.Type type) throws RuntimeException {
+    public static Token assertToken(Token token, Token.Type type) throws RuntimeException {
         if(token.t() != type) throw new RuntimeException("expected " + type.toString() + " got " + token.t().toString());
+        return token;
     }
 
     public void assertHasNext() throws RuntimeException{
@@ -158,7 +160,12 @@ class TokenHandler {
                 sb.append(" |> ").append(tokens[i]).append(" <|  ");
             else
                 sb.append(tokens[i]).append(" ");
-        //for(Token t:tokens) sb.append(t.s()).append(" ");
+        return sb.toString();
+    }
+
+    public String toStringNonMarked(){
+        StringBuilder sb = new StringBuilder();
+        for(Token t:tokens) sb.append(t.s()).append(" ");
         return sb.toString();
     }
 }

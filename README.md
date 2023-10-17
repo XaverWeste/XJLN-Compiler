@@ -1,3 +1,5 @@
+# ![alt text](https://github.com/XaverWeste/XJLN-Compiler/blob/next/res/XJLN-Logo.png?raw=true)
+
 ![Build](https://github.com/XaverWeste/XJLN-Compiler/actions/workflows/maven.yml/badge.svg)
 
 # XJLN-Compiler
@@ -16,20 +18,30 @@ The Compiler has several parameters,
 The compiler first validates all (input and output) folders. Second, all .class files and empty folders in the output folder will be deleted (all other files in this folder should be safe and untouched). Third, the compiler starts compiling all specified src folders and writes the resulting .class files to the output folder. The main method is executed last, if specified.
 
 ## Syntax Basics
-### Hello World
-```
+### Hello World (short)
+``` XJLN
 use java/lang/System
 
 main -> System:out:println("Hello World!")
 ```
 
-### Enum definition
+### Hello World (long)
+``` XJLN
+use {System, String} from java/lang
+
+def main([String] args)
+    String string = "Hello World!"
+    system:out:println(string)
+end
 ```
+
+### Enums
+``` XJLN
 def Bool = True | False
 ```
 
-### Method/Function definion
-```
+### Methods/Functions
+``` XJLN
 def fib(int n) :: int
   if n < 0 -> return -1
   if (n == 0) | (n == 1) -> return 1
@@ -37,4 +49,25 @@ def fib(int n) :: int
 end
 
 def doubleInt(int value) :: int = value * 2
+```
+
+### Classes
+``` XJLN
+def Integer[int value]
+
+    inner int value
+
+    def +(int i) :: int = value + i
+    
+    def +(Integer i) :: int = value + i:value
+    
+    def set(int i) -> value = i
+    
+    def get() :: int = value
+end
+
+main
+    Integer integer = Integer[0]
+    int i = integer + 10
+end
 ```

@@ -2,55 +2,63 @@ package com.github.xjln.utility;
 
 import java.util.*;
 
-public class MatchedList<First, Second> {
+public class MatchedList<Key, Value> {
 
-    private final ArrayList<First> firstList;
-    private final ArrayList<Second> secondList;
+    private final ArrayList<Key> keyList;
+    private final ArrayList<Value> valueList;
 
     public MatchedList(){
-        firstList = new ArrayList<>();
-        secondList = new ArrayList<>();
+        keyList = new ArrayList<>();
+        valueList = new ArrayList<>();
     }
 
-    public void add(First first, Second second){
-        firstList.add(first);
-        secondList.add(second);
+    public void add(Key first, Value second){
+        keyList.add(first);
+        valueList.add(second);
     }
 
-    public First getFirst(Second second){
-        if(!secondList.contains(second))
+    public Key getKey(Value value){
+        if(!valueList.contains(value))
             return null;
-        return firstList.get(secondList.indexOf(second));
+        return keyList.get(valueList.indexOf(value));
     }
 
-    public First getFirst(int n){
+    public Key getKey(int n){
         if(n < 0 || n >= size())
             return null;
-        return firstList.get(n);
+        return keyList.get(n);
     }
 
-    public Second getSecond(First first){
-        if(!firstList.contains(first))
+    public boolean hasKey(Key key){
+        return keyList.contains(key);
+    }
+
+    public Value getValue(Key key){
+        if(!keyList.contains(key))
             return null;
-        return secondList.get(firstList.indexOf(first));
+        return valueList.get(keyList.indexOf(key));
     }
 
-    public Second getSecond(int n){
+    public Value getValue(int n){
         if(n < 0 || n >= size())
             return null;
-        return secondList.get(n);
+        return valueList.get(n);
     }
 
-    public ArrayList<First> getFirstList(){
-        return firstList;
+    public boolean hasValue(Value value){
+        return valueList.contains(value);
     }
 
-    public ArrayList<Second> getSecondList(){
-        return secondList;
+    public ArrayList<Key> getKeyList(){
+        return keyList;
+    }
+
+    public ArrayList<Value> getValueList(){
+        return valueList;
     }
 
     public int size(){
-        return firstList.size();
+        return keyList.size();
     }
 
     public static <First, Second> MatchedList<First, Second> of(First[] firsts, Second[] seconds) throws RuntimeException{
