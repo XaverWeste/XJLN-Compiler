@@ -2,6 +2,7 @@ package com.github.xjln.lang;
 
 import com.github.xjln.compiler.Compiler;
 import com.github.xjln.compiler.Lexer;
+import com.github.xjln.compiler.TokenHandler;
 import com.github.xjln.utility.MatchedList;
 
 import java.util.HashMap;
@@ -49,9 +50,11 @@ public final class XJLNClass extends XJLNClassStatic {
     private void createSuperClassFields(){
         if(superClasses != null) {
             for (String s : superClasses) {
-                String name = Lexer.toToken(s).next().s();
+                TokenHandler th = Lexer.toToken(s);
+                String name = th.next().s();
 
-                addField(new XJLNField(false, true, name, name, s));
+                if(th.hasNext())
+                    addField(new XJLNField(false, true, name, name, s));
             }
         }
     }

@@ -1,0 +1,7 @@
+def Test[] => Clazz[]
+
+end
+
+def Clazz[]
+
+end

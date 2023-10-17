@@ -359,6 +359,10 @@ public class Compiler {
 
             for(XJLNParameter p:((XJLNClass) currentClass).parameter.getValueList())
                 result.append("this.").append(p.name()).append(" = ").append(p.name()).append(";");
+
+            for(String fieldName:((XJLNClass) currentClass).getFields().keySet())
+                if(((XJLNClass) currentClass).getFields().get(fieldName).initValue() != null)
+                    result.append("this.").append(fieldName).append(" = ").append(compileStatement(Lexer.toToken(((XJLNClass) currentClass).getFields().get(fieldName).initValue()))).append(";");
         }
 
         assert currentMethod instanceof XJLNMethod;
@@ -916,8 +920,10 @@ public class Compiler {
         if(currentClass instanceof XJLNClass && currentClass.isGeneric(type))
             return "java.lang.Object";
 
-        if(!currentClass.aliases.containsKey(type))
-            throw new RuntimeException("illegal Type " + type);
+        if(!currentClass.aliases.containsKey(type)){
+            String[] s = currentClass.name.split("\\.");
+            return currentClass.name.substring(0, currentClass.name.length() - s[s.length - 1].length()) + type;
+        }
 
         return currentClass.aliases.get(type);
     }
