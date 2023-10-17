@@ -28,4 +28,9 @@ public class XJLNEnum implements Compilable {
     public String toString() {
         return name;
     }
+
+    @Override
+    public String getClassType() {
+        return "Enum";
+    }
 }

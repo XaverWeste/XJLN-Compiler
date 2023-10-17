@@ -53,8 +53,46 @@ public final class XJLNClass extends XJLNClassStatic {
                 TokenHandler th = Lexer.toToken(s);
                 String name = th.next().s();
 
+                if(!aliases.containsKey(name)){
+                    String[] stringArray = this.name.split("\\.");
+                    name = this.name.substring(0, this.name.length() - stringArray[stringArray.length - 1].length()) + name;
+                }else
+                    name = aliases.get(name);
+
                 if(th.hasNext())
                     addField(new XJLNField(false, true, name, name, s));
+            }
+        }
+    }
+
+    public void validateInterfaces(){
+        if(superClasses != null){
+            for (String s : superClasses) {
+                TokenHandler th = Lexer.toToken(s);
+                String name = th.next().s();
+
+                if(!aliases.containsKey(name)){
+                    String[] stringArray = this.name.split("\\.");
+                    name = this.name.substring(0, this.name.length() - stringArray[stringArray.length - 1].length()) + name;
+                }else
+                    name = aliases.get(name);
+
+                if(!th.hasNext()){
+                    Compilable c = Compiler.getClass(name);
+
+                    if(c == null)
+                        throw new RuntimeException("Class " + name + " does not exist");
+
+                    if(c instanceof XJLNInterface){
+                        for(String methodName:((XJLNInterface) c).methods().keySet()) {
+                            if (!methods.containsKey(methodName))
+                                throw new RuntimeException("Method " + methodName + " is not defined in " + name);
+                            if(!methods.get(methodName).returnType.equals(((XJLNInterface) c).methods().get(methodName).returnType))
+                                throw new RuntimeException("Expected " + ((XJLNInterface) c).methods().get(methodName).returnType + " as return Type of method " + methodName + ", got " + methods.get(methodName).returnType);
+                        }
+                    }else
+                        throw new RuntimeException("Expected Interface got " + c.getClassType() + ": " + name);
+                }
             }
         }
     }
@@ -129,5 +167,10 @@ public final class XJLNClass extends XJLNClassStatic {
                     return true;
 
         return false;
+    }
+
+    @Override
+    public String getClassType() {
+        return isDataClass ? "Data Class" : "Class";
     }
 }

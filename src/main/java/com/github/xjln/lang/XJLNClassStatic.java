@@ -62,4 +62,9 @@ public sealed class XJLNClassStatic implements Compilable permits XJLNClass{
     public String toString() {
         return name;
     }
+
+    @Override
+    public String getClassType() {
+        return "Static Class";
+    }
 }

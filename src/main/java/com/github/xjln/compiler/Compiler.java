@@ -224,6 +224,9 @@ public class Compiler {
             throw new RuntimeException(e);
         }
 
+        if(clazz instanceof XJLNClass)
+            ((XJLNClass) clazz).validateInterfaces();
+
         //static Methods
         for(String method:clazz.getStaticMethods().keySet()){
             currentMethod = clazz.getStaticMethods().get(method);
@@ -356,9 +359,6 @@ public class Compiler {
 
         if(isConstructor){
             assert currentClass instanceof XJLNClass;
-
-            for(XJLNParameter p:((XJLNClass) currentClass).parameter.getValueList())
-                result.append("this.").append(p.name()).append(" = ").append(p.name()).append(";");
 
             for(String fieldName:((XJLNClass) currentClass).getFields().keySet())
                 if(((XJLNClass) currentClass).getFields().get(fieldName).initValue() != null)

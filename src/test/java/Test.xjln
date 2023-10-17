@@ -1,7 +1,11 @@
-def Test[] => Clazz[]
+def Class[] => Interface
+
+    def test() :: int = 0
 
 end
 
-def Clazz[]
+def Interface
+
+    def abstract test() :: int
 
 end

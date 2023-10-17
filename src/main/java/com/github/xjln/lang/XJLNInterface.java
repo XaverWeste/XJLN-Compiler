@@ -12,4 +12,9 @@ public record XJLNInterface(String name, HashMap<String, XJLNMethodAbstract> met
     public String toString() {
         return name;
     }
+
+    @Override
+    public String getClassType() {
+        return "Interface";
+    }
 }
