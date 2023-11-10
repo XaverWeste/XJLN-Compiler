@@ -1,9 +1,13 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.utility.MatchedList;
+import javassist.CannotCompileException;
+import javassist.ClassPool;
+import javassist.bytecode.ClassFile;
 
 import java.io.File;
-import java.util.*;
+import java.io.IOException;
+import java.util.Set;
 
 public final class Compiler {
 
@@ -15,7 +19,7 @@ public final class Compiler {
             new String[]{"var"                        , "int"              , "double"          , "long"          , "float"          , "boolean"          , "char"               , "byte"          , "short"},
             new String[]{"com.github.xjln.utility.Var", "java.lang.Integer", "java.lang.Double", "java.lang.Long", "java.lang.Float", "java.lang.Boolean", "java.lang.Character", "java.lang.Byte", "java.lang.Short"});
 
-    private  static final Set<String> PRIMITIVES                  = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
+    public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
 
     private static boolean debug;
 
@@ -95,7 +99,7 @@ public final class Compiler {
         }else{
             clearFolder(file, false);
 
-            printDebug("output Folder cleared successfully");
+            printDebug("output Folder has been cleared");
         }
     }
 
@@ -109,6 +113,14 @@ public final class Compiler {
                         throw new RuntimeException("failed to delete Folder " + file.getPath());
             }else if(!file.delete())
                 throw new RuntimeException("failed to delete " + file.getPath());
+        }
+    }
+
+    private void writeFile(ClassFile cf){
+        try{
+            ClassPool.getDefault().makeClass(cf).writeFile("compiled");
+        }catch (IOException | CannotCompileException e) {
+            throw new RuntimeException("failed to write ClassFile for " + cf.getName());
         }
     }
 
