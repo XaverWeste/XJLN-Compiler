@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class Lexer {
+public final class Lexer {
 
-    public static TokenHandler toToken(String line){
+    public static TokenHandler lex(String line){
         List<Token> tokens = new ArrayList<>();
         char[] chars = line.toCharArray();
         StringBuilder value;

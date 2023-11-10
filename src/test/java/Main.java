@@ -1,11 +1,10 @@
 import com.github.xjln.compiler.Compiler;
-import com.github.xjln.lang.XJLNMethod;
 import javassist.ClassPool;
 import javassist.bytecode.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        new Compiler("src/test/java/Clazz", "src/test/java");
+        new Compiler(true, "src/test/xjln");
         //printClass("Test");
     }
 
