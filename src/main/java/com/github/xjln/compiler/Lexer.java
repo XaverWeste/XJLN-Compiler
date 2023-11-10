@@ -13,7 +13,13 @@ public class Lexer {
 
         for(int i = 0; i < chars.length; i++){
 
-            if(Character.isDigit(chars[i])){
+            if(chars[i] == '#'){
+                i++;
+
+                while (chars[i] != '#')
+                    i++;
+                i--;
+            }else if(Character.isDigit(chars[i])){
 
                 value = new StringBuilder();
                 value.append(chars[i]);
@@ -97,12 +103,5 @@ public class Lexer {
 
     private static boolean isOperator(char c){
         return String.valueOf(c).matches("[-+*/!=<>%&|]");
-    }
-
-    public static boolean isOperator(String s){
-        for(char c:s.toCharArray())
-            if(!isOperator(c))
-                return false;
-        return true;
     }
 }
