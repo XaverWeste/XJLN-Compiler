@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class TokenHandler {
+public final class TokenHandler {
 
     private final Token[] tokens;
     private int index;

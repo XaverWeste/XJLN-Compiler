@@ -1,12 +1,15 @@
 package com.github.xjln.compiler;
 
+import com.github.xjln.lang.Compilable;
 import com.github.xjln.utility.MatchedList;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.bytecode.ClassFile;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Set;
 
 public final class Compiler {
@@ -23,6 +26,9 @@ public final class Compiler {
 
     private static boolean debug;
 
+    private final HashMap<String, Compilable> classes = new HashMap<>();
+    private final Parser parser = new Parser();
+
     /**
      * compiles all .xjln Files in the given Folders and runs the main method in the given Main class
      * @param mainClass the class that contains the main method
@@ -38,7 +44,7 @@ public final class Compiler {
             //TODO run main
         }
 
-        System.out.println("\nFinished compilation successfully");
+        System.out.println("\nFinished compilation successfully\n");
     }
 
     /**
@@ -53,7 +59,7 @@ public final class Compiler {
             compile(srcFolders);
         }
 
-        System.out.println("\nFinished compilation successfully");
+        System.out.println("\nFinished compilation successfully\n");
     }
 
     /**
@@ -67,11 +73,14 @@ public final class Compiler {
             compile(srcFolders);
         }
 
-        System.out.println("\nFinished compilation successfully");
+        System.out.println("\nFinished compilation successfully\n");
     }
 
     private void compile(String[] srcFolders){
         validateFolders(srcFolders);
+
+        for(String folder:srcFolders)
+            compileFolder(new File(folder));
     }
 
     private void validateFolders(String[] srcFolders){
@@ -121,6 +130,25 @@ public final class Compiler {
             ClassPool.getDefault().makeClass(cf).writeFile("compiled");
         }catch (IOException | CannotCompileException e) {
             throw new RuntimeException("failed to write ClassFile for " + cf.getName());
+        }
+    }
+
+    private void compileFolder(File folder){
+        for(File file:folder.listFiles()) {
+            if (file.isDirectory())
+                compileFolder(file);
+            else
+                compileFile(file);
+        }
+    }
+
+    private void compileFile(File file){
+        if(file.getName().endsWith(".xjln")) {
+            try {
+                classes.putAll(parser.parseFile(file));
+            } catch (FileNotFoundException ignored) {
+                throw new RuntimeException("Unable to access " + file.getPath());
+            }
         }
     }
 
