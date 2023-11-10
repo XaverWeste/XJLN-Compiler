@@ -1,4 +1,4 @@
-# ![alt text](https://github.com/XaverWeste/XJLN-Compiler/blob/next/res/XJLN-Logo.png?raw=true)
+# ![alt text](https://github.com/XaverWeste/XJLN-Compiler/blob/master/res/XJLN-Logo.png?raw=true)
 
 ![Build](https://github.com/XaverWeste/XJLN-Compiler/actions/workflows/maven.yml/badge.svg)
 
