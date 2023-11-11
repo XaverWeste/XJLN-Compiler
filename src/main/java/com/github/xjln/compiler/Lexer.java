@@ -16,9 +16,11 @@ public final class Lexer {
             if(chars[i] == '#'){
                 i++;
 
-                while (chars[i] != '#')
+                while (i < chars.length && chars[i] != '#')
                     i++;
-                i--;
+
+                if(chars.length != i)
+                    i--;
             }else if(Character.isDigit(chars[i])){
 
                 value = new StringBuilder();

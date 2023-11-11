@@ -1,4 +1,4 @@
 package com.github.xjln.lang;
 
-public interface Compilable {
+public sealed class Compilable permits XJLNEnum, XJLNInterface, XJLNClass {
 }
