@@ -1,6 +1,6 @@
 package com.github.xjln.compiler;
 
-import com.github.xjln.lang.Compilable;
+import com.github.xjln.lang.XJLNFile;
 import com.github.xjln.utility.MatchedList;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
@@ -10,6 +10,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Set;
 
 public final class Compiler {
@@ -26,7 +27,7 @@ public final class Compiler {
 
     private static boolean debug;
 
-    private final HashMap<String, Compilable> classes = new HashMap<>();
+    private final HashMap<String, XJLNFile> files = new HashMap<>();
     private final Parser parser = new Parser();
 
     /**
@@ -44,11 +45,11 @@ public final class Compiler {
             //TODO run main
         }
 
-        System.out.println("\nFinished compilation successfully\n");
+        System.out.println("\nFinished compilation process successfully\n");
     }
 
     /**
-     * compiles all .xjln Files in the given Folders
+     * compiles all .xjln Files in the given Folders. No Main Method will be executed
      * @param enableDebugInformation if information of the compilation process should be shown
      * @param srcFolders the folders to compile
      * @throws RuntimeException if there are errors within the .xjln Files
@@ -59,11 +60,11 @@ public final class Compiler {
             compile(srcFolders);
         }
 
-        System.out.println("\nFinished compilation successfully\n");
+        System.out.println("\nFinished compilation process successfully\n");
     }
 
     /**
-     * compiles all .xjln Files in the given Folders
+     * compiles all .xjln Files in the given Folders. No Main Method will be executed, no information of the compilation process will be shown
      * @param srcFolders the folders to compile
      * @throws RuntimeException if there are errors within the .xjln Files
      */
@@ -73,14 +74,16 @@ public final class Compiler {
             compile(srcFolders);
         }
 
-        System.out.println("\nFinished compilation successfully\n");
+        System.out.println("\nFinished compilation process successfully\n");
     }
 
     private void compile(String[] srcFolders){
         validateFolders(srcFolders);
 
         for(String folder:srcFolders)
-            compileFolder(new File(folder));
+            parseFolder(new File(folder));
+
+        printDebug("parsing finished successfully");
     }
 
     private void validateFolders(String[] srcFolders){
@@ -113,15 +116,19 @@ public final class Compiler {
     }
 
     private void clearFolder(File folder, boolean delete){
-        for(File file:folder.listFiles()){
-            if(file.isDirectory()) {
+        for(File file: Objects.requireNonNull(folder.listFiles())){
+            if(file.isDirectory())
                 clearFolder(file, true);
-
-                if(delete && file.listFiles().length == 0)
-                    if(!file.delete())
-                        throw new RuntimeException("failed to delete Folder " + file.getPath());
-            }else if(!file.delete())
+            else if(!file.delete())
                 throw new RuntimeException("failed to delete " + file.getPath());
+        }
+
+        if(delete){
+            if(Objects.requireNonNull(folder.listFiles()).length != 0)
+                throw new RuntimeException("failed to delete files in " + folder.getPath());
+
+            if(!folder.delete())
+                throw new RuntimeException("failed to delete " + folder.getPath());
         }
     }
 
@@ -133,23 +140,31 @@ public final class Compiler {
         }
     }
 
-    private void compileFolder(File folder){
-        for(File file:folder.listFiles()) {
+    private void parseFolder(File folder){
+        for(File file: Objects.requireNonNull(folder.listFiles())) {
             if (file.isDirectory())
-                compileFolder(file);
+                parseFolder(file);
             else
-                compileFile(file);
+                parseFile(file);
         }
     }
 
-    private void compileFile(File file){
+    private void parseFile(File file){
         if(file.getName().endsWith(".xjln")) {
             try {
-                classes.putAll(parser.parseFile(file));
+                XJLNFile xjlnFile = parser.parseFile(file);
+                if(xjlnFile != null)
+                    files.put(file.getPath().substring(0, file.getPath().length() - 5), parser.parseFile(file));
             } catch (FileNotFoundException ignored) {
                 throw new RuntimeException("Unable to access " + file.getPath());
             }
         }
+    }
+
+    public static String validateName(String name){
+        name = name.replace("/", ".");
+        name = name.replace("\\", ".");
+        return name;
     }
 
     private static void printDebug(String message){
