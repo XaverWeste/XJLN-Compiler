@@ -28,9 +28,8 @@ public final class Parser {
         classes = new HashMap<>();
         uses = new HashMap<>();
 
-        file = src.getPath().substring(0, src.getPath().length() - 5);
-        line = 1;
-        token = Lexer.lex(scanner.nextLine());
+        file = src.getPath().substring(0, src.getPath().length() - 5).replace("\\", "/");
+        line = 0;
 
         while (scanner.hasNextLine()){
             nextLine();
@@ -64,9 +63,9 @@ public final class Parser {
         String from;
         String as;
 
-        token.assertToken("/", Token.Type.IDENTIFIER);
+        token.assertToken("//", Token.Type.IDENTIFIER);
 
-        if(token.current().equals("/"))
+        if(token.current().equals("//"))
             from = parsePath();
         else{
             if(token.next().equals("/")) {
@@ -79,6 +78,7 @@ public final class Parser {
                 while (token.assertToken(",", "from").equals(","))
                     use.add(token.assertToken(Token.Type.IDENTIFIER).s());
 
+                token.next();
                 from = parsePath();
             }
         }
@@ -91,13 +91,13 @@ public final class Parser {
         }else
             as = null;
 
-        if(use.isEmpty()){
+        if(use.isEmpty() || use.size() == 1){
             if(as == null)
-                as = from.substring(from.length() - from.split("/")[from.split("/").length - 1].length() + 1);
+                as = from.substring(from.length() - from.split("/")[from.split("/").length - 1].length());
 
             from = Compiler.validateName(from);
 
-            if(uses.containsKey("as"))
+            if(uses.containsKey(as))
                 throw new RuntimeException("alias " + as + " is already defined");
 
             uses.put(as, from);
@@ -117,9 +117,7 @@ public final class Parser {
     private String parsePath(){
         StringBuilder path = new StringBuilder();
 
-        if(token.current().equals("/")){
-            token.assertToken("/");
-
+        if(token.current().equals("//")){
             path.append(file, 0, file.length() - file.split("/")[file.split("/").length - 1].length());
 
             token.assertToken(Token.Type.IDENTIFIER);
@@ -130,7 +128,7 @@ public final class Parser {
         while (token.hasNext() && token.next().equals("/"))
             path.append("/").append(token.assertToken(Token.Type.IDENTIFIER));
 
-        if(token.current().equals("/"))
+        if(!path.toString().endsWith(token.current().s()))
             token.last();
 
         return path.toString();

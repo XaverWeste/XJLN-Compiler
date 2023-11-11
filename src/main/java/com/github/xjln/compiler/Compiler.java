@@ -154,7 +154,7 @@ public final class Compiler {
             try {
                 XJLNFile xjlnFile = parser.parseFile(file);
                 if(xjlnFile != null)
-                    files.put(file.getPath().substring(0, file.getPath().length() - 5), parser.parseFile(file));
+                    files.put(file.getPath().substring(0, file.getPath().length() - 5), xjlnFile);
             } catch (FileNotFoundException ignored) {
                 throw new RuntimeException("Unable to access " + file.getPath());
             }
