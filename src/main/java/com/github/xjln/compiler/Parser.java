@@ -1,6 +1,9 @@
 package com.github.xjln.compiler;
 
+import com.github.xjln.bytecode.AccessFlag;
 import com.github.xjln.lang.Compilable;
+import com.github.xjln.lang.XJLNClass;
+import com.github.xjln.lang.XJLNField;
 import com.github.xjln.lang.XJLNFile;
 
 import java.io.File;
@@ -13,6 +16,8 @@ public final class Parser {
 
     private HashMap<String, Compilable> classes;
     private HashMap<String, String> uses;
+    private XJLNClass main;
+    private XJLNClass current;
     private Scanner scanner;
 
     private String file;
@@ -27,6 +32,8 @@ public final class Parser {
 
         classes = new HashMap<>();
         uses = new HashMap<>();
+        main = new XJLNClass();
+        current = null;
 
         file = src.getPath().substring(0, src.getPath().length() - 5).replace("\\", "/");
         line = 0;
@@ -49,13 +56,17 @@ public final class Parser {
                         error("illegal argument");
                     }
                     default -> {
-                        error("illegal argument");
+                        try {
+                            parseField();
+                        }catch (RuntimeException e){
+                            error(e);
+                        }
                     }
                 }
             }
         }
 
-        return new XJLNFile(classes, uses);
+        return new XJLNFile(main, classes, uses);
     }
 
     private void parseUse(){
@@ -132,6 +143,45 @@ public final class Parser {
             token.last();
 
         return path.toString();
+    }
+
+    private void parseField(){
+        token.toFirst();
+
+        AccessFlag accessFlag = switch (token.assertToken(Token.Type.IDENTIFIER).s()){
+            case "public" -> AccessFlag.ACC_PUBLIC;
+            case "protected" -> AccessFlag.ACC_PROTECTED;
+            case "private" -> AccessFlag.ACC_PRIVATE;
+            default -> null;
+        };
+
+        if(accessFlag == null){
+            accessFlag = AccessFlag.ACC_PUBLIC;
+            token.last();
+        }
+
+        String type = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        boolean statik = type.equals("statik");
+        if(statik)
+            type = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        boolean constant = type.equals("const");
+        if(constant)
+            type = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        String name = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        //TODO initvalue
+
+        XJLNField field = new XJLNField(accessFlag, constant, type);
+
+        if(current == null)
+            main.addStaticField(name, field);
+        else if(statik)
+            current.addStaticField(name, field);
+        else
+            current.addField(name, field);
     }
 
     private void nextLine(){

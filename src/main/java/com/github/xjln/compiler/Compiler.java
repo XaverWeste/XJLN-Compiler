@@ -1,10 +1,15 @@
 package com.github.xjln.compiler;
 
+import com.github.xjln.bytecode.AccessFlag;
+import com.github.xjln.lang.XJLNClass;
+import com.github.xjln.lang.XJLNField;
 import com.github.xjln.lang.XJLNFile;
 import com.github.xjln.utility.MatchedList;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.bytecode.ClassFile;
+import javassist.bytecode.ConstPool;
+import javassist.bytecode.FieldInfo;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -44,8 +49,6 @@ public final class Compiler {
             compile(srcFolders);
             //TODO run main
         }
-
-        System.out.println("\nFinished compilation process successfully\n");
     }
 
     /**
@@ -59,8 +62,6 @@ public final class Compiler {
             debug = enableDebugInformation;
             compile(srcFolders);
         }
-
-        System.out.println("\nFinished compilation process successfully\n");
     }
 
     /**
@@ -73,8 +74,6 @@ public final class Compiler {
             debug = false;
             compile(srcFolders);
         }
-
-        System.out.println("\nFinished compilation process successfully\n");
     }
 
     private void compile(String[] srcFolders){
@@ -84,6 +83,10 @@ public final class Compiler {
             parseFolder(new File(folder));
 
         printDebug("parsing finished successfully");
+
+        compileFiles();
+
+        System.out.println("\nFinished compilation process successfully\n");
     }
 
     private void validateFolders(String[] srcFolders){
@@ -132,14 +135,6 @@ public final class Compiler {
         }
     }
 
-    private void writeFile(ClassFile cf){
-        try{
-            ClassPool.getDefault().makeClass(cf).writeFile("compiled");
-        }catch (IOException | CannotCompileException e) {
-            throw new RuntimeException("failed to write ClassFile for " + cf.getName());
-        }
-    }
-
     private void parseFolder(File folder){
         for(File file: Objects.requireNonNull(folder.listFiles())) {
             if (file.isDirectory())
@@ -158,6 +153,38 @@ public final class Compiler {
             } catch (FileNotFoundException ignored) {
                 throw new RuntimeException("Unable to access " + file.getPath());
             }
+        }
+    }
+
+    private void compileFiles(){
+        for(String path: files.keySet()){
+            XJLNFile file = files.get(path);
+
+            if(!file.main.isEmpty())
+                compile(file.main, path + ".Main");
+        }
+    }
+
+    private void compile(XJLNClass clazz, String name){
+        ClassFile cf = new ClassFile(false, name, null);
+        cf.setAccessFlags(AccessFlag.PUBLIC); //TODO accessflag
+
+        for(String field:clazz.staticFields.keySet()){
+            cf.addField2(compileField(field, clazz.getField(field), true, cf.getConstPool()));
+        }
+    }
+
+    private FieldInfo compileField(String name, XJLNField field, boolean statik, ConstPool cp){
+        FieldInfo fInfo = new FieldInfo(cp, name, "I"); //TODO desc
+        fInfo.setAccessFlags(AccessFlag.PUBLIC + (statik ? AccessFlag.STATIC : 0)); //TODO Accessflag
+        return fInfo;
+    }
+
+    private void writeFile(ClassFile cf){
+        try{
+            ClassPool.getDefault().makeClass(cf).writeFile("compiled");
+        }catch (IOException | CannotCompileException e) {
+            throw new RuntimeException("failed to write ClassFile for " + cf.getName());
         }
     }
 
