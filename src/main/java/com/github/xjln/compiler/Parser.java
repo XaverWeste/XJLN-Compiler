@@ -155,6 +155,8 @@ public final class Parser {
             default -> null;
         };
 
+        //TODO transient volatile
+
         if(accessFlag == null){
             accessFlag = AccessFlag.ACC_PUBLIC;
             token.last();
@@ -166,15 +168,26 @@ public final class Parser {
         if(statik)
             type = token.assertToken(Token.Type.IDENTIFIER).s();
 
+        boolean transiend = type.equals("transient");
+        if(transiend)
+            type = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        boolean volatil = type.equals("volatile");
+        if(volatil)
+            type = token.assertToken(Token.Type.IDENTIFIER).s();
+
         boolean constant = type.equals("const");
         if(constant)
             type = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        if(volatil && constant)
+            throw new RuntimeException("Field should not be transient and constant");
 
         String name = token.assertToken(Token.Type.IDENTIFIER).s();
 
         //TODO initvalue
 
-        XJLNField field = new XJLNField(accessFlag, constant, type);
+        XJLNField field = new XJLNField(accessFlag, statik, transiend, volatil, constant, type);
 
         if(current == null)
             main.addStaticField(name, field);

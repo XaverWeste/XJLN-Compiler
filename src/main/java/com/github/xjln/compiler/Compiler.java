@@ -170,13 +170,15 @@ public final class Compiler {
         cf.setAccessFlags(AccessFlag.PUBLIC); //TODO accessflag
 
         for(String field:clazz.staticFields.keySet()){
-            cf.addField2(compileField(field, clazz.getField(field), true, cf.getConstPool()));
+            cf.addField2(compileField(field, clazz.getField(field), cf.getConstPool()));
         }
+
+        writeFile(cf);
     }
 
-    private FieldInfo compileField(String name, XJLNField field, boolean statik, ConstPool cp){
-        FieldInfo fInfo = new FieldInfo(cp, name, "I"); //TODO desc
-        fInfo.setAccessFlags(AccessFlag.PUBLIC + (statik ? AccessFlag.STATIC : 0)); //TODO Accessflag
+    private FieldInfo compileField(String name, XJLNField field, ConstPool cp){
+        FieldInfo fInfo = new FieldInfo(cp, name, toDesc(field.type()));
+        fInfo.setAccessFlags(field.getAccessFlag());
         return fInfo;
     }
 
@@ -186,6 +188,26 @@ public final class Compiler {
         }catch (IOException | CannotCompileException e) {
             throw new RuntimeException("failed to write ClassFile for " + cf.getName());
         }
+    }
+
+    private String toDesc(String...types){
+        StringBuilder desc = new StringBuilder();
+
+        for(String type:types){
+            switch (type){
+                case "int"     -> desc.append("I");
+                case "short"   -> desc.append("S");
+                case "long"    -> desc.append("J");
+                case "double"  -> desc.append("D");
+                case "float"   -> desc.append("F");
+                case "boolean" -> desc.append("Z");
+                case "char"    -> desc.append("C");
+                case "byte"    -> desc.append("B");
+                default -> desc.append("L").append(type).append(";"); //TODO arrays
+            }
+        }
+
+        return desc.toString();
     }
 
     public static String validateName(String name){
