@@ -2,7 +2,7 @@ package com.github.xjln.lang;
 
 import com.github.xjln.bytecode.AccessFlag;
 
-public record XJLNField(AccessFlag accessFlag, boolean statik, boolean transiend, boolean volatil, boolean constant, String type) {
+public record XJLNField(AccessFlag accessFlag, boolean statik, boolean transiend, boolean volatil, boolean constant, String type, String initValue, int lineInFile) {
 
     public int getAccessFlag(){
         int accessFlag = switch (accessFlag()){

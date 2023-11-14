@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.Set;
 
 public final class Parser {
 
@@ -53,7 +54,11 @@ public final class Parser {
                         }
                     }
                     case "def" -> {
-                        error("illegal argument");
+                        try {
+                            parseDef();
+                        }catch (RuntimeException e){
+                            error(e);
+                        }
                     }
                     default -> {
                         try {
@@ -145,6 +150,11 @@ public final class Parser {
         return path.toString();
     }
 
+    private void parseDef(){
+        //static final abstract synchronised
+        //final abstract
+    }
+
     private void parseField(){
         token.toFirst();
 
@@ -155,39 +165,44 @@ public final class Parser {
             default -> null;
         };
 
-        //TODO transient volatile
-
         if(accessFlag == null){
             accessFlag = AccessFlag.ACC_PUBLIC;
             token.last();
         }
 
+        boolean statik = false;
+        boolean transiend = false;
+        boolean volatil = false;
+        boolean constant = false;
         String type = token.assertToken(Token.Type.IDENTIFIER).s();
 
-        boolean statik = type.equals("static");
-        if(statik)
+        while(Set.of("static", "transient", "volatile", "const").contains(type)){
+            switch (type){
+                case "static" -> statik = true;
+                case "transient" -> transiend = true;
+                case "volatile" -> volatil = true;
+                case "const" -> constant = true;
+            }
             type = token.assertToken(Token.Type.IDENTIFIER).s();
-
-        boolean transiend = type.equals("transient");
-        if(transiend)
-            type = token.assertToken(Token.Type.IDENTIFIER).s();
-
-        boolean volatil = type.equals("volatile");
-        if(volatil)
-            type = token.assertToken(Token.Type.IDENTIFIER).s();
-
-        boolean constant = type.equals("const");
-        if(constant)
-            type = token.assertToken(Token.Type.IDENTIFIER).s();
+        }
 
         if(volatil && constant)
             throw new RuntimeException("Field should not be transient and constant");
 
         String name = token.assertToken(Token.Type.IDENTIFIER).s();
 
-        //TODO initvalue
+        token.assertNull(); //TODO compile initValue and remove statement
 
-        XJLNField field = new XJLNField(accessFlag, statik, transiend, volatil, constant, type);
+        StringBuilder initValue = new StringBuilder();
+        if(token.hasNext()){
+            token.assertToken("=");
+            token.assertHasNext();
+
+            while (token.hasNext())
+                initValue.append(token.next().s());
+        }
+
+        XJLNField field = new XJLNField(accessFlag, statik, transiend, volatil, constant, type, initValue.toString(), line);
 
         if(current == null)
             main.addStaticField(name, field);
