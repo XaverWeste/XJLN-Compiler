@@ -214,7 +214,7 @@ public final class Compiler {
         code.addAload(0);
         code.addAload(1);
         code.addIload(2);
-        code.addInvokespecial("java/lang/Enum", "<inti>", "(Ljava/lang/String;I)V");
+        code.addInvokespecial("java/lang/Enum", "<init>", "(Ljava/lang/String;I)V");
         code.add(0xb1); //return
         mInfo.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(mInfo);

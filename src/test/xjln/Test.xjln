@@ -1,1 +1,1 @@
-def type test = a | b
+def type test = a | b | c
