@@ -1,15 +1,11 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.bytecode.AccessFlag;
-import com.github.xjln.lang.XJLNClass;
-import com.github.xjln.lang.XJLNField;
-import com.github.xjln.lang.XJLNFile;
+import com.github.xjln.lang.*;
 import com.github.xjln.utility.MatchedList;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
-import javassist.bytecode.ClassFile;
-import javassist.bytecode.ConstPool;
-import javassist.bytecode.FieldInfo;
+import javassist.bytecode.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -46,7 +42,7 @@ public final class Compiler {
         debug = enableDebugInformation;
 
         if(srcFolders.length > 0) {
-            compile(srcFolders);
+            compileClass(srcFolders);
             //TODO run main
         }
     }
@@ -60,7 +56,7 @@ public final class Compiler {
     public Compiler(boolean enableDebugInformation, String... srcFolders) throws RuntimeException{
         if(srcFolders.length > 0) {
             debug = enableDebugInformation;
-            compile(srcFolders);
+            compileClass(srcFolders);
         }
     }
 
@@ -72,11 +68,11 @@ public final class Compiler {
     public Compiler(String... srcFolders) throws RuntimeException{
         if(srcFolders.length > 0) {
             debug = false;
-            compile(srcFolders);
+            compileClass(srcFolders);
         }
     }
 
-    private void compile(String[] srcFolders){
+    private void compileClass(String[] srcFolders){
         validateFolders(srcFolders);
 
         for(String folder:srcFolders)
@@ -161,11 +157,108 @@ public final class Compiler {
             XJLNFile file = files.get(path);
 
             if(!file.main.isEmpty())
-                compile(file.main, path + ".Main");
+                compileClass(file.main, path + ".Main");
+
+            for(String name:file.classes.keySet()){
+                Compilable c = file.classes.get(name);
+
+                System.out.println(name);
+
+                if(c instanceof XJLNType)
+                    compileType((XJLNType) c, name);
+            }
         }
     }
 
-    private void compile(XJLNClass clazz, String name){
+    private void compileType(XJLNType type, String name){
+        ClassFile cf = new ClassFile(false, name, "java.lang.Enum");
+        cf.setAccessFlags(type.getAccessFlag());
+
+        //Types
+        for(String value: type.values){
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), value, "L" + name + ";");
+            fInfo.setAccessFlags(0x4019);
+            cf.addField2(fInfo);
+        }
+
+        //$VALUES
+        FieldInfo fInfo = new FieldInfo(cf.getConstPool(), "$VALUES", "[L" + name + ";");
+        fInfo.setAccessFlags(0x101A);
+        cf.addField2(fInfo);
+
+        //values()
+        MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "values","()[L" + name + ";");
+        mInfo.setAccessFlags(0x9);
+        Bytecode code = new Bytecode(cf.getConstPool());
+        code.addGetstatic(name, "$Values", "[L" + name + ";");
+        code.addInvokevirtual("[L" + name + ";", "clone","()[Ljava.lang.Object;");
+        code.addCheckcast("[L" + name + ";");
+        code.add(0xb0); //areturn
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
+
+        //valueOf
+        mInfo = new MethodInfo(cf.getConstPool(), "valueOf", "L" + name + ";");
+        mInfo.setAccessFlags(0x9);
+        code = new Bytecode(cf.getConstPool());
+        code.addLdc("L" + name + ";.class");
+        code.addAload(0);
+        code.addInvokestatic("java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;");
+        code.addCheckcast(name);
+        code.add(0xb0); //areturn
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
+
+        //<inti>
+        mInfo = new MethodInfo(cf.getConstPool(), "<init>", "(Ljava/lang/String;I)V");
+        mInfo.setAccessFlags(0x2);
+        code = new Bytecode(cf.getConstPool());
+        code.addAload(0);
+        code.addAload(1);
+        code.addIload(2);
+        code.addInvokespecial("java.lang.Enum", "<inti>", "(Ljava/lang/String;I)V");
+        code.add(0xb1); //return
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
+
+        //$values
+        mInfo = new MethodInfo(cf.getConstPool(), "$values", "()[L" + name + ";");
+        mInfo.setAccessFlags(0x100A);
+        code = new Bytecode(cf.getConstPool());
+        code.add(0x5); //iconst_2
+        code.addAnewarray(name);
+        for(int i = 0;i < type.values.length;i++) {
+            code.add(0x59); //dup
+            code.addIconst(i);
+            code.addGetstatic(name, type.values[i], "L" + name + ";");
+            code.addAload(i); //TODO check
+        }
+        code.add(0xb0); //areturn
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
+
+        //<clinit>
+        mInfo = new MethodInfo(cf.getConstPool(), "<clinit>", "()V");
+        mInfo.setAccessFlags(0x8);
+        code = new Bytecode(cf.getConstPool());
+        for(int i = 0;i < type.values.length;i++) {
+            code.addNew(name);
+            code.add(0x59); //dup
+            code.addLdc(type.values[i]);
+            code.addIconst(i);
+            code.addInvokestatic(name, "<init>", "(Ljava/lang/String;I)V");
+            code.addPutstatic(name, type.values[i], "L" + name + ";");
+        }
+        code.addInvokestatic(name, "$values", "()[L" + name + ";");
+        code.addPutstatic(name, "$VALUES", "[L" + name + ";");
+        code.add(0xb1); //return
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
+
+        writeFile(cf);
+    }
+
+    private void compileClass(XJLNClass clazz, String name){
         ClassFile cf = new ClassFile(false, name, null);
         cf.setAccessFlags(AccessFlag.PUBLIC); //TODO accessflag
 

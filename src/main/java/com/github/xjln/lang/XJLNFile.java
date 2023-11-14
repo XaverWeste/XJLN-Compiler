@@ -4,8 +4,8 @@ import java.util.HashMap;
 
 public final class XJLNFile {
 
-    private final HashMap<String, Compilable> classes;
-    private final HashMap<String, String> uses;
+    public final HashMap<String, Compilable> classes;
+    public final HashMap<String, String> uses;
     public final XJLNClass main;
 
     public XJLNFile(XJLNClass main, HashMap<String, Compilable> classes, HashMap<String, String> uses){

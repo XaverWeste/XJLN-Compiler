@@ -50,4 +50,9 @@ public final class XJLNClass extends Compilable{
 
         return true;
     }
+
+    @Override
+    public int getAccessFlag() {
+        return 0; //TODO
+    }
 }

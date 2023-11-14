@@ -18,4 +18,15 @@ public final class XJLNType extends Compilable{
 
         return false;
     }
+
+    @Override
+    public int getAccessFlag() {
+        int acc = switch (accessFlag){
+            case ACC_PUBLIC -> AccessFlag.PUBLIC;
+            case ACC_PROTECTED -> AccessFlag.PROTECTED;
+            case ACC_PRIVATE -> AccessFlag.PRIVATE;
+        };
+
+        return acc + AccessFlag.ENUM + AccessFlag.FINAL;
+    }
 }

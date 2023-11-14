@@ -249,7 +249,7 @@ public final class Parser {
         if(classes.containsKey(name))
             throw new RuntimeException("Type is already defined");
 
-        classes.put("name", type); //TODO
+        classes.put(name, type); //TODO
     }
 
     private void parseData(){
