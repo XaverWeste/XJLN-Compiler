@@ -162,8 +162,6 @@ public final class Compiler {
             for(String name:file.classes.keySet()){
                 Compilable c = file.classes.get(name);
 
-                System.out.println(name);
-
                 if(c instanceof XJLNType)
                     compileType((XJLNType) c, name);
             }
@@ -190,7 +188,7 @@ public final class Compiler {
         MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "values","()[L" + name + ";");
         mInfo.setAccessFlags(0x9);
         Bytecode code = new Bytecode(cf.getConstPool());
-        code.addGetstatic(name, "$Values", "[L" + name + ";");
+        code.addGetstatic(name, "$VALUES", "[L" + name + ";");
         code.addInvokevirtual("[L" + name + ";", "clone","()[Ljava.lang.Object;");
         code.addCheckcast("[L" + name + ";");
         code.add(0xb0); //areturn
@@ -198,12 +196,12 @@ public final class Compiler {
         cf.addMethod2(mInfo);
 
         //valueOf
-        mInfo = new MethodInfo(cf.getConstPool(), "valueOf", "L" + name + ";");
+        mInfo = new MethodInfo(cf.getConstPool(), "valueOf", "(Ljava/lang/String;)L" + name + ";");
         mInfo.setAccessFlags(0x9);
         code = new Bytecode(cf.getConstPool());
         code.addLdc("L" + name + ";.class");
         code.addAload(0);
-        code.addInvokestatic("java.lang.Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;");
+        code.addInvokestatic("java/lang/Enum", "valueOf", "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Enum;");
         code.addCheckcast(name);
         code.add(0xb0); //areturn
         mInfo.setCodeAttribute(code.toCodeAttribute());
@@ -216,7 +214,7 @@ public final class Compiler {
         code.addAload(0);
         code.addAload(1);
         code.addIload(2);
-        code.addInvokespecial("java.lang.Enum", "<inti>", "(Ljava/lang/String;I)V");
+        code.addInvokespecial("java/lang/Enum", "<inti>", "(Ljava/lang/String;I)V");
         code.add(0xb1); //return
         mInfo.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(mInfo);
@@ -225,7 +223,7 @@ public final class Compiler {
         mInfo = new MethodInfo(cf.getConstPool(), "$values", "()[L" + name + ";");
         mInfo.setAccessFlags(0x100A);
         code = new Bytecode(cf.getConstPool());
-        code.add(0x5); //iconst_2
+        code.addIconst(type.values.length);
         code.addAnewarray(name);
         for(int i = 0;i < type.values.length;i++) {
             code.add(0x59); //dup
@@ -237,30 +235,6 @@ public final class Compiler {
         mInfo.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(mInfo);
 
-        /*
-        System.out.print(mInfo.getAccessFlags() + " " + mInfo.getDescriptor() + " " + mInfo.getName());
-        CodeAttribute ca = mInfo.getCodeAttribute();
-
-        if(ca != null) {
-            CodeIterator ci = ca.iterator();
-
-            int last = -1;
-
-            while (ci.hasNext()) {
-                try {
-                    int index = ci.next();
-                    while (index > (last += 1)) {
-                        System.out.print(" " + ci.byteAt(last));
-                    }
-                    System.out.println(" ");
-                    int op = ci.byteAt(index);
-                    System.out.print("   " + index + " " + Mnemonic.OPCODE[op]);
-                }catch (Exception ignored){}
-            }
-        }
-
-         */
-
         //<clinit>
         mInfo = new MethodInfo(cf.getConstPool(), "<clinit>", "()V");
         mInfo.setAccessFlags(0x8);
@@ -270,14 +244,14 @@ public final class Compiler {
             code.add(0x59); //dup
             code.addLdc(type.values[i]);
             code.addIconst(i);
-            code.addInvokestatic(name, "<init>", "(Ljava/lang/String;I)V");
+            code.addInvokespecial(name, "<init>", "(Ljava/lang/String;I)V");
             code.addPutstatic(name, type.values[i], "L" + name + ";");
         }
         code.addInvokestatic(name, "$values", "()[L" + name + ";");
         code.addPutstatic(name, "$VALUES", "[L" + name + ";");
         code.add(0xb1); //return
         mInfo.setCodeAttribute(code.toCodeAttribute());
-        cf.addMethod2(mInfo);
+        cf.addMethod2(mInfo); //TODO fix
 
         writeFile(cf);
     }

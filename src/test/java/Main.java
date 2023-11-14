@@ -14,7 +14,7 @@ public class Main {
         ClassFile cf = cp.get(name)
                 .getClassFile();
 
-        System.out.println(cf.getName() + " " + cf.getSuperclass());
+        System.out.println(cf.getAccessFlags() + " " + cf.getName() + " " + cf.getSuperclass());
 
         for(FieldInfo f:cf.getFields()) System.out.println(f.getAccessFlags() + " " + f.getDescriptor() + " " + f.getName());
 
