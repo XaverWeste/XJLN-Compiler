@@ -151,13 +151,6 @@ public final class Parser {
     }
 
     private void parseDef(){
-        //static final abstract synchronised
-        //final abstract
-    }
-
-    private void parseField(){
-        token.toFirst();
-
         AccessFlag accessFlag = switch (token.assertToken(Token.Type.IDENTIFIER).s()){
             case "public" -> AccessFlag.ACC_PUBLIC;
             case "protected" -> AccessFlag.ACC_PROTECTED;
@@ -170,19 +163,106 @@ public final class Parser {
             token.last();
         }
 
-        boolean statik = false;
+        boolean statik      = false;
+        boolean finaly      = false;
+        boolean abstrakt    = false;
+        boolean synchronise = false;
+        String type = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        while (Set.of("static", "final", "abstract", "synchronised").contains(type)){
+            switch (type){
+                case "static"       -> statik      = true;
+                case "final"        -> finaly      = true;
+                case "abstract"     -> abstrakt    = true;
+                case "synchronised" -> synchronise = true;
+            }
+
+            type = token.assertToken(Token.Type.IDENTIFIER).s();
+        }
+
+        switch (type){
+            case "class" -> {
+                if(synchronise)
+                    throw new RuntimeException("Class should not be synchronised");
+
+                parseClass();
+            }
+            case "interface" -> {
+                if(synchronise)
+                    throw new RuntimeException("Interface should not be synchronised");
+
+                parseInterface();
+            }
+            case "type" -> {
+                if(synchronise)
+                    throw new RuntimeException("Type should not be synchronised");
+
+                parseType();
+            }
+            case "data" -> {
+                if(synchronise)
+                    throw new RuntimeException("Data should not be synchronised");
+
+                parseData();
+            }
+            default -> {
+                if(finaly)
+                    throw new RuntimeException("method should not be final");
+
+                parseMethod();
+            }
+        }
+    }
+
+    private void parseType(){
+        //TODO
+    }
+
+    private void parseData(){
+        //TODO
+    }
+
+    private void parseInterface(){
+        //TODO
+    }
+
+    private void parseClass(){
+        //TODO
+    }
+
+    private void parseMethod(){
+        //TODO
+    }
+
+    private void parseField(){
+        token.toFirst();
+
+        AccessFlag accessFlag = switch (token.assertToken(Token.Type.IDENTIFIER).s()){
+            case "public"    -> AccessFlag.ACC_PUBLIC;
+            case "protected" -> AccessFlag.ACC_PROTECTED;
+            case "private"   -> AccessFlag.ACC_PRIVATE;
+            default          -> null;
+        };
+
+        if(accessFlag == null){
+            accessFlag = AccessFlag.ACC_PUBLIC;
+            token.last();
+        }
+
+        boolean statik    = false;
         boolean transiend = false;
-        boolean volatil = false;
-        boolean constant = false;
+        boolean volatil   = false;
+        boolean constant  = false;
         String type = token.assertToken(Token.Type.IDENTIFIER).s();
 
         while(Set.of("static", "transient", "volatile", "const").contains(type)){
             switch (type){
-                case "static" -> statik = true;
+                case "static"    -> statik    = true;
                 case "transient" -> transiend = true;
-                case "volatile" -> volatil = true;
-                case "const" -> constant = true;
+                case "volatile"  -> volatil   = true;
+                case "const"     -> constant  = true;
             }
+
             type = token.assertToken(Token.Type.IDENTIFIER).s();
         }
 
