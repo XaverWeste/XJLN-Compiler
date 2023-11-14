@@ -231,11 +231,35 @@ public final class Compiler {
             code.add(0x59); //dup
             code.addIconst(i);
             code.addGetstatic(name, type.values[i], "L" + name + ";");
-            code.addAload(i); //TODO check
+            code.add(0x53); //aastore
         }
         code.add(0xb0); //areturn
         mInfo.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(mInfo);
+
+        /*
+        System.out.print(mInfo.getAccessFlags() + " " + mInfo.getDescriptor() + " " + mInfo.getName());
+        CodeAttribute ca = mInfo.getCodeAttribute();
+
+        if(ca != null) {
+            CodeIterator ci = ca.iterator();
+
+            int last = -1;
+
+            while (ci.hasNext()) {
+                try {
+                    int index = ci.next();
+                    while (index > (last += 1)) {
+                        System.out.print(" " + ci.byteAt(last));
+                    }
+                    System.out.println(" ");
+                    int op = ci.byteAt(index);
+                    System.out.print("   " + index + " " + Mnemonic.OPCODE[op]);
+                }catch (Exception ignored){}
+            }
+        }
+
+         */
 
         //<clinit>
         mInfo = new MethodInfo(cf.getConstPool(), "<clinit>", "()V");
