@@ -149,7 +149,7 @@ public final class Compiler {
             try {
                 XJLNFile xjlnFile = parser.parseFile(file);
                 if(xjlnFile != null)
-                    files.put(file.getPath().substring(0, file.getPath().length() - 5), xjlnFile);
+                    files.put(file.getPath().substring(0, file.getPath().length() - 5).replace("\\", "."), xjlnFile);
             } catch (FileNotFoundException ignored) {
                 throw new RuntimeException("Unable to access " + file.getPath());
             }
@@ -170,7 +170,7 @@ public final class Compiler {
         cf.setAccessFlags(AccessFlag.PUBLIC); //TODO accessflag
 
         for(String field:clazz.staticFields.keySet()){
-            cf.addField2(compileField(field, clazz.getField(field), cf.getConstPool()));
+            cf.addField2(compileField(field, clazz.getStaticField(field), cf.getConstPool()));
         }
 
         writeFile(cf);

@@ -164,7 +164,7 @@ public final class Parser {
 
         String type = token.assertToken(Token.Type.IDENTIFIER).s();
 
-        boolean statik = type.equals("statik");
+        boolean statik = type.equals("static");
         if(statik)
             type = token.assertToken(Token.Type.IDENTIFIER).s();
 

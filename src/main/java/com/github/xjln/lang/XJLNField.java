@@ -20,6 +20,9 @@ public record XJLNField(AccessFlag accessFlag, boolean statik, boolean transiend
         if(volatil)
             accessFlag += AccessFlag.VOLATILE;
 
+        if(constant)
+            accessFlag += AccessFlag.FINAL;
+
         return accessFlag;
     }
 }
