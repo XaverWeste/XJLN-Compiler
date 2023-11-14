@@ -1,15 +1,22 @@
 package com.github.xjln.lang;
 
+import com.github.xjln.bytecode.AccessFlag;
+
 import java.util.HashMap;
 
 public final class XJLNClass extends Compilable{
 
     public final HashMap<String, XJLNField> fields;
     public final HashMap<String, XJLNField> staticFields;
+    public final boolean finaly;
+    public final boolean abstrakt;
 
-    public XJLNClass(){
+    public XJLNClass(AccessFlag accessFlag, boolean finaly, boolean abstrakt){
+        super(accessFlag);
         fields = new HashMap<>();
         staticFields = new HashMap<>();
+        this.finaly = finaly;
+        this.abstrakt = abstrakt;
     }
 
     public void addField(String name, XJLNField field){

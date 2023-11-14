@@ -1,10 +1,7 @@
 package com.github.xjln.compiler;
 
 import com.github.xjln.bytecode.AccessFlag;
-import com.github.xjln.lang.Compilable;
-import com.github.xjln.lang.XJLNClass;
-import com.github.xjln.lang.XJLNField;
-import com.github.xjln.lang.XJLNFile;
+import com.github.xjln.lang.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -33,7 +30,7 @@ public final class Parser {
 
         classes = new HashMap<>();
         uses = new HashMap<>();
-        main = new XJLNClass();
+        main = new XJLNClass(AccessFlag.ACC_PUBLIC, true, true);
         current = null;
 
         file = src.getPath().substring(0, src.getPath().length() - 5).replace("\\", "/");
@@ -184,24 +181,36 @@ public final class Parser {
             case "class" -> {
                 if(synchronise)
                     throw new RuntimeException("Class should not be synchronised");
+                if(statik)
+                    throw new RuntimeException("Class should not be static");
 
                 parseClass();
             }
             case "interface" -> {
                 if(synchronise)
                     throw new RuntimeException("Interface should not be synchronised");
+                if(statik)
+                    throw new RuntimeException("Interface should not be static");
 
                 parseInterface();
             }
             case "type" -> {
                 if(synchronise)
                     throw new RuntimeException("Type should not be synchronised");
+                if(statik)
+                    throw new RuntimeException("Type should not be static");
+                if(abstrakt)
+                    throw new RuntimeException("Type should not be abstract");
+                if(finaly)
+                    throw new RuntimeException("Type should not be final");
 
-                parseType();
+                parseType(accessFlag);
             }
             case "data" -> {
                 if(synchronise)
                     throw new RuntimeException("Data should not be synchronised");
+                if(statik)
+                    throw new RuntimeException("Data should not be static");
 
                 parseData();
             }
@@ -214,8 +223,33 @@ public final class Parser {
         }
     }
 
-    private void parseType(){
-        //TODO
+    private void parseType(AccessFlag accessFlag){
+        ArrayList<String> values = new ArrayList<>();
+        String name = file + "." + token.assertToken(Token.Type.IDENTIFIER).s();
+
+        token.assertToken("=");
+        token.assertHasNext();
+
+        while (token.hasNext()){
+            String value = token.assertToken(Token.Type.IDENTIFIER).s();
+
+            if(values.contains(value))
+                throw new RuntimeException("value is already defined");
+
+            values.add(value);
+
+            if(token.hasNext()){
+                token.assertToken("|");
+                token.assertHasNext();
+            }
+        }
+
+        XJLNType type = new XJLNType(accessFlag, values.toArray(new String[0]));
+
+        if(classes.containsKey(name))
+            throw new RuntimeException("Type is already defined");
+
+        classes.put("name", type); //TODO
     }
 
     private void parseData(){
