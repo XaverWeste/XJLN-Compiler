@@ -253,7 +253,7 @@ public final class Compiler {
         code.addPutstatic(name, "$VALUES", "[L" + name + ";");
         code.add(0xb1); //return
         mInfo.setCodeAttribute(code.toCodeAttribute());
-        cf.addMethod2(mInfo); //TODO fix
+        cf.addMethod2(mInfo);
 
         writeFile(cf);
     }
@@ -271,7 +271,29 @@ public final class Compiler {
             cf.addField2(fInfo);
         }
 
-        //TODO <init>
+        //<init>
+        MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "<init>", "(" + toDesc(clazz.fields.getValueList().toArray(new XJLNField[0])) + ")V");
+        mInfo.setAccessFlags(AccessFlag.PUBLIC);
+        Bytecode code = new Bytecode(cf.getConstPool());
+        code.addAload(0);
+        code.addInvokespecial("java/lang/Object", "<init>", "()V");
+        for(int i = 1;i <= clazz.fields.size();i++){
+            code.addAload(0);
+            String desc = toDesc(clazz.fields.getValue(i - 1));
+            switch(desc){
+                case "J" -> code.addLload(i);
+                case "D" -> code.addDload(i);
+                case "F" -> code.addFload(i);
+                case "I", "Z", "B", "C", "S" -> code.addIload(i);
+                default -> code.addAload(i);
+            }
+            code.addPutfield(name, clazz.fields.getKey(i - 1), desc);
+        }
+        code.add(0xb1); //return
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
+
+        writeFile(cf);
     }
 
     private void compileClass(XJLNClass clazz, String name){
@@ -297,6 +319,15 @@ public final class Compiler {
         }catch (IOException | CannotCompileException e) {
             throw new RuntimeException("failed to write ClassFile for " + cf.getName());
         }
+    }
+
+    private String toDesc(XJLNField...fields){
+        StringBuilder desc = new StringBuilder();
+
+        for(XJLNField field:fields)
+            desc.append(toDesc(field.type()));
+
+        return desc.toString();
     }
 
     private String toDesc(String...types){
