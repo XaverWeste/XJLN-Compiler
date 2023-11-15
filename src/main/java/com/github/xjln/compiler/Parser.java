@@ -168,6 +168,12 @@ public final class Parser {
             type = token.assertToken(Token.Type.IDENTIFIER).s();
         }
 
+        boolean allConst = false;
+        if(type.equals("const")) {
+            type = token.assertToken("data").s();
+            allConst = true;
+        }
+
         switch (type){
             case "class" -> {
                 if(synchronise)
@@ -205,7 +211,7 @@ public final class Parser {
                 if(abstrakt)
                     throw new RuntimeException("Data should not be abstract");
 
-                parseData(accessFlag, finaly);
+                parseData(accessFlag, finaly, allConst);
             }
             default -> {
                 if(finaly)
@@ -245,7 +251,7 @@ public final class Parser {
         classes.put(name, type);
     }
 
-    private void parseData(AccessFlag accessFlag, boolean finaly){
+    private void parseData(AccessFlag accessFlag, boolean finaly, boolean allConst){
         String name = token.assertToken(Token.Type.IDENTIFIER).s();
 
         token.assertToken("=");
@@ -257,7 +263,7 @@ public final class Parser {
 
         MatchedList<String, XJLNField> fields = new MatchedList<>();
         while(th.hasNext()){
-            boolean constant = false;
+            boolean constant = allConst;
             String fieldType;
             String fieldName;
 
