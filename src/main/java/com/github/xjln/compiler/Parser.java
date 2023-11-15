@@ -195,7 +195,7 @@ public final class Parser {
                 if(finaly)
                     throw new RuntimeException("Interface should not be final");
 
-                parseInterface();
+                parseInterface(accessFlag, abstrakt);
             }
             case "type" -> {
                 if(synchronise)
@@ -299,8 +299,25 @@ public final class Parser {
         classes.put(name, data);
     }
 
-    private void parseInterface(){
-        //TODO
+    private void parseInterface(AccessFlag accessFlagInterface, boolean abstrakt){
+        String name = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        token.assertToken("{");
+        token.assertNull();
+
+        while (scanner.hasNext()){
+            nextLine();
+
+            if(!token.isEmpty()){
+                if(token.toStringNonMarked().trim().equals("}"))
+                    break;
+
+                error("illegal argument");
+            }
+        }
+
+        if(!token.toStringNonMarked().trim().equals("}"))
+            throw new RuntimeException("Expected }");
     }
 
     private void parseClass(){

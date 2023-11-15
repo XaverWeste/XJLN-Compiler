@@ -1,1 +1,1 @@
-def data test = [int i, boolean b]
+def data test = [const int i, boolean b]

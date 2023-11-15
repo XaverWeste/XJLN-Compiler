@@ -157,7 +157,7 @@ public final class Compiler {
             XJLNFile file = files.get(path);
 
             if(!file.main.isEmpty())
-                compileClass(file.main, path + ".Main");
+                compileClass(file.main, "Main", path);
 
             for(String name:file.classes.keySet()){
                 Compilable c = file.classes.get(name);
@@ -166,6 +166,8 @@ public final class Compiler {
                     compileType((XJLNTypeClass) c, name, path);
                 else if(c instanceof XJLNDataClass)
                     compileData((XJLNDataClass) c, name, path);
+                else if(c instanceof XJLNInterface)
+                    compileInterface((XJLNInterface) c, name, path);
             }
         }
     }
@@ -296,9 +298,16 @@ public final class Compiler {
         writeFile(cf);
     }
 
-    private void compileClass(XJLNClass clazz, String name){
-        ClassFile cf = new ClassFile(false, name, null);
-        cf.setAccessFlags(AccessFlag.PUBLIC); //TODO accessflag
+    private void compileInterface(XJLNInterface clazz, String name, String path){
+        ClassFile cf = new ClassFile(true, path + "." + name, null);
+        cf.setAccessFlags(clazz.getAccessFlag());
+
+        writeFile(cf);
+    }
+
+    private void compileClass(XJLNClass clazz, String name, String path){
+        ClassFile cf = new ClassFile(false, path + "." + name, null);
+        cf.setAccessFlags(clazz.getAccessFlag());
 
         for(String field:clazz.staticFields.keySet()){
             cf.addField2(compileField(field, clazz.getStaticField(field), cf.getConstPool()));
