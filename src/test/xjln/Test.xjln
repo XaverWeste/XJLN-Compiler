@@ -1,1 +1,4 @@
-def data test = [const int i, boolean b]
+def interface Test{
+
+    def public test(int i, double d) :: int
+}

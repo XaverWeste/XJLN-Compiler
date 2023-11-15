@@ -302,6 +302,14 @@ public final class Compiler {
         ClassFile cf = new ClassFile(true, path + "." + name, null);
         cf.setAccessFlags(clazz.getAccessFlag());
 
+        for(String methodName:clazz.methods.getKeyList()){
+            XJLNInterfaceMethod method = clazz.methods.getValue(methodName);
+
+            MethodInfo mInfo = new MethodInfo(cf.getConstPool(), methodName, "(" + toDesc(method.parameters().getValueList().toArray(new String[0])) + ")" + toDesc(method.returnType()));
+            mInfo.setAccessFlags(AccessFlag.PUBLIC + AccessFlag.ABSTRACT);
+            cf.addMethod2(mInfo);
+        }
+
         writeFile(cf);
     }
 
@@ -309,9 +317,8 @@ public final class Compiler {
         ClassFile cf = new ClassFile(false, path + "." + name, null);
         cf.setAccessFlags(clazz.getAccessFlag());
 
-        for(String field:clazz.staticFields.keySet()){
+        for(String field:clazz.staticFields.keySet())
             cf.addField2(compileField(field, clazz.getStaticField(field), cf.getConstPool()));
-        }
 
         writeFile(cf);
     }
@@ -352,7 +359,8 @@ public final class Compiler {
                 case "boolean" -> desc.append("Z");
                 case "char"    -> desc.append("C");
                 case "byte"    -> desc.append("B");
-                default -> desc.append("L").append(type).append(";"); //TODO arrays
+                case "void"    -> desc.append("V");
+                default        -> desc.append("L").append(type).append(";"); //TODO arrays
             }
         }
 

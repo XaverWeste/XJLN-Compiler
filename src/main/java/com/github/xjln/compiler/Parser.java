@@ -149,17 +149,7 @@ public final class Parser {
     }
 
     private void parseDef(){
-        AccessFlag accessFlag = switch (token.assertToken(Token.Type.IDENTIFIER).s()){
-            case "public" -> AccessFlag.ACC_PUBLIC;
-            case "protected" -> AccessFlag.ACC_PROTECTED;
-            case "private" -> AccessFlag.ACC_PRIVATE;
-            default -> null;
-        };
-
-        if(accessFlag == null){
-            accessFlag = AccessFlag.ACC_PUBLIC;
-            token.last();
-        }
+        AccessFlag accessFlag = getAccessFlag();
 
         boolean statik      = false;
         boolean finaly      = false;
@@ -195,7 +185,7 @@ public final class Parser {
                 if(finaly)
                     throw new RuntimeException("Interface should not be final");
 
-                parseInterface(accessFlag, abstrakt);
+                parseInterface(accessFlag);
             }
             case "type" -> {
                 if(synchronise)
@@ -299,11 +289,13 @@ public final class Parser {
         classes.put(name, data);
     }
 
-    private void parseInterface(AccessFlag accessFlagInterface, boolean abstrakt){
+    private void parseInterface(AccessFlag accessFlagInterface){
         String name = token.assertToken(Token.Type.IDENTIFIER).s();
 
         token.assertToken("{");
         token.assertNull();
+
+        MatchedList<String, XJLNInterfaceMethod> methods = new MatchedList<>();
 
         while (scanner.hasNext()){
             nextLine();
@@ -312,12 +304,58 @@ public final class Parser {
                 if(token.toStringNonMarked().trim().equals("}"))
                     break;
 
-                error("illegal argument");
+                token.assertToken("def");
+
+                if(token.assertToken(Token.Type.IDENTIFIER).equals("public"))
+                    token.assertToken(Token.Type.IDENTIFIER);
+
+                String methodName = token.current().s();
+
+                if(methods.hasKey(methodName))
+                    throw new RuntimeException("Method is already defined");
+
+                token.assertToken("(");
+
+                TokenHandler th = token.getInBracket();
+                MatchedList<String, String> parameters = new MatchedList<>();
+                while(th.hasNext()){
+                    String parameterType = th.assertToken(Token.Type.IDENTIFIER).s();
+                    String parameterName = th.assertToken(Token.Type.IDENTIFIER).s();
+
+                    if(parameters.hasKey(parameterName))
+                        throw new RuntimeException("parameter is already defined");
+
+                    parameters.add(parameterName, parameterType);
+
+                    if(th.hasNext()){
+                        th.assertToken(",");
+                        th.assertHasNext();
+                    }
+                }
+
+                String returnType;
+
+                if(token.hasNext()){
+                    token.assertToken(":");
+                    token.assertToken(":");
+
+                    returnType = token.assertToken(Token.Type.IDENTIFIER).s();
+                }else
+                    returnType = "void";
+
+                methods.add(methodName, new XJLNInterfaceMethod(returnType, parameters));
             }
         }
 
         if(!token.toStringNonMarked().trim().equals("}"))
             throw new RuntimeException("Expected }");
+
+        XJLNInterface clazz = new XJLNInterface(accessFlagInterface, methods);
+
+        if(classes.containsKey(name))
+            throw new RuntimeException("Class is already defined");
+
+        classes.put(name, clazz);
     }
 
     private void parseClass(){
@@ -331,17 +369,7 @@ public final class Parser {
     private void parseField(){
         token.toFirst();
 
-        AccessFlag accessFlag = switch (token.assertToken(Token.Type.IDENTIFIER).s()){
-            case "public"    -> AccessFlag.ACC_PUBLIC;
-            case "protected" -> AccessFlag.ACC_PROTECTED;
-            case "private"   -> AccessFlag.ACC_PRIVATE;
-            default          -> null;
-        };
-
-        if(accessFlag == null){
-            accessFlag = AccessFlag.ACC_PUBLIC;
-            token.last();
-        }
+        AccessFlag accessFlag = getAccessFlag();
 
         boolean statik    = false;
         boolean transiend = false;
@@ -384,6 +412,22 @@ public final class Parser {
             current.addStaticField(name, field);
         else
             current.addField(name, field);
+    }
+
+    private AccessFlag getAccessFlag(){
+        AccessFlag accessFlag = switch (token.assertToken(Token.Type.IDENTIFIER).s()){
+            case "public"    -> AccessFlag.ACC_PUBLIC;
+            case "protected" -> AccessFlag.ACC_PROTECTED;
+            case "private"   -> AccessFlag.ACC_PRIVATE;
+            default          -> null;
+        };
+
+        if(accessFlag == null){
+            accessFlag = AccessFlag.ACC_PUBLIC;
+            token.last();
+        }
+
+        return accessFlag;
     }
 
     private void nextLine(){
