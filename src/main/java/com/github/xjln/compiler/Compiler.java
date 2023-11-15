@@ -162,14 +162,16 @@ public final class Compiler {
             for(String name:file.classes.keySet()){
                 Compilable c = file.classes.get(name);
 
-                if(c instanceof XJLNType)
-                    compileType((XJLNType) c, name);
+                if(c instanceof XJLNTypeClass)
+                    compileType((XJLNTypeClass) c, name, path);
+                else if(c instanceof XJLNDataClass)
+                    compileData((XJLNDataClass) c, name, path);
             }
         }
     }
 
-    private void compileType(XJLNType type, String name){
-        ClassFile cf = new ClassFile(false, name, "java.lang.Enum");
+    private void compileType(XJLNTypeClass type, String name, String path){
+        ClassFile cf = new ClassFile(false, path + "." + name, "java.lang.Enum");
         cf.setAccessFlags(type.getAccessFlag());
 
         //Types
@@ -254,6 +256,22 @@ public final class Compiler {
         cf.addMethod2(mInfo); //TODO fix
 
         writeFile(cf);
+    }
+
+    private void compileData(XJLNDataClass clazz, String name, String path){
+        ClassFile cf = new ClassFile(false, path + "." + name, "java/lang/Object");
+        cf.setAccessFlags(clazz.getAccessFlag());
+
+        //Fields
+        for(String fieldName:clazz.fields.getKeyList()){
+            XJLNField field = clazz.fields.getValue(fieldName);
+
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), fieldName, toDesc(field.type()));
+            fInfo.setAccessFlags(field.getAccessFlag());
+            cf.addField2(fInfo);
+        }
+
+        //TODO <init>
     }
 
     private void compileClass(XJLNClass clazz, String name){

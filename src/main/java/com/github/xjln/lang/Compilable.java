@@ -2,7 +2,7 @@ package com.github.xjln.lang;
 
 import com.github.xjln.bytecode.AccessFlag;
 
-public abstract sealed class Compilable permits XJLNClass, XJLNType {
+public abstract sealed class Compilable permits XJLNClass, XJLNDataClass, XJLNInterface, XJLNTypeClass {
 
     public final AccessFlag accessFlag;
 
@@ -10,5 +10,11 @@ public abstract sealed class Compilable permits XJLNClass, XJLNType {
         this.accessFlag = accessFlag;
     }
 
-    public abstract int getAccessFlag();
+    public int getAccessFlag(){
+        return switch (accessFlag){
+            case ACC_PUBLIC -> AccessFlag.PUBLIC;
+            case ACC_PRIVATE -> AccessFlag.PRIVATE;
+            case ACC_PROTECTED -> AccessFlag.PROTECTED;
+        };
+    }
 }

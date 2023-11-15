@@ -2,6 +2,7 @@ package com.github.xjln.compiler;
 
 import com.github.xjln.bytecode.AccessFlag;
 import com.github.xjln.lang.*;
+import com.github.xjln.utility.MatchedList;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -191,6 +192,8 @@ public final class Parser {
                     throw new RuntimeException("Interface should not be synchronised");
                 if(statik)
                     throw new RuntimeException("Interface should not be static");
+                if(finaly)
+                    throw new RuntimeException("Interface should not be final");
 
                 parseInterface();
             }
@@ -201,8 +204,6 @@ public final class Parser {
                     throw new RuntimeException("Type should not be static");
                 if(abstrakt)
                     throw new RuntimeException("Type should not be abstract");
-                if(finaly)
-                    throw new RuntimeException("Type should not be final");
 
                 parseType(accessFlag);
             }
@@ -211,8 +212,10 @@ public final class Parser {
                     throw new RuntimeException("Data should not be synchronised");
                 if(statik)
                     throw new RuntimeException("Data should not be static");
+                if(abstrakt)
+                    throw new RuntimeException("Data should not be abstract");
 
-                parseData();
+                parseData(accessFlag, finaly);
             }
             default -> {
                 if(finaly)
@@ -225,7 +228,7 @@ public final class Parser {
 
     private void parseType(AccessFlag accessFlag){
         ArrayList<String> values = new ArrayList<>();
-        String name = file + "." + token.assertToken(Token.Type.IDENTIFIER).s();
+        String name = token.assertToken(Token.Type.IDENTIFIER).s();
 
         token.assertToken("=");
         token.assertHasNext();
@@ -244,16 +247,56 @@ public final class Parser {
             }
         }
 
-        XJLNType type = new XJLNType(accessFlag, values.toArray(new String[0]));
+        XJLNTypeClass type = new XJLNTypeClass(accessFlag, values.toArray(new String[0]));
 
         if(classes.containsKey(name))
-            throw new RuntimeException("Type is already defined");
+            throw new RuntimeException("Class is already defined");
 
-        classes.put(name, type); //TODO
+        classes.put(name, type);
     }
 
-    private void parseData(){
-        //TODO
+    private void parseData(AccessFlag accessFlag, boolean finaly){
+        String name = token.assertToken(Token.Type.IDENTIFIER).s();
+
+        token.assertToken("=");
+        token.assertToken("[");
+
+        TokenHandler th = token.getInBracket();
+
+        token.assertNull();
+
+        MatchedList<String, XJLNField> fields = new MatchedList<>();
+        while(th.hasNext()){
+            boolean constant = false;
+            String fieldType;
+            String fieldName;
+
+            fieldType = th.assertToken(Token.Type.IDENTIFIER).s();
+
+            if(fieldType.equals("const")){
+                constant = true;
+                fieldType = th.assertToken(Token.Type.IDENTIFIER).s();
+            }
+
+            fieldName = th.assertToken(Token.Type.IDENTIFIER).s();
+
+            if(fields.hasKey(fieldName))
+                throw new RuntimeException("field is already defined");
+
+            fields.add(fieldName, new XJLNField(AccessFlag.ACC_PUBLIC, false, false, false, constant, fieldType, null, line));
+
+            if(th.hasNext()){
+                th.assertToken(",");
+                th.assertHasNext();
+            }
+        }
+
+        XJLNDataClass data = new XJLNDataClass(accessFlag, fields, finaly);
+
+        if(classes.containsKey(name))
+            throw new RuntimeException("Class is already defined");
+
+        classes.put(name, data);
     }
 
     private void parseInterface(){

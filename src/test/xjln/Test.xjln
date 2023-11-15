@@ -1,1 +1,1 @@
-def type test = a | b | c
+def data test = [int i, boolean b]
