@@ -181,7 +181,7 @@ public final class Parser {
                 if(statik)
                     throw new RuntimeException("Class should not be static");
 
-                parseClass();
+                parseClass(accessFlag, finaly, abstrakt);
             }
             case "interface" -> {
                 if(synchronise)
@@ -364,8 +364,35 @@ public final class Parser {
         classes.put(name, clazz);
     }
 
-    private void parseClass(){
-        //TODO
+    private void parseClass(AccessFlag accessFlag, boolean finaly, boolean abstrakt){
+        String name = token.assertToken(Token.Type.IDENTIFIER).s();
+        current = new XJLNClass(accessFlag, finaly, abstrakt);
+
+        token.assertToken("{");
+        token.assertNull();
+
+        while (scanner.hasNext()) {
+            nextLine();
+
+            if (!token.isEmpty()) {
+                if (token.toStringNonMarked().trim().equals("}"))
+                    break;
+
+                if(token.assertToken(Token.Type.IDENTIFIER).s().equals("def"))
+                    parseMethod();
+                else
+                    parseField();
+            }
+        }
+
+        if(!token.toStringNonMarked().trim().equals("}"))
+            throw new RuntimeException("Expected }");
+
+        if(classes.containsKey(name))
+            throw new RuntimeException("Class is already defined");
+
+        classes.put(name, current);
+        current = null;
     }
 
     private void parseMethod(){

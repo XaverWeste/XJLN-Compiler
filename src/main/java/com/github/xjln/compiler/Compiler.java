@@ -317,16 +317,19 @@ public final class Compiler {
         ClassFile cf = new ClassFile(false, path + "." + name, null);
         cf.setAccessFlags(clazz.getAccessFlag());
 
-        for(String field:clazz.staticFields.keySet())
-            cf.addField2(compileField(field, clazz.getStaticField(field), cf.getConstPool()));
+        for(String field:clazz.staticFields.keySet()){
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), name, toDesc(clazz.staticFields.get(field).type()));
+            fInfo.setAccessFlags(clazz.staticFields.get(field).getAccessFlag());
+            cf.addField2(fInfo);
+        }
+
+        for(String field:clazz.fields.keySet()){
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), name, toDesc(clazz.fields.get(field).type()));
+            fInfo.setAccessFlags(clazz.fields.get(field).getAccessFlag());
+            cf.addField2(fInfo);
+        }
 
         writeFile(cf);
-    }
-
-    private FieldInfo compileField(String name, XJLNField field, ConstPool cp){
-        FieldInfo fInfo = new FieldInfo(cp, name, toDesc(field.type()));
-        fInfo.setAccessFlags(field.getAccessFlag());
-        return fInfo;
     }
 
     private void writeFile(ClassFile cf){

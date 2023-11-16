@@ -53,6 +53,14 @@ public final class XJLNClass extends Compilable{
 
     @Override
     public int getAccessFlag() {
-        return 0; //TODO
+        int accessFlag = super.getAccessFlag();
+
+        if(finaly)
+            accessFlag += AccessFlag.FINAL;
+
+        if(abstrakt)
+            accessFlag += AccessFlag.ABSTRACT;
+
+        return accessFlag;
     }
 }
