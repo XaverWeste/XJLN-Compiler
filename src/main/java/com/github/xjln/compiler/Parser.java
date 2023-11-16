@@ -217,7 +217,7 @@ public final class Parser {
                 if(finaly)
                     throw new RuntimeException("method should not be final");
 
-                parseMethod();
+                parseMethod(accessFlag, statik, abstrakt, synchronise);
             }
         }
     }
@@ -378,9 +378,24 @@ public final class Parser {
                 if (token.toStringNonMarked().trim().equals("}"))
                     break;
 
-                if(token.assertToken(Token.Type.IDENTIFIER).s().equals("def"))
-                    parseMethod();
-                else
+                if(token.assertToken(Token.Type.IDENTIFIER).s().equals("def")) {
+                    AccessFlag methodAccessFlag = getAccessFlag();
+
+                    boolean statik      = false;
+                    boolean methodAbstrakt    = false;
+                    boolean synchronise = false;
+                    String methodName = token.assertToken(Token.Type.IDENTIFIER).s();
+
+                    while (Set.of("static", "abstract", "synchronised").contains(methodName)){
+                        switch (methodName){
+                            case "static"       -> statik      = true;
+                            case "abstract"     -> abstrakt    = true;
+                            case "synchronised" -> synchronise = true;
+                        }
+
+                        methodName = token.assertToken(Token.Type.IDENTIFIER).s();
+                    }
+                }else
                     parseField();
             }
         }
@@ -395,8 +410,24 @@ public final class Parser {
         current = null;
     }
 
-    private void parseMethod(){
+    private void parseMethod(AccessFlag accessFlag, boolean statik, boolean abstrakt, boolean synchronise){
+        token.last();
+
+        String name = token.assertToken(Token.Type.IDENTIFIER).s();
+
         //TODO
+
+        if(abstrakt && statik)
+            throw new RuntimeException("Method should not be static abstract");
+
+        XJLNMethod method = new XJLNMethod(accessFlag, statik, abstrakt, synchronise);
+
+        if(current == null)
+            main.addStaticMethod(name, method);
+        else if(statik)
+            current.addStaticMethod(name, method);
+        else
+            current.addMethod(name, method);
     }
 
     private void parseField(){

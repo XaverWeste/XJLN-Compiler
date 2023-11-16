@@ -2,7 +2,7 @@ package com.github.xjln.lang;
 
 import com.github.xjln.bytecode.AccessFlag;
 
-public abstract sealed class Compilable permits XJLNClass, XJLNDataClass, XJLNInterface, XJLNTypeClass {
+public abstract sealed class Compilable permits XJLNClass, XJLNDataClass, XJLNInterface, XJLNMethod, XJLNTypeClass {
 
     public final AccessFlag accessFlag;
 

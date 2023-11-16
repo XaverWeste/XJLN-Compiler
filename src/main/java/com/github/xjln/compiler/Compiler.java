@@ -168,6 +168,8 @@ public final class Compiler {
                     compileData((XJLNDataClass) c, name, path);
                 else if(c instanceof XJLNInterface)
                     compileInterface((XJLNInterface) c, name, path);
+                else if(c instanceof XJLNClass)
+                    compileClass((XJLNClass) c, name, path);
             }
         }
     }
@@ -327,6 +329,18 @@ public final class Compiler {
             FieldInfo fInfo = new FieldInfo(cf.getConstPool(), name, toDesc(clazz.fields.get(field).type()));
             fInfo.setAccessFlags(clazz.fields.get(field).getAccessFlag());
             cf.addField2(fInfo);
+        }
+
+        for(String method:clazz.methods.keySet()){
+            if(clazz.methods.get(method).abstrakt){
+                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method, ""); //TODO
+            }else{
+                //TODO
+            }
+        }
+
+        for(String method:clazz.staticMethods.keySet()){
+            //TODO
         }
 
         writeFile(cf);

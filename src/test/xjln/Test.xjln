@@ -1,6 +1,3 @@
-def interface Test{
+def abstract class Test{
 
-    def public test(int i, double d) :: int
 }
-
-def const data TTest = [int i]

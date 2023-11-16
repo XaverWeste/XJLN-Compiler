@@ -8,6 +8,8 @@ public final class XJLNClass extends Compilable{
 
     public final HashMap<String, XJLNField> fields;
     public final HashMap<String, XJLNField> staticFields;
+    public final HashMap<String, XJLNMethod> methods;
+    public final HashMap<String, XJLNMethod> staticMethods;
     public final boolean finaly;
     public final boolean abstrakt;
 
@@ -15,6 +17,8 @@ public final class XJLNClass extends Compilable{
         super(accessFlag);
         fields = new HashMap<>();
         staticFields = new HashMap<>();
+        methods = new HashMap<>();
+        staticMethods = new HashMap<>();
         this.finaly = finaly;
         this.abstrakt = abstrakt;
     }
@@ -31,6 +35,20 @@ public final class XJLNClass extends Compilable{
             throw new RuntimeException("Field " + name + " already exist");
 
         staticFields.put(name, field);
+    }
+
+    public void addMethod(String name, XJLNMethod method){
+        if(methods.containsKey(name))
+            throw new RuntimeException("Method " + name + " already exist");
+
+        methods.put(name, method);
+    }
+
+    public void addStaticMethod(String name, XJLNMethod method){
+        if(staticMethods.containsKey(name))
+            throw new RuntimeException("Method " + name + " already exist");
+
+        staticMethods.put(name, method);
     }
 
     public XJLNField getField(String name){
