@@ -332,8 +332,10 @@ public final class Compiler {
         }
 
         for(String method:clazz.methods.keySet()){
-            if(clazz.methods.get(method).abstrakt){
-                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method, ""); //TODO
+            if(clazz.methods.get(method).abstrakt) {
+                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
+                mInfo.setAccessFlags(clazz.getAccessFlag());
+                cf.addMethod2(mInfo);
             }else{
                 //TODO
             }

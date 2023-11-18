@@ -414,13 +414,38 @@ public final class Parser {
         token.last();
 
         String name = token.assertToken(Token.Type.IDENTIFIER).s();
+        token.assertToken("(");
 
-        //TODO
+        TokenHandler th = token.getInBracket();
+        MatchedList<String, String> parameters = new MatchedList<>();
+        while(th.hasNext()){
+            String parameterType = th.assertToken(Token.Type.IDENTIFIER).s();
+            String parameterName = th.assertToken(Token.Type.IDENTIFIER).s();
+
+            if(parameters.hasKey(parameterName))
+                throw new RuntimeException("parameter is already defined");
+
+            parameters.add(parameterName, parameterType);
+
+            if(th.hasNext()){
+                th.assertToken(",");
+                th.assertHasNext();
+            }
+        }
+
+        String returnType = "void";
+
+        if(token.hasNext()){
+            token.assertToken(":");
+            token.assertToken(":");
+            returnType = token.assertToken(Token.Type.IDENTIFIER).s();
+            token.assertNull();
+        }
 
         if(abstrakt && statik)
             throw new RuntimeException("Method should not be static abstract");
 
-        XJLNMethod method = new XJLNMethod(accessFlag, statik, abstrakt, synchronise);
+        XJLNMethod method = new XJLNMethod(accessFlag, returnType, parameters, statik, abstrakt, synchronise);
 
         if(current == null)
             main.addStaticMethod(name, method);
