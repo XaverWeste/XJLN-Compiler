@@ -445,6 +445,9 @@ public final class Parser {
         if(abstrakt && statik)
             throw new RuntimeException("Method should not be static abstract");
 
+        if((name.equals("init")) && (statik || abstrakt || synchronise))
+            throw new RuntimeException("Did not expect modifier");
+
         XJLNMethod method = new XJLNMethod(accessFlag, returnType, parameters, statik, abstrakt, synchronise);
 
         if(current == null)
