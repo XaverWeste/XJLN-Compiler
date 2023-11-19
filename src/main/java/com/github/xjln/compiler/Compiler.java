@@ -29,6 +29,7 @@ public final class Compiler {
     private static boolean debug;
 
     private final HashMap<String, XJLNFile> files = new HashMap<>();
+    private final SyntacticParser syntacticParser = new SyntacticParser();
     private final Parser parser = new Parser();
 
     /**
@@ -331,14 +332,48 @@ public final class Compiler {
             cf.addField2(fInfo);
         }
 
-        //init
-        MethodInfo mInfo;
+        //clinit
+        MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "<clinit>", "()V");
+        mInfo.setAccessFlags(AccessFlag.STATIC);
         Bytecode code = new Bytecode(cf.getConstPool());
+
+        for(String fieldName:clazz.staticFields.keySet()){
+            XJLNField field = clazz.staticFields.get(fieldName);
+            if(field.initValue() != null){
+                try {
+                    AST[] ast = syntacticParser.parseAst(field.initValue());
+                    assert ast.length == 1;
+
+                    if (!field.type().equals(((AST.Calc) ast[0]).value.token.t().toString()))
+                        throw new RuntimeException("illegal type");
+
+                    //TODO
+                }catch(RuntimeException e){
+                    throw new RuntimeException(e.getMessage() + "in: " + path + " :" + field.lineInFile());
+                }
+            }
+        }
+
+        code.add(0xb1); //return
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+        cf.addMethod2(mInfo);
+
+        //init
+        code = new Bytecode(cf.getConstPool());
         code.addAload(0);
         code.addInvokespecial("java/lang/Object", "<init>", "()V");
 
-        //if(clazz.methods.get("init") == null)TODO
+        if(clazz.methods.get("init") == null) {
             mInfo = new MethodInfo(cf.getConstPool(), "<init>", "()V");
+            mInfo.setAccessFlags(AccessFlag.PUBLIC);
+        }else{
+            mInfo = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.methods.get("init").parameters.getValueList().toArray(new String[0])));
+            mInfo.setAccessFlags(clazz.methods.get("init").getAccessFlag());
+        }
+
+        for(int i = 0;i < clazz.fields.size();i++){
+
+        }
 
         code.add(0xb1); //return
         mInfo.setCodeAttribute(code.toCodeAttribute());
@@ -360,6 +395,22 @@ public final class Compiler {
         }
 
         writeFile(cf);
+    }
+
+    private void compileAST(AST ast, Bytecode code){
+        if(ast instanceof AST.Calc)
+            compileCalc((AST.Calc) ast, code);
+    }
+
+    private void compileCalc(AST.Calc calc, Bytecode code){
+        if(calc.next != null)
+            compileCalc(calc, code);
+
+        if(calc.value.token != null){
+            switch (calc.value.token.t()){ //TODO
+                case INTEGER -> code.add(0x10, Integer.valueOf(calc.value.token.s())); //bipush
+            }
+        }//TODO
     }
 
     private void writeFile(ClassFile cf){
@@ -400,7 +451,11 @@ public final class Compiler {
         return desc.toString();
     }
 
-    public static String validateName(String name){
+    static String getMethodReturnType(String clazz, String method, String desc){
+        return null;
+    }
+
+    static String validateName(String name){
         name = name.replace("/", ".");
         name = name.replace("\\", ".");
         return name;

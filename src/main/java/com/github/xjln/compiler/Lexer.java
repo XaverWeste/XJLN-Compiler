@@ -23,6 +23,8 @@ final class Lexer {
                 value = new StringBuilder();
                 value.append(chars[i]);
 
+                Token.Type type;
+
                 while(i + 1 < chars.length && Character.isDigit(chars[i+1])){
                     i++;
                     value.append(chars[i]);
@@ -35,9 +37,27 @@ final class Lexer {
                         i++;
                         value.append(chars[i]);
                     }
+
+                    if(i + 1 < chars.length && chars[i+1] == 'f')
+                        type = Token.Type.FLOAT;
+                    else{
+                        type = Token.Type.DOUBLE;
+
+                        if(i + 1 < chars.length && chars[i+1] == 'd')
+                            i++;
+                    }
+                }else{
+                    if(i + 1 < chars.length && chars[i+1] == 'l')
+                        type = Token.Type.LONG;
+                    else{
+                        type = Token.Type.INTEGER;
+
+                        if(i + 1 < chars.length && chars[i+1] == 'i')
+                            i++;
+                    }
                 }
 
-                tokens.add(new Token(value.toString(), Token.Type.NUMBER));
+                tokens.add(new Token(value.toString(), type));
 
             }else if(Character.isLetter(chars[i])){
 
