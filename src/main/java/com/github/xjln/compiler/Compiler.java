@@ -331,25 +331,23 @@ public final class Compiler {
             cf.addField2(fInfo);
         }
 
-        if(clazz.methods.get("init") == null){
-            MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "<init>", "()V");
-            mInfo.setAccessFlags(AccessFlag.PUBLIC);
+        //init
+        MethodInfo mInfo;
+        Bytecode code = new Bytecode(cf.getConstPool());
+        code.addAload(0);
+        code.addInvokespecial("java/lang/Object", "<init>", "()V");
 
-            Bytecode code = new Bytecode(cf.getConstPool());
-            code.addAload(0);
-            code.addInvokespecial("java/lang/Object", "<init>", "()V");
-            //TODO
-            code.add(0xb1); //return
-            mInfo.setCodeAttribute(code.toCodeAttribute());
+        //if(clazz.methods.get("init") == null)TODO
+            mInfo = new MethodInfo(cf.getConstPool(), "<init>", "()V");
 
-            cf.addMethod2(mInfo);
-        }else{
-            //TODO
-        }
+        code.add(0xb1); //return
+        mInfo.setCodeAttribute(code.toCodeAttribute());
+
+        cf.addMethod2(mInfo);
 
         for(String method:clazz.methods.keySet()){
             if(clazz.methods.get(method).abstrakt) {
-                MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
+                mInfo = new MethodInfo(cf.getConstPool(), method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
                 mInfo.setAccessFlags(clazz.getAccessFlag());
                 cf.addMethod2(mInfo);
             }else{

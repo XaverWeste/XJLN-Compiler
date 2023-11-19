@@ -7,11 +7,13 @@ public final class XJLNMethod extends Compilable{
 
     public final MatchedList<String, String> parameters;
     public final String returnType;
+    public final String code;
     public final boolean statik, abstrakt, synchronise;
 
-    public XJLNMethod(AccessFlag accessFlag, String returnType, MatchedList<String, String> parameters, boolean statik, boolean abstrakt, boolean synchronise) {
+    public XJLNMethod(AccessFlag accessFlag, String returnType, MatchedList<String, String> parameters, String code, boolean statik, boolean abstrakt, boolean synchronise) {
         super(accessFlag);
         this.returnType = returnType;
+        this.code = code;
         this.parameters = parameters;
         this.statik = statik;
         this.abstrakt = abstrakt;

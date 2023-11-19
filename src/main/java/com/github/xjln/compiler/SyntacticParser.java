@@ -1,6 +1,8 @@
 package com.github.xjln.compiler;
 
-public final class SyntacticParser {
+final class SyntacticParser {
 
-
+    public static AST[] parseAst(String code){
+        return null;
+    }
 }

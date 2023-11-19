@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Scanner;
 import java.util.Set;
 
-public final class Parser {
+final class Parser {
 
     private HashMap<String, Compilable> classes;
     private HashMap<String, String> uses;
@@ -381,8 +381,8 @@ public final class Parser {
                 if(token.assertToken(Token.Type.IDENTIFIER).s().equals("def")) {
                     AccessFlag methodAccessFlag = getAccessFlag();
 
-                    boolean statik      = false;
-                    boolean methodAbstrakt    = false;
+                    boolean statik = false;
+                    boolean methodAbstrakt = false;
                     boolean synchronise = false;
                     String methodName = token.assertToken(Token.Type.IDENTIFIER).s();
 
@@ -395,6 +395,8 @@ public final class Parser {
 
                         methodName = token.assertToken(Token.Type.IDENTIFIER).s();
                     }
+
+                    //TODO
                 }else
                     parseField();
             }
@@ -448,7 +450,31 @@ public final class Parser {
         if((name.equals("init")) && (statik || abstrakt || synchronise))
             throw new RuntimeException("Did not expect modifier");
 
-        XJLNMethod method = new XJLNMethod(accessFlag, returnType, parameters, statik, abstrakt, synchronise);
+        StringBuilder code = new StringBuilder();
+
+        if(!abstrakt){
+            int i = 1;
+
+            if(!scanner.hasNextLine())
+                throw new RuntimeException("expected Method code");
+
+            while (scanner.hasNext() && i > 0){
+                nextLine();
+
+                switch (token.assertToken(Token.Type.IDENTIFIER).s()){
+                    case "if", "while", "for" -> i++;
+                    case "end" -> {
+                        token.assertNull();
+                        i--;
+                    }
+                }
+            }
+
+            if(i > 0)
+                throw new RuntimeException("method was not closed");
+        }
+
+        XJLNMethod method = new XJLNMethod(accessFlag, returnType, parameters, code.toString(), statik, abstrakt, synchronise);
 
         if(current == null)
             main.addStaticMethod(name, method);
@@ -484,8 +510,6 @@ public final class Parser {
             throw new RuntimeException("Field should not be transient and constant");
 
         String name = token.assertToken(Token.Type.IDENTIFIER).s();
-
-        token.assertNull(); //TODO compile initValue and remove statement
 
         StringBuilder initValue = new StringBuilder();
         if(token.hasNext()){
