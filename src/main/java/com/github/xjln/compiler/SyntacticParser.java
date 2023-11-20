@@ -25,14 +25,38 @@ final class SyntacticParser {
     }
 
     AST.Calc parseCalc(){
-        token.toFirst();
         AST.Calc calc = new AST.Calc();
+        AST.Value value = parseValue();
 
-        calc.value.token = token.assertToken(Token.Type.INTEGER);
-        token.assertNull();
-        calc.type = "int";
+        while (token.hasNext()){
+            if((token.next().t() != Token.Type.OPERATOR) || ((token.current().t() == Token.Type.OPERATOR) && token.current().equals("=>"))){
+                if(calc.right == null)
+                    calc.value = value;
+
+                token.last();
+                return calc;
+            }
+
+            String opp = token.current().s();
+
+
+        }
 
         return calc;
+    }
+
+    AST.Value parseValue() {
+        AST.Value value = new AST.Value();
+
+        switch (token.next().t()){
+            case INTEGER, DOUBLE, FLOAT, LONG -> {
+                value.token = token.current();
+                value.type = token.current().t().toString();
+            }
+            default -> throw new RuntimeException("illegal argument"); //TODO
+        }
+
+        return value;
     }
 
     /*

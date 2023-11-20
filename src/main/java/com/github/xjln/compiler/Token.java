@@ -2,7 +2,22 @@ package com.github.xjln.compiler;
 
 public record Token(String s, Type t){
 
-    enum Type{SIMPLE, IDENTIFIER, STRING, OPERATOR, CHAR, INTEGER, LONG, DOUBLE, FLOAT}
+    enum Type{
+        SIMPLE, IDENTIFIER, STRING, OPERATOR, CHAR, INTEGER, LONG, DOUBLE, FLOAT;
+
+        @Override
+        public String toString() {
+            return switch (this){
+                case FLOAT -> "float";
+                case DOUBLE -> "double";
+                case INTEGER -> "int";
+                case LONG -> "long";
+                case CHAR -> "char";
+                case STRING -> "java.lang.String";
+                default -> super.toString();
+            };
+        }
+    }
 
     @Override
     public boolean equals(Object obj) {

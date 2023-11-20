@@ -397,22 +397,6 @@ public final class Compiler {
         writeFile(cf);
     }
 
-    private void compileAST(AST ast, Bytecode code){
-        if(ast instanceof AST.Calc)
-            compileCalc((AST.Calc) ast, code);
-    }
-
-    private void compileCalc(AST.Calc calc, Bytecode code){
-        if(calc.next != null)
-            compileCalc(calc, code);
-
-        if(calc.value.token != null){
-            switch (calc.value.token.t()){ //TODO
-                case INTEGER -> code.add(0x10, Integer.valueOf(calc.value.token.s())); //bipush
-            }
-        }//TODO
-    }
-
     private void writeFile(ClassFile cf){
         try{
             ClassPool.getDefault().makeClass(cf).writeFile("compiled");
