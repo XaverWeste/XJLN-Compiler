@@ -3,13 +3,14 @@ package com.github.xjln.compiler;
 public record Token(String s, Type t){
 
     enum Type{
-        SIMPLE, IDENTIFIER, STRING, OPERATOR, CHAR, INTEGER, LONG, DOUBLE, FLOAT;
+        SIMPLE, IDENTIFIER, STRING, OPERATOR, CHAR, INTEGER, LONG, DOUBLE, FLOAT, SHORT;
 
         @Override
         public String toString() {
             return switch (this){
                 case FLOAT -> "float";
                 case DOUBLE -> "double";
+                case SHORT -> "short";
                 case INTEGER -> "int";
                 case LONG -> "long";
                 case CHAR -> "char";

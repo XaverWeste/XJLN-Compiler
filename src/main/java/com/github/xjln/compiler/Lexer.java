@@ -49,6 +49,8 @@ final class Lexer {
                 }else{
                     if(i + 1 < chars.length && chars[i+1] == 'l')
                         type = Token.Type.LONG;
+                    else if(i + 1 < chars.length && chars[i+1] == 's')
+                        type = Token.Type.SHORT;
                     else{
                         type = Token.Type.INTEGER;
 

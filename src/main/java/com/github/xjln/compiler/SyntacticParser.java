@@ -20,27 +20,27 @@ final class SyntacticParser {
         nextLine();
 
         ast.add(parseCalc());
+        token.assertNull();
 
         return ast.toArray(new AST[0]);
     }
 
     AST.Calc parseCalc(){
         AST.Calc calc = new AST.Calc();
-        AST.Value value = parseValue();
+        calc.value = parseValue();
 
-        calc.left = new AST.Calc();
-        if(value == null)
-            calc.left.opp = token.assertToken(Token.Type.OPERATOR).s();
-        calc.left.value = parseValue(); //TODO opp check
+        while(token.hasNext()){
+            if(token.next().t() != Token.Type.OPERATOR && !(token.current().t() == Token.Type.OPERATOR && token.current().equals("->"))){
+                token.last();
+                return calc;
+            }
 
-        if((token.next().t() != Token.Type.OPERATOR) || ((token.current().t() == Token.Type.OPERATOR) && token.current().equals("=>"))){
-            token.last();
-            return calc.left;
+            String opp = token.current().s();
+
+            token.assertHasNext(); //TODO brackets and type check
+            calc.setRight();
+            calc.value = parseValue();
         }
-
-        calc.opp = token.current().s(); //TODO opp and type check
-        token.assertHasNext();
-        calc.right = parseCalc();
 
         return calc;
     }
@@ -49,7 +49,7 @@ final class SyntacticParser {
         AST.Value value = new AST.Value();
 
         switch (token.next().t()){
-            case INTEGER, DOUBLE, FLOAT, LONG -> {
+            case INTEGER, DOUBLE, FLOAT, LONG, SHORT -> {
                 value.token = token.current();
                 value.type = token.current().t().toString();
             }

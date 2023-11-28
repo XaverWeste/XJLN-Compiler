@@ -344,7 +344,7 @@ public final class Compiler {
                     AST[] ast = syntacticParser.parseAst(field.initValue());
                     assert ast.length == 1;
 
-                    if (!field.type().equals(((AST.Calc) ast[0]).value.token.t().toString()))
+                    if(!field.type().equals(((AST.Calc) ast[0]).value.token.t().toString()))
                         throw new RuntimeException("illegal type");
 
                     //TODO
@@ -436,7 +436,7 @@ public final class Compiler {
     }
 
     static String getMethodReturnType(String clazz, String method, String desc){
-        return null;
+        return null; //TODO
     }
 
     static String validateName(String name){
