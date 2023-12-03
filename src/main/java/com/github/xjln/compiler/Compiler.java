@@ -321,13 +321,13 @@ public final class Compiler {
         cf.setAccessFlags(clazz.getAccessFlag());
 
         for(String field:clazz.staticFields.keySet()){
-            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), name, toDesc(clazz.staticFields.get(field).type()));
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), field, toDesc(clazz.staticFields.get(field).type()));
             fInfo.setAccessFlags(clazz.staticFields.get(field).getAccessFlag());
             cf.addField2(fInfo);
         }
 
         for(String field:clazz.fields.keySet()){
-            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), name, toDesc(clazz.fields.get(field).type()));
+            FieldInfo fInfo = new FieldInfo(cf.getConstPool(), field, toDesc(clazz.fields.get(field).type()));
             fInfo.setAccessFlags(clazz.fields.get(field).getAccessFlag());
             cf.addField2(fInfo);
         }
@@ -347,8 +347,10 @@ public final class Compiler {
                     if(!field.type().equals(((AST.Calc) ast[0]).value.token.t().toString()))
                         throw new RuntimeException("illegal type");
 
-                    //TODO
-                }catch(RuntimeException e){
+                    compileAST(ast[0], code);
+
+                    code.addPutstatic(name, fieldName, toDesc(field.type()));
+                }catch(Exception e){
                     throw new RuntimeException(e.getMessage() + "in: " + path + " :" + field.lineInFile());
                 }
             }
@@ -395,6 +397,26 @@ public final class Compiler {
         }
 
         writeFile(cf);
+    }
+
+    private void compileAST(AST ast, Bytecode code){
+        if(ast instanceof AST.Calc)
+            compileCalc((AST.Calc) ast, code);
+    }
+
+    private void compileCalc(AST.Calc calc, Bytecode code){
+        if(calc.right != null)
+            compileCalc(calc.right, code);
+
+        switch (calc.value.token.t()){
+            case INTEGER -> {
+                if(Integer.valueOf(calc.value.token.s()) < 6)
+                    code.addIconst(Integer.valueOf(calc.value.token.s()));
+                else
+                    code.add(0x10 ,Integer.valueOf(calc.value.token.s())); //Bipush
+            }
+            default -> throw new RuntimeException("illegal argument");
+        }
     }
 
     private void writeFile(ClassFile cf){

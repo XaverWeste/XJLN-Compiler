@@ -1,6 +1,7 @@
 package com.github.xjln.compiler;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 final class SyntacticParser {
 
@@ -29,6 +30,8 @@ final class SyntacticParser {
         AST.Calc calc = new AST.Calc();
         calc.value = parseValue();
 
+        token.assertNull();
+
         while(token.hasNext()){
             if(token.next().t() != Token.Type.OPERATOR && !(token.current().t() == Token.Type.OPERATOR && token.current().equals("->"))){
                 token.last();
@@ -36,10 +39,20 @@ final class SyntacticParser {
             }
 
             String opp = token.current().s();
+            calc.opp = opp;
+            token.assertHasNext();
 
-            token.assertHasNext(); //TODO brackets and type check
+
+            //TODO brackets
+
             calc.setRight();
             calc.value = parseValue();
+
+            if(calc.value.token.t() != calc.right.value.token.t())
+                throw new RuntimeException("expected type " + calc.type);
+
+            if(!Set.of("+", "-", "*", "/", "<", ">", "==", ">=", "<=").contains(opp))
+                throw new RuntimeException("Operator is not defined");
         }
 
         return calc;
@@ -53,10 +66,10 @@ final class SyntacticParser {
                 value.token = token.current();
                 value.type = token.current().t().toString();
             }
-            case OPERATOR -> {
+            /*case OPERATOR -> {
                 token.last();
                 return null;
-            }
+            }*/
             default -> throw new RuntimeException("illegal argument"); //TODO
         }
 
