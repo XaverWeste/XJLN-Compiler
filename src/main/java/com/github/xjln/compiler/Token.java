@@ -1,5 +1,7 @@
 package com.github.xjln.compiler;
 
+import java.util.Set;
+
 public record Token(String s, Type t){
 
     enum Type{
@@ -18,6 +20,17 @@ public record Token(String s, Type t){
                 default -> super.toString();
             };
         }
+    }
+
+    public Token getWithoutExtension(){
+        if(!hasExtension())
+            return this;
+
+        return new Token(s.substring(0, s.length() - 2), t);
+    }
+
+    public boolean hasExtension(){
+        return Set.of(Type.IDENTIFIER, Type.DOUBLE, Type.FLOAT, Type.LONG, Type.SHORT).contains(t) && Character.isLetter(s.toCharArray()[s.length() - 2]);
     }
 
     @Override

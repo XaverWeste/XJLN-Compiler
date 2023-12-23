@@ -409,11 +409,17 @@ public final class Compiler {
             compileCalc(calc.right, code);
 
         switch (calc.type){
-            case "int" -> {
-                if(Integer.valueOf(calc.value.token.s()) < 6)
-                    code.addIconst(Integer.valueOf(calc.value.token.s()));
+            case "int", "short", "byte", "char" -> {
+                int value;
+                if(calc.type.equals("char"))
+                    value = calc.value.token.s().toCharArray()[1];
                 else
-                    code.add(0x10 ,Integer.valueOf(calc.value.token.s())); //Bipush
+                    value = Integer.parseInt(calc.value.token.getWithoutExtension().s());
+
+                if(value < 6)
+                    code.addIconst(value);
+                else
+                    code.add(0x10 ,value); //Bipush
             }
             case "boolean" -> code.addIconst(calc.value.token.s().equals("true") ? 1 : 0);
             default -> throw new RuntimeException("illegal argument");

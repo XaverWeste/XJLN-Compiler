@@ -43,7 +43,6 @@ final class SyntacticParser {
             calc.opp = opp;
             token.assertHasNext();
 
-
             //TODO brackets
 
             calc.setRight();
@@ -64,7 +63,7 @@ final class SyntacticParser {
         AST.Value value = new AST.Value();
 
         switch (token.next().t()){
-            case INTEGER, DOUBLE, FLOAT, LONG, SHORT -> {
+            case INTEGER, DOUBLE, FLOAT, LONG, SHORT, CHAR -> {
                 value.token = token.current();
                 value.type = token.current().t().toString();
             }
