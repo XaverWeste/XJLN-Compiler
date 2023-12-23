@@ -1,3 +1,3 @@
 def class Test{
-    public static short c = 3s
+    public static long d = 5l
 }

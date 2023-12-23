@@ -73,10 +73,6 @@ final class SyntacticParser {
                     value.type = "boolean";
                 }else throw new RuntimeException("illegal argument");
             }
-            /*case OPERATOR -> {
-                token.last();
-                return null;
-            }*/
             default -> throw new RuntimeException("illegal argument"); //TODO
         }
 

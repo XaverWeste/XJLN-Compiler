@@ -340,19 +340,19 @@ public final class Compiler {
         for(String fieldName:clazz.staticFields.keySet()){
             XJLNField field = clazz.staticFields.get(fieldName);
             if(field.initValue() != null){
-                //try {
+                try {
                     AST[] ast = syntacticParser.parseAst(field.initValue());
                     assert ast.length == 1;
 
                     if(!field.type().equals(ast[0].type))
                         throw new RuntimeException("illegal type " + ast[0].type);
 
-                    compileAST(ast[0], code);
+                    compileAST(ast[0], code, cf.getConstPool());
 
                     code.addPutstatic(name, fieldName, toDesc(field.type()));
-                //}catch(Exception e){
-                //    throw new RuntimeException(e.getMessage() + " in: " + path + " :" + field.lineInFile());
-                //}
+                }catch(Exception e){
+                    throw new RuntimeException(e.getMessage() + " in: " + path + " :" + field.lineInFile());
+                }
             }
         }
 
@@ -399,14 +399,14 @@ public final class Compiler {
         writeFile(cf);
     }
 
-    private void compileAST(AST ast, Bytecode code){
+    private void compileAST(AST ast, Bytecode code, ConstPool cp){
         if(ast instanceof AST.Calc)
-            compileCalc((AST.Calc) ast, code);
+            compileCalc((AST.Calc) ast, code, cp);
     }
 
-    private void compileCalc(AST.Calc calc, Bytecode code){
+    private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp){
         if(calc.right != null)
-            compileCalc(calc.right, code);
+            compileCalc(calc.right, code, cp);
 
         switch (calc.type){
             case "int", "short", "byte", "char" -> {
@@ -422,6 +422,39 @@ public final class Compiler {
                     code.add(0x10 ,value); //Bipush
             }
             case "boolean" -> code.addIconst(calc.value.token.s().equals("true") ? 1 : 0);
+            case "float" -> {
+                int index = 0;
+                float value = Float.parseFloat(calc.value.token.getWithoutExtension().s());
+                cp.addFloatInfo(value);
+                while(index < cp.getSize()){
+                    try{
+                        if(cp.getFloatInfo(index) == value) break;
+                    }catch(Exception ignored){index++;}
+                }
+                code.addLdc(index);
+            }
+            case "double" -> {
+                int index = 0;
+                double value = Double.parseDouble(calc.value.token.getWithoutExtension().s());
+                cp.addDoubleInfo(value);
+                while(index < cp.getSize()){
+                    try{
+                        if(cp.getDoubleInfo(index) == value) break;
+                    }catch(Exception ignored){index++;}
+                }
+                code.addLdc(index);
+            }
+            case "long" -> {
+                int index = 0;
+                long value = Long.parseLong(calc.value.token.getWithoutExtension().s());
+                cp.addLongInfo(value);
+                while(index < cp.getSize()){
+                    try{
+                        if(cp.getLongInfo(index) == value) break;
+                    }catch(Exception ignored){index++;}
+                }
+                code.addLdc(index);
+            }
             default -> throw new RuntimeException("illegal argument");
         } //TODO
     }
