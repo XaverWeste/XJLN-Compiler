@@ -29,6 +29,7 @@ final class SyntacticParser {
     AST.Calc parseCalc(){
         AST.Calc calc = new AST.Calc();
         calc.value = parseValue();
+        calc.type = calc.value.type; //TODO
 
         token.assertNull();
 
@@ -47,11 +48,12 @@ final class SyntacticParser {
 
             calc.setRight();
             calc.value = parseValue();
+            calc.type = calc.value.type; //TODO
 
             if(calc.value.token.t() != calc.right.value.token.t())
                 throw new RuntimeException("expected type " + calc.type);
 
-            if(!Set.of("+", "-", "*", "/", "<", ">", "==", ">=", "<=").contains(opp))
+            if(!Set.of("+", "-", "*", "/", "<", ">", "==", ">=", "<=", "&", "|", "^", "%").contains(opp))
                 throw new RuntimeException("Operator is not defined");
         }
 
@@ -65,6 +67,12 @@ final class SyntacticParser {
             case INTEGER, DOUBLE, FLOAT, LONG, SHORT -> {
                 value.token = token.current();
                 value.type = token.current().t().toString();
+            }
+            case IDENTIFIER -> {
+                if(token.current().equals("true") || token.current().equals("false")){
+                    value.token = token.current();
+                    value.type = "boolean";
+                }else throw new RuntimeException("illegal argument");
             }
             /*case OPERATOR -> {
                 token.last();

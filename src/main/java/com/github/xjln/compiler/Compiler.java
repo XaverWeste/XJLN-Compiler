@@ -344,14 +344,14 @@ public final class Compiler {
                     AST[] ast = syntacticParser.parseAst(field.initValue());
                     assert ast.length == 1;
 
-                    if(!field.type().equals(((AST.Calc) ast[0]).value.token.t().toString()))
-                        throw new RuntimeException("illegal type");
+                    if(!field.type().equals(ast[0].type))
+                        throw new RuntimeException("illegal type " + ast[0].type);
 
                     compileAST(ast[0], code);
 
                     code.addPutstatic(name, fieldName, toDesc(field.type()));
                 }catch(Exception e){
-                    throw new RuntimeException(e.getMessage() + "in: " + path + " :" + field.lineInFile());
+                    throw new RuntimeException(e.getMessage() + " in: " + path + " :" + field.lineInFile());
                 }
             }
         }
@@ -408,15 +408,16 @@ public final class Compiler {
         if(calc.right != null)
             compileCalc(calc.right, code);
 
-        switch (calc.value.token.t()){
-            case INTEGER -> {
+        switch (calc.type){
+            case "int" -> {
                 if(Integer.valueOf(calc.value.token.s()) < 6)
                     code.addIconst(Integer.valueOf(calc.value.token.s()));
                 else
                     code.add(0x10 ,Integer.valueOf(calc.value.token.s())); //Bipush
             }
+            case "boolean" -> code.addIconst(calc.value.token.s().equals("true") ? 1 : 0);
             default -> throw new RuntimeException("illegal argument");
-        }
+        } //TODO
     }
 
     private void writeFile(ClassFile cf){
