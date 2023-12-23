@@ -38,20 +38,26 @@ final class Lexer {
                         value.append(chars[i]);
                     }
 
-                    if(i + 1 < chars.length && chars[i+1] == 'f')
+                    if(i + 1 < chars.length && chars[i+1] == 'f') {
                         type = Token.Type.FLOAT;
-                    else{
+                        value.append('f');
+                        i++;
+                    }else{
                         type = Token.Type.DOUBLE;
 
                         if(i + 1 < chars.length && chars[i+1] == 'd')
                             i++;
                     }
                 }else{
-                    if(i + 1 < chars.length && chars[i+1] == 'l')
+                    if(i + 1 < chars.length && chars[i+1] == 'l') {
                         type = Token.Type.LONG;
-                    else if(i + 1 < chars.length && chars[i+1] == 's')
+                        value.append('l');
+                        i++;
+                    }else if(i + 1 < chars.length && chars[i+1] == 's') {
                         type = Token.Type.SHORT;
-                    else{
+                        value.append('s');
+                        i++;
+                    }else{
                         type = Token.Type.INTEGER;
 
                         if(i + 1 < chars.length && chars[i+1] == 'i')

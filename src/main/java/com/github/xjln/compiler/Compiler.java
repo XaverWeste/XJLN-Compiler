@@ -340,7 +340,7 @@ public final class Compiler {
         for(String fieldName:clazz.staticFields.keySet()){
             XJLNField field = clazz.staticFields.get(fieldName);
             if(field.initValue() != null){
-                try {
+                //try {
                     AST[] ast = syntacticParser.parseAst(field.initValue());
                     assert ast.length == 1;
 
@@ -350,9 +350,9 @@ public final class Compiler {
                     compileAST(ast[0], code);
 
                     code.addPutstatic(name, fieldName, toDesc(field.type()));
-                }catch(Exception e){
-                    throw new RuntimeException(e.getMessage() + " in: " + path + " :" + field.lineInFile());
-                }
+                //}catch(Exception e){
+                //    throw new RuntimeException(e.getMessage() + " in: " + path + " :" + field.lineInFile());
+                //}
             }
         }
 

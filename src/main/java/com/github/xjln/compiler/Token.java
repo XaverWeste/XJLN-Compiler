@@ -26,11 +26,11 @@ public record Token(String s, Type t){
         if(!hasExtension())
             return this;
 
-        return new Token(s.substring(0, s.length() - 2), t);
+        return new Token(s.substring(0, s.length() - 1), t);
     }
 
     public boolean hasExtension(){
-        return Set.of(Type.IDENTIFIER, Type.DOUBLE, Type.FLOAT, Type.LONG, Type.SHORT).contains(t) && Character.isLetter(s.toCharArray()[s.length() - 2]);
+        return Set.of(Type.IDENTIFIER, Type.DOUBLE, Type.FLOAT, Type.LONG, Type.SHORT).contains(t) && Character.isLetter(s.toCharArray()[s.length() - 1]);
     }
 
     @Override
