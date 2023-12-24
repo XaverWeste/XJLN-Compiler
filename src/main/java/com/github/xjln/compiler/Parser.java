@@ -52,11 +52,11 @@ final class Parser {
                         }
                     }
                     case "def" -> {
-                        try {
+                        //try {
                             parseDef();
-                        }catch (RuntimeException e){
-                            error(e);
-                        }
+                        //}catch (RuntimeException e){
+                        //    error(e);
+                        //}
                     }
                     default -> {
                         try {
@@ -396,7 +396,7 @@ final class Parser {
                         methodName = token.assertToken(Token.Type.IDENTIFIER).s();
                     }
 
-                    //TODO
+                    parseMethod(methodAccessFlag, statik, methodAbstrakt, synchronise);
                 }else
                     parseField();
             }
@@ -455,17 +455,16 @@ final class Parser {
         if(!abstrakt){
             int i = 1;
 
-            if(!scanner.hasNextLine())
-                throw new RuntimeException("expected Method code");
-
             while (scanner.hasNext() && i > 0){
                 nextLine();
 
-                switch (token.assertToken(Token.Type.IDENTIFIER).s()){
-                    case "if", "while", "for" -> i++;
-                    case "end" -> {
-                        token.assertNull();
-                        i--;
+                if(!token.isEmpty()) {
+                    switch (token.assertToken(Token.Type.IDENTIFIER).s()) {
+                        case "if", "while", "for" -> i++;
+                        case "end" -> {
+                            token.assertNull();
+                            i--;
+                        }
                     }
                 }
             }

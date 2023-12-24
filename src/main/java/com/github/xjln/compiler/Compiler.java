@@ -361,39 +361,63 @@ public final class Compiler {
         cf.addMethod2(mInfo);
 
         //init
+        mInfo = new MethodInfo(cf.getConstPool(), "<init>", "()V");
+        mInfo.setAccessFlags(AccessFlag.PUBLIC);
+
         code = new Bytecode(cf.getConstPool());
+
         code.addAload(0);
         code.addInvokespecial("java/lang/Object", "<init>", "()V");
-
-        if(clazz.methods.get("init") == null) {
-            mInfo = new MethodInfo(cf.getConstPool(), "<init>", "()V");
-            mInfo.setAccessFlags(AccessFlag.PUBLIC);
-        }else{
-            mInfo = new MethodInfo(cf.getConstPool(), "<init>", toDesc(clazz.methods.get("init").parameters.getValueList().toArray(new String[0])));
-            mInfo.setAccessFlags(clazz.methods.get("init").getAccessFlag());
-        }
-
-        for(int i = 0;i < clazz.fields.size();i++){
-
-        }
 
         code.add(0xb1); //return
         mInfo.setCodeAttribute(code.toCodeAttribute());
 
         cf.addMethod2(mInfo);
 
+        //methods
         for(String method:clazz.methods.keySet()){
-            if(clazz.methods.get(method).abstrakt) {
-                mInfo = new MethodInfo(cf.getConstPool(), method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
-                mInfo.setAccessFlags(clazz.getAccessFlag());
-                cf.addMethod2(mInfo);
-            }else{
-                //TODO
+            if(!method.equals("init")) {
+                if (clazz.methods.get(method).abstrakt) {
+                    mInfo = new MethodInfo(cf.getConstPool(), method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
+                    mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
+                    cf.addMethod2(mInfo);
+                } else {
+                    mInfo = new MethodInfo(cf.getConstPool(), method, toDesc(clazz.methods.get(method)));
+                    mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
+
+                    code = new Bytecode(cf.getConstPool());
+
+                    AST[] astList = syntacticParser.parseAst(clazz.methods.get(method).code);
+
+                    for(AST ast:astList)
+                        compileAST(ast, code, cf.getConstPool());
+
+                    if(clazz.methods.get(method).returnType.equals("void"))
+                        code.add(0xb1); //return
+
+                    mInfo.setCodeAttribute(code.toCodeAttribute());
+                    cf.addMethod2(mInfo);
+                }
             }
         }
 
+        //static methods
         for(String method:clazz.staticMethods.keySet()){
-            //TODO
+            mInfo = new MethodInfo(cf.getConstPool(), method, toDesc(clazz.staticMethods.get(method)));
+            mInfo.setAccessFlags(clazz.staticMethods.get(method).getAccessFlag());
+
+            code = new Bytecode(cf.getConstPool());
+
+            AST[] astList = syntacticParser.parseAst(clazz.staticMethods.get(method).code);
+
+            for(AST ast:astList)
+                compileAST(ast, code, cf.getConstPool());
+
+            if(clazz.staticMethods.get(method).returnType.equals("void"))
+                code.add(0xb1); //return
+
+            mInfo.setCodeAttribute(code.toCodeAttribute());
+            cf.addMethod2(mInfo);
         }
 
         writeFile(cf);
@@ -465,6 +489,17 @@ public final class Compiler {
         }catch (IOException | CannotCompileException e) {
             throw new RuntimeException("failed to write ClassFile for " + cf.getName());
         }
+    }
+
+    private String toDesc(XJLNMethod method){
+        StringBuilder desc = new StringBuilder("(");
+
+        for(String type:method.parameters.getValueList())
+            desc.append(toDesc(type));
+
+        desc.append(")").append(toDesc(method.returnType));
+
+        return desc.toString();
     }
 
     private String toDesc(XJLNField...fields){

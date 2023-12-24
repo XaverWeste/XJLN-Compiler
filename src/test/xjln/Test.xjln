@@ -1,3 +1,5 @@
 def class Test{
-    public static long d = 5l
+    def test(int x)
+
+    end
 }
