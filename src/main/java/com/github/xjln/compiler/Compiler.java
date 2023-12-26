@@ -443,7 +443,66 @@ public final class Compiler {
                         case "/" -> code.add(0x6c); //idiv
                     }
                 }
-                default -> throw new RuntimeException("internal Compiler Error");
+                case "double" -> {
+                    switch (calc.opp){
+                        case "+" -> code.add(0x63); //dadd
+                        case "-" -> code.add(0x67); //dsub
+                        case "*" -> code.add(0x6b); //dmul
+                        case "/" -> code.add(0x6f); //ddiv
+                    }
+                }
+                case "float" -> {
+                    switch (calc.opp){
+                        case "+" -> code.add(0x62); //fadd
+                        case "-" -> code.add(0x66); //fsub
+                        case "*" -> code.add(0x6a); //fmul
+                        case "/" -> code.add(0x6e); //fdiv
+                    }
+                }
+                case "long" -> {
+                    switch (calc.opp){
+                        case "+" -> code.add(0x61); //ladd
+                        case "-" -> code.add(0x65); //lsub
+                        case "*" -> code.add(0x69); //lmul
+                        case "/" -> code.add(0x6d); //ldiv
+                    }
+                }
+            }
+        }
+    }
+
+    private void compileCast(AST.Cast cast, Bytecode code){
+        switch(cast.value.type){
+            case "int" -> {
+                switch(cast.to){
+                    case "double" -> code.add(0x87); //i2d
+                    case "long" -> code.add(0x85); //i2l
+                    case "float" -> code.add(0x86); //i2f
+                    case "byte" -> code.add(0x91); //i2b
+                    case "char" -> code.add(0x92); //i2c
+                    case "short" -> code.add(0x93); //i2s
+                }
+            }
+            case "double" -> {
+                switch(cast.to){
+                    case "int" -> code.add(0x8e); //d2i
+                    case "long" -> code.add(0x8f); //d2l
+                    case "float" -> code.add(0x90); //d2f
+                }
+            }
+            case "long" -> {
+                switch(cast.to){
+                    case "double" -> code.add(0x8a); //l2d
+                    case "int" -> code.add(0x88); //l2i
+                    case "float" -> code.add(0x89); //l2f
+                }
+            }
+            case "float" -> {
+                switch(cast.to){
+                    case "double" -> code.add(0x8d); //f2d
+                    case "long" -> code.add(0x8c); //f2l
+                    case "int" -> code.add(0x8b); //f2i
+                }
             }
         }
     }
@@ -496,7 +555,6 @@ public final class Compiler {
                 }
                 code.addLdc(index);
             }
-            default -> throw new RuntimeException("illegal argument");
         }
     }
 

@@ -6,7 +6,7 @@ import java.util.Set;
 final class SyntacticParser {
 
     private final Set<String> boolOperators = Set.of("==", "!=", "|", "&");
-    private final Set<String> intOperators = Set.of("+", "-", "*", "/"); //TODO
+    private final Set<String> numberOperators = Set.of("+", "-", "*", "/"); //TODO
 
     private TokenHandler token;
     private ArrayList<AST> ast;
@@ -105,8 +105,8 @@ final class SyntacticParser {
                 if(!boolOperators.contains(opp) || !type2.equals("boolean"))
                     notDefinedException(type1, type2, opp);
             }
-            case "int" -> {
-                if(!intOperators.contains(opp) || !type2.equals("int"))
+            case "int", "double", "char", "byte", "short", "float", "long" -> {
+                if(!numberOperators.contains(opp) || !type2.equals(type1))
                     notDefinedException(type1, type2, opp);
             }
             default -> notDefinedException(type1, type2, opp);
