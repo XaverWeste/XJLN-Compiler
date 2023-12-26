@@ -10,19 +10,25 @@ sealed abstract class AST permits AST.Calc, AST.Call, AST.Value {
         Calc left = null, right = null;
 
         public void setLeft(){
-            left = new Calc();
-            left.opp = opp;
-            left.value = value;
+            Calc temp = new Calc();
+            temp.left = left;
+            temp.right = right;
+            temp.opp = opp;
+            temp.value = value;
 
+            left = temp;
             opp = null;
             value = null;
         }
 
         public void setRight(){
-            right = new Calc();
-            right.opp = opp;
-            right.value = value;
+            Calc temp = new Calc();
+            temp.right = right;
+            temp.left = left;
+            temp.opp = opp;
+            temp.value = value;
 
+            right = temp;
             opp = null;
             value = null;
         }

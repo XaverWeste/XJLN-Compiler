@@ -429,58 +429,75 @@ public final class Compiler {
     }
 
     private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp){
-        if(calc.right != null)
+        if(calc.right == null)
+            addValue(calc.value, code, cp);
+        else{
             compileCalc(calc.right, code, cp);
-
-        switch (calc.type){
-            case "int", "short", "byte", "char" -> {
-                int value;
-                if(calc.type.equals("char"))
-                    value = calc.value.token.s().toCharArray()[1];
-                else
-                    value = Integer.parseInt(calc.value.token.getWithoutExtension().s());
-
-                if(value < 6)
-                    code.addIconst(value);
-                else
-                    code.add(0x10 ,value); //Bipush
+            addValue(calc.value, code, cp);
+            switch(calc.type){
+                case "int" -> {
+                    switch (calc.opp){
+                        case "+" -> code.add(0x60); //iadd
+                        case "-" -> code.add(0x64); //isub
+                        case "*" -> code.add(0x68); //imul
+                        case "/" -> code.add(0x6c); //idiv
+                    }
+                }
+                default -> throw new RuntimeException("internal Compiler Error");
             }
-            case "boolean" -> code.addIconst(calc.value.token.s().equals("true") ? 1 : 0);
+        }
+    }
+
+    private void addValue(AST.Value value, Bytecode code, ConstPool cp){
+        switch (value.type){
+            case "int", "short", "byte", "char" -> {
+                int intValue;
+                if(value.type.equals("char"))
+                    intValue = value.token.s().toCharArray()[1];
+                else
+                    intValue = Integer.parseInt(value.token.getWithoutExtension().s());
+
+                if(intValue < 6)
+                    code.addIconst(intValue);
+                else
+                    code.add(0x10 ,intValue); //Bipush
+            }
+            case "boolean" -> code.addIconst(value.token.s().equals("true") ? 1 : 0);
             case "float" -> {
                 int index = 0;
-                float value = Float.parseFloat(calc.value.token.getWithoutExtension().s());
-                cp.addFloatInfo(value);
+                float floatValue = Float.parseFloat(value.token.getWithoutExtension().s());
+                cp.addFloatInfo(floatValue);
                 while(index < cp.getSize()){
                     try{
-                        if(cp.getFloatInfo(index) == value) break;
+                        if(cp.getFloatInfo(index) == floatValue) break;
                     }catch(Exception ignored){index++;}
                 }
                 code.addLdc(index);
             }
             case "double" -> {
                 int index = 0;
-                double value = Double.parseDouble(calc.value.token.getWithoutExtension().s());
-                cp.addDoubleInfo(value);
+                double doubleValue = Double.parseDouble(value.token.getWithoutExtension().s());
+                cp.addDoubleInfo(doubleValue);
                 while(index < cp.getSize()){
                     try{
-                        if(cp.getDoubleInfo(index) == value) break;
+                        if(cp.getDoubleInfo(index) == doubleValue) break;
                     }catch(Exception ignored){index++;}
                 }
                 code.addLdc(index);
             }
             case "long" -> {
                 int index = 0;
-                long value = Long.parseLong(calc.value.token.getWithoutExtension().s());
-                cp.addLongInfo(value);
+                long longValue = Long.parseLong(value.token.getWithoutExtension().s());
+                cp.addLongInfo(longValue);
                 while(index < cp.getSize()){
                     try{
-                        if(cp.getLongInfo(index) == value) break;
+                        if(cp.getLongInfo(index) == longValue) break;
                     }catch(Exception ignored){index++;}
                 }
                 code.addLdc(index);
             }
             default -> throw new RuntimeException("illegal argument");
-        } //TODO
+        }
     }
 
     private void writeFile(ClassFile cf){

@@ -5,10 +5,13 @@ import java.util.Set;
 
 final class SyntacticParser {
 
-    TokenHandler token;
-    ArrayList<AST> ast;
-    String[] code;
-    int line;
+    private final Set<String> boolOperators = Set.of("==", "!=", "|", "&");
+    private final Set<String> intOperators = Set.of("+", "-", "*", "/"); //TODO
+
+    private TokenHandler token;
+    private ArrayList<AST> ast;
+    private String[] code;
+    private int line;
 
     AST[] parseAst(String allCode){
         if(allCode == null || allCode.trim().equals(""))
@@ -29,9 +32,7 @@ final class SyntacticParser {
     AST.Calc parseCalc(){
         AST.Calc calc = new AST.Calc();
         calc.value = parseValue();
-        calc.type = calc.value.type; //TODO
-
-        token.assertNull();
+        calc.type = calc.value.type;
 
         while(token.hasNext()){
             if(token.next().t() != Token.Type.OPERATOR && !(token.current().t() == Token.Type.OPERATOR && token.current().equals("->"))){
@@ -39,21 +40,16 @@ final class SyntacticParser {
                 return calc;
             }
 
-            String opp = token.current().s();
-            calc.opp = opp;
+            calc.setRight();
+
+            calc.opp = token.current().s();
             token.assertHasNext();
 
             //TODO brackets
 
-            calc.setRight();
             calc.value = parseValue();
-            calc.type = calc.value.type; //TODO
 
-            if(calc.value.token.t() != calc.right.value.token.t())
-                throw new RuntimeException("expected type " + calc.type);
-
-            if(!Set.of("+", "-", "*", "/", "<", ">", "==", ">=", "<=", "&", "|", "^", "%").contains(opp))
-                throw new RuntimeException("Operator is not defined");
+            checkCalc(calc.right.type, calc.value.type, calc.opp);
         }
 
         return calc;
@@ -103,8 +99,25 @@ final class SyntacticParser {
     }
 
      */
+    private void checkCalc(String type1, String type2, String opp){
+        switch (type1){
+            case "boolean" -> {
+                if(!boolOperators.contains(opp) || !type2.equals("boolean"))
+                    notDefinedException(type1, type2, opp);
+            }
+            case "int" -> {
+                if(!intOperators.contains(opp) || !type2.equals("int"))
+                    notDefinedException(type1, type2, opp);
+            }
+            default -> notDefinedException(type1, type2, opp);
+        }
+    }
 
-    void nextLine(){
+    private void notDefinedException(String type1, String type2, String opp){
+        throw new RuntimeException("Operator " + opp + " is not defined for " + type1 + " and " + type2);
+    }
+
+    private void nextLine(){
         if(line >= code.length)
             throw new RuntimeException("internal compiler error");
 

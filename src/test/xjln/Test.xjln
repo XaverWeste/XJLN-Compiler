@@ -1,5 +1,3 @@
 def class Test{
-    def test(int x)
-
-    end
+    #static int x = 5 + 3
 }
