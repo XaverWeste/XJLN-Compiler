@@ -15,6 +15,7 @@ sealed abstract class AST permits AST.Calc, AST.Call, AST.Value {
             temp.right = right;
             temp.opp = opp;
             temp.value = value;
+            temp.type = type;
 
             left = temp;
             opp = null;
@@ -27,6 +28,7 @@ sealed abstract class AST permits AST.Calc, AST.Call, AST.Value {
             temp.left = left;
             temp.opp = opp;
             temp.value = value;
+            temp.type = type;
 
             right = temp;
             opp = null;
