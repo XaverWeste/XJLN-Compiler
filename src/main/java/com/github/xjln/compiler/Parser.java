@@ -466,6 +466,9 @@ final class Parser {
                             i--;
                         }
                     }
+
+                    if(i>0)
+                        code.append(token.toStringNonMarked()).append("\n");
                 }
             }
 

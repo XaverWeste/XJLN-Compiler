@@ -1,3 +1,5 @@
 def class Test{
-    static int x = ((5) + (3 * 6))
+    def test() :: long
+        return 5l
+    end
 }

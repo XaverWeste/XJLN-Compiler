@@ -1,6 +1,7 @@
 package com.github.xjln.lang;
 
 import com.github.xjln.bytecode.AccessFlag;
+import com.github.xjln.utility.MatchedList;
 
 import java.util.HashMap;
 
@@ -63,10 +64,11 @@ public final class XJLNClass extends Compilable{
         if(fields.size() > 0)
             return false;
 
-        if(staticFields.size() > 0)
-            return false;
+        return staticFields.size() == 0;
+    }
 
-        return true;
+    public void createDefaultInit(){
+        addMethod("init", new XJLNMethod(AccessFlag.ACC_PUBLIC, "void", new MatchedList<>(), "", false, false, false));
     }
 
     @Override

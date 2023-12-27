@@ -341,13 +341,12 @@ public final class Compiler {
             XJLNField field = clazz.staticFields.get(fieldName);
             if(field.initValue() != null){
                 try {
-                    AST[] ast = syntacticParser.parseAst(field.initValue());
-                    assert ast.length == 1;
+                    AST.Calc ast = syntacticParser.parseCalc();
 
-                    if(!field.type().equals(ast[0].type))
-                        throw new RuntimeException("illegal type " + ast[0].type);
+                    if(!field.type().equals(ast.type))
+                        throw new RuntimeException("illegal type " + ast.type);
 
-                    compileAST(ast[0], code, cf.getConstPool());
+                    compileCalc(ast, code, cf.getConstPool());
 
                     code.addPutstatic(name, fieldName, toDesc(field.type()));
                 }catch(Exception e){
@@ -361,44 +360,40 @@ public final class Compiler {
         mInfo.setCodeAttribute(code.toCodeAttribute());
         cf.addMethod2(mInfo);
 
-        //init
-        mInfo = new MethodInfo(cf.getConstPool(), "<init>", "()V");
-        mInfo.setAccessFlags(AccessFlag.PUBLIC);
-
-        code = new Bytecode(cf.getConstPool());
-
-        code.addAload(0);
-        code.addInvokespecial("java/lang/Object", "<init>", "()V");
-
-        code.add(0xb1); //return
-        mInfo.setCodeAttribute(code.toCodeAttribute());
-
-        cf.addMethod2(mInfo);
+        if(!clazz.methods.containsKey("init"))
+            clazz.createDefaultInit();
 
         //methods
         for(String method:clazz.methods.keySet()){
-            if(!method.equals("init")) {
-                if (clazz.methods.get(method).abstrakt) {
-                    mInfo = new MethodInfo(cf.getConstPool(), method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
-                    mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
-                    cf.addMethod2(mInfo);
-                } else {
-                    mInfo = new MethodInfo(cf.getConstPool(), method, toDesc(clazz.methods.get(method)));
-                    mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
+            if (clazz.methods.get(method).abstrakt) {
+                mInfo = new MethodInfo(cf.getConstPool(), method.equals("init") ? "<init>" : method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
+                mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
+                cf.addMethod2(mInfo);
+            } else {
+                mInfo = new MethodInfo(cf.getConstPool(), method, toDesc(clazz.methods.get(method)));
+                mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
 
-                    code = new Bytecode(cf.getConstPool());
+                code = new Bytecode(cf.getConstPool());
 
-                    AST[] astList = syntacticParser.parseAst(clazz.methods.get(method).code);
-
-                    for(AST ast:astList)
-                        compileAST(ast, code, cf.getConstPool());
-
-                    if(clazz.methods.get(method).returnType.equals("void"))
-                        code.add(0xb1); //return
-
-                    mInfo.setCodeAttribute(code.toCodeAttribute());
-                    cf.addMethod2(mInfo);
+                if(method.equals("init")){
+                    code.addAload(0);
+                    code.addInvokespecial("java/lang/Object", "<init>", "()V");
                 }
+
+                AST[] astList = syntacticParser.parseAst(clazz.methods.get(method).code);
+
+                for(AST ast:astList) {
+                    if(ast instanceof AST.Return && !ast.type.equals(clazz.methods.get(method).returnType))
+                        throw new RuntimeException("illegal return type in Method " + method + " of class " + path + "." + name);
+
+                    compileAST(ast, code, cf.getConstPool());
+                }
+
+                if(clazz.methods.get(method).returnType.equals("void"))
+                    code.add(0xb1); //return
+
+                mInfo.setCodeAttribute(code.toCodeAttribute());
+                cf.addMethod2(mInfo);
             }
         }
 
@@ -411,8 +406,12 @@ public final class Compiler {
 
             AST[] astList = syntacticParser.parseAst(clazz.staticMethods.get(method).code);
 
-            for(AST ast:astList)
+            for(AST ast:astList) {
+                if(ast instanceof AST.Return && !ast.type.equals(clazz.staticMethods.get(method).returnType))
+                    throw new RuntimeException("illegal return type in Method " + method + " of class " + path + "." + name);
+
                 compileAST(ast, code, cf.getConstPool());
+            }
 
             if(clazz.staticMethods.get(method).returnType.equals("void"))
                 code.add(0xb1); //return

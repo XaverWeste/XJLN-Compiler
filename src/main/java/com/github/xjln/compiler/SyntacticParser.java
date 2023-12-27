@@ -12,6 +12,13 @@ final class SyntacticParser {
     private String[] code;
     private int line;
 
+    AST.Calc parseCalc(String calc){
+        th = Lexer.lex(calc);
+        AST.Calc result = parseCalc();
+        th.assertNull();
+        return result;
+    }
+
     AST[] parseAst(String allCode){
         if(allCode == null || allCode.trim().equals(""))
             return new AST[0];
@@ -20,10 +27,15 @@ final class SyntacticParser {
         line = 0;
         ArrayList<AST> ast = new ArrayList<>();
 
-        nextLine();
-
-        ast.add(parseCalc());
-        th.assertNull();
+        while(line < code.length){
+            nextLine();
+            if(th.next().equals("return")){
+                AST.Return statement = new AST.Return();
+                statement.calc = parseCalc();
+                statement.type = statement.calc.type;
+                ast.add(statement);
+            }
+        }
 
         return ast.toArray(new AST[0]);
     }
