@@ -351,6 +351,7 @@ public final class Compiler {
 
                     code.addPutstatic(name, fieldName, toDesc(field.type()));
                 }catch(Exception e){
+                    e.printStackTrace();
                     throw new RuntimeException(e.getMessage() + " in: " + path + " :" + field.lineInFile());
                 }
             }
@@ -426,14 +427,22 @@ public final class Compiler {
     private void compileAST(AST ast, Bytecode code, ConstPool cp){
         if(ast instanceof AST.Calc)
             compileCalc((AST.Calc) ast, code, cp);
+        else if(ast instanceof  AST.Return)
+            compileReturn((AST.Return) ast, code, cp);
     }
 
     private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp){
+        if(calc.left != null)
+            compileCalc(calc.left, code, cp);
+
         if(calc.right == null)
             addValue(calc.value, code, cp);
         else{
             compileCalc(calc.right, code, cp);
-            addValue(calc.value, code, cp);
+
+            if(calc.left == null)
+                addValue(calc.value, code, cp);
+
             switch(calc.type){
                 case "int" -> {
                     switch (calc.opp){
@@ -558,6 +567,17 @@ public final class Compiler {
         }
     }
 
+    private void compileReturn(AST.Return ast, Bytecode code, ConstPool cp){ //TODO
+        compileCalc(ast.calc, code, cp);
+
+        switch(ast.type){
+            case "double" -> code.add(0xaf); //dreturn
+            case "float" -> code.add(0xae); //freturn
+            case "long" -> code.add(0xad); //lreturn
+            case "int", "boolean", "short", "byte", "char" -> code.add(0xac); //ireturn
+        }
+    }
+
     private void writeFile(ClassFile cf){
         try{
             ClassPool.getDefault().makeClass(cf).writeFile("compiled");
@@ -586,7 +606,7 @@ public final class Compiler {
         return desc.toString();
     }
 
-    private String toDesc(String...types){
+    static String toDesc(String...types){
         StringBuilder desc = new StringBuilder();
 
         for(String type:types){
@@ -608,6 +628,20 @@ public final class Compiler {
     }
 
     static String getMethodReturnType(String clazz, String method, String desc){
+        return null; //TODO
+    }
+
+    static String getOperatorReturnType(String type1, String type2, String opp){
+        if(PRIMITIVES.contains(type1)){
+            if(!type1.equals(type2))
+                return null;
+
+            if(SyntacticParser.BOOL_OPERATORS.contains(opp))
+                return "boolean";
+
+            if(SyntacticParser.NUMBER_OPERATORS.contains(opp))
+                return type1.equals("boolean") ? null : type1;
+        }
         return null; //TODO
     }
 

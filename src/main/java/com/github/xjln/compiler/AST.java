@@ -1,6 +1,6 @@
 package com.github.xjln.compiler;
 
-sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value {
+sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value, AST.Return {
 
     String type = null;
 
@@ -43,6 +43,7 @@ sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value {
 
     static final class Value extends AST{
         Call call = null;
+        Cast cast = null;
         Token token = null;
     }
 
@@ -50,6 +51,10 @@ sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value {
         String call = null;
         Call next = null;
         Calc[] argTypes;
+    }
+
+    static final class Return extends AST{
+        Calc calc = null;
     }
 
 }
