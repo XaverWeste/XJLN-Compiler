@@ -332,7 +332,7 @@ public final class Compiler {
             cf.addField2(fInfo);
         }
 
-        //clinit
+        //clinit TODO init values
         MethodInfo mInfo = new MethodInfo(cf.getConstPool(), "<clinit>", "()V");
         mInfo.setAccessFlags(AccessFlag.STATIC);
         Bytecode code = new Bytecode(cf.getConstPool());
@@ -346,7 +346,7 @@ public final class Compiler {
                     if(!field.type().equals(ast.type))
                         throw new RuntimeException("illegal type " + ast.type);
 
-                    compileCalc(ast, code, cf.getConstPool());
+                    compileCalc(ast, code, cf.getConstPool(), new OperandStack());
 
                     code.addPutstatic(name, fieldName, toDesc(field.type()));
                 }catch(Exception e){
@@ -381,12 +381,13 @@ public final class Compiler {
                 }
 
                 AST[] astList = syntacticParser.parseAst(clazz.methods.get(method).code);
+                OperandStack os = OperandStack.forMethod(clazz.methods.get(method));
 
                 for(AST ast:astList) {
                     if(ast instanceof AST.Return && !ast.type.equals(clazz.methods.get(method).returnType))
                         throw new RuntimeException("illegal return type in Method " + method + " of class " + path + "." + name);
 
-                    compileAST(ast, code, cf.getConstPool());
+                    compileAST(ast, code, cf.getConstPool(), os);
                 }
 
                 if(clazz.methods.get(method).returnType.equals("void"))
@@ -405,12 +406,13 @@ public final class Compiler {
             code = new Bytecode(cf.getConstPool());
 
             AST[] astList = syntacticParser.parseAst(clazz.staticMethods.get(method).code);
+            OperandStack os = OperandStack.forMethod(clazz.staticMethods.get(method));
 
             for(AST ast:astList) {
                 if(ast instanceof AST.Return && !ast.type.equals(clazz.staticMethods.get(method).returnType))
                     throw new RuntimeException("illegal return type in Method " + method + " of class " + path + "." + name);
 
-                compileAST(ast, code, cf.getConstPool());
+                compileAST(ast, code, cf.getConstPool(), os);
             }
 
             if(clazz.staticMethods.get(method).returnType.equals("void"))
@@ -423,24 +425,24 @@ public final class Compiler {
         writeFile(cf);
     }
 
-    private void compileAST(AST ast, Bytecode code, ConstPool cp){
+    private void compileAST(AST ast, Bytecode code, ConstPool cp, OperandStack os){
         if(ast instanceof AST.Calc)
-            compileCalc((AST.Calc) ast, code, cp);
+            compileCalc((AST.Calc) ast, code, cp, os);
         else if(ast instanceof  AST.Return)
-            compileReturn((AST.Return) ast, code, cp);
+            compileReturn((AST.Return) ast, code, cp, os);
     }
 
-    private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp){
+    private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp, OperandStack os){
         if(calc.left != null)
-            compileCalc(calc.left, code, cp);
+            compileCalc(calc.left, code, cp, os);
 
         if(calc.right == null)
-            addValue(calc.value, code, cp);
+            addValue(calc.value, code, cp, os);
         else{
-            compileCalc(calc.right, code, cp);
+            compileCalc(calc.right, code, cp, os);
 
             if(calc.left == null)
-                addValue(calc.value, code, cp);
+                addValue(calc.value, code, cp, os);
 
             switch(calc.type){
                 case "int" -> {
@@ -450,6 +452,7 @@ public final class Compiler {
                         case "*" -> code.add(0x68); //imul
                         case "/" -> code.add(0x6c); //idiv
                     }
+                    os.pop(1);
                 }
                 case "double" -> {
                     switch (calc.opp){
@@ -458,6 +461,7 @@ public final class Compiler {
                         case "*" -> code.add(0x6b); //dmul
                         case "/" -> code.add(0x6f); //ddiv
                     }
+                    os.pop(2);
                 }
                 case "float" -> {
                     switch (calc.opp){
@@ -466,6 +470,7 @@ public final class Compiler {
                         case "*" -> code.add(0x6a); //fmul
                         case "/" -> code.add(0x6e); //fdiv
                     }
+                    os.pop(1);
                 }
                 case "long" -> {
                     switch (calc.opp){
@@ -474,17 +479,26 @@ public final class Compiler {
                         case "*" -> code.add(0x69); //lmul
                         case "/" -> code.add(0x6d); //ldiv
                     }
+                    os.pop(2);
                 }
             }
         }
     }
 
-    private void compileCast(AST.Cast cast, Bytecode code){
+    private void compileCast(AST.Cast cast, Bytecode code, OperandStack os){
         switch(cast.value.type){
             case "int" -> {
                 switch(cast.to){
-                    case "double" -> code.add(0x87); //i2d
-                    case "long" -> code.add(0x85); //i2l
+                    case "double" -> {
+                        code.add(0x87); //i2d
+                        String temp = os.pop(1);
+                        os.push(temp, 2);
+                    }
+                    case "long" -> {
+                        code.add(0x85); //i2l
+                        String temp = os.pop(1);
+                        os.push(temp, 2);
+                    }
                     case "float" -> code.add(0x86); //i2f
                     case "byte" -> code.add(0x91); //i2b
                     case "char" -> code.add(0x92); //i2c
@@ -493,29 +507,53 @@ public final class Compiler {
             }
             case "double" -> {
                 switch(cast.to){
-                    case "int" -> code.add(0x8e); //d2i
-                    case "long" -> code.add(0x8f); //d2l
+                    case "int" -> {
+                        code.add(0x8e); //d2i
+                        String temp = os.pop(2);
+                        os.push(temp, 1);
+                    }
+                    case "long" -> {
+                        code.add(0x8f); //d2l
+                        String temp = os.pop(2);
+                        os.push(temp, 1);
+                    }
                     case "float" -> code.add(0x90); //d2f
                 }
             }
             case "long" -> {
                 switch(cast.to){
                     case "double" -> code.add(0x8a); //l2d
-                    case "int" -> code.add(0x88); //l2i
-                    case "float" -> code.add(0x89); //l2f
+                    case "int" -> {
+                        code.add(0x88); //l2i
+                        String temp = os.pop(2);
+                        os.push(temp, 1);
+                    }
+                    case "float" -> {
+                        code.add(0x89); //l2f
+                        String temp = os.pop(2);
+                        os.push(temp, 1);
+                    }
                 }
             }
             case "float" -> {
                 switch(cast.to){
-                    case "double" -> code.add(0x8d); //f2d
-                    case "long" -> code.add(0x8c); //f2l
+                    case "double" -> {
+                        code.add(0x8d); //f2d
+                        String temp = os.pop(1);
+                        os.push(temp, 2);
+                    }
+                    case "long" -> {
+                        code.add(0x8c); //f2l
+                        String temp = os.pop(1);
+                        os.push(temp, 2);
+                    }
                     case "int" -> code.add(0x8b); //f2i
                 }
             }
         }
     }
 
-    private void addValue(AST.Value value, Bytecode code, ConstPool cp){
+    private void addValue(AST.Value value, Bytecode code, ConstPool cp, OperandStack os){
         switch (value.type){
             case "int", "short", "byte", "char" -> {
                 int intValue;
@@ -524,12 +562,17 @@ public final class Compiler {
                 else
                     intValue = Integer.parseInt(value.token.getWithoutExtension().s());
 
-                if(intValue < 6)
+                if(intValue < 6 && intValue >= 0)
                     code.addIconst(intValue);
                 else
                     code.add(0x10 ,intValue); //Bipush
+
+                os.push(1);
             }
-            case "boolean" -> code.addIconst(value.token.s().equals("true") ? 1 : 0);
+            case "boolean" -> {
+                code.addIconst(value.token.s().equals("true") ? 1 : 0);
+                os.push("temp", 1);
+            }
             case "float" -> {
                 int index = 0;
                 float floatValue = Float.parseFloat(value.token.getWithoutExtension().s());
@@ -540,6 +583,7 @@ public final class Compiler {
                     }catch(Exception ignored){index++;}
                 }
                 code.addLdc(index);
+                os.push(1);
             }
             case "double" -> {
                 int index = 0;
@@ -551,6 +595,7 @@ public final class Compiler {
                     }catch(Exception ignored){index++;}
                 }
                 code.addLdc(index);
+                os.push(2);
             }
             case "long" -> {
                 int index = 0;
@@ -562,12 +607,13 @@ public final class Compiler {
                     }catch(Exception ignored){index++;}
                 }
                 code.addLdc(index);
+                os.push(2);
             }
         }
     }
 
-    private void compileReturn(AST.Return ast, Bytecode code, ConstPool cp){ //TODO
-        compileCalc(ast.calc, code, cp);
+    private void compileReturn(AST.Return ast, Bytecode code, ConstPool cp, OperandStack os){ //TODO
+        compileCalc(ast.calc, code, cp, os);
 
         switch(ast.type){
             case "double" -> code.add(0xaf); //dreturn

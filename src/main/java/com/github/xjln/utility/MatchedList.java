@@ -12,9 +12,9 @@ public class MatchedList<Key, Value> {
         valueList = new ArrayList<>();
     }
 
-    public void add(Key first, Value second){
-        keyList.add(first);
-        valueList.add(second);
+    public void add(Key key, Value value){
+        keyList.add(key);
+        valueList.add(value);
     }
 
     public Key getKey(Value value){
@@ -55,6 +55,13 @@ public class MatchedList<Key, Value> {
 
     public ArrayList<Value> getValueList(){
         return valueList;
+    }
+
+    public void remove(int n){
+        if(keyList.size() <= n){
+            keyList.remove(n);
+            valueList.remove(n);
+        }
     }
 
     public int size(){
