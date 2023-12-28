@@ -368,65 +368,37 @@ public final class Compiler {
         current = clazz;
 
         //methods
-        for(String method:clazz.methods.keySet()){
-            if (clazz.methods.get(method).abstrakt) {
-                mInfo = new MethodInfo(cf.getConstPool(), method.equals("init") ? "<init>" : method, "(" + toDesc(clazz.methods.get(method).parameters.getValueList().toArray(new String[0])) + ")" + toDesc(clazz.methods.get(method).returnType)); //TODO
-                mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
-                cf.addMethod2(mInfo);
-            } else {
-                mInfo = new MethodInfo(cf.getConstPool(), method, toDesc(clazz.methods.get(method)));
-                mInfo.setAccessFlags(clazz.methods.get(method).getAccessFlag());
-
-                code = new Bytecode(cf.getConstPool());
-
-                if(method.equals("init")){
-                    code.addAload(0);
-                    code.addInvokespecial("java/lang/Object", "<init>", "()V");
-                }
-
-                AST[] astList = syntacticParser.parseAst(clazz.methods.get(method).code);
-                OperandStack os = OperandStack.forMethod(clazz.methods.get(method));
-
-                for(int i = 0;i < astList.length;i++){
-                    if(astList[i] instanceof AST.Return && !astList[i].type.equals(clazz.methods.get(method).returnType))
-                        throw new RuntimeException("expected " + clazz.methods.get(method).returnType + " got " + astList[i].type + " in: " + path + " :" + (clazz.methods.get(method).line + i));
-
-                    compileAST(astList[i], code, cf.getConstPool(), os);
-                }
-
-                if(clazz.methods.get(method).returnType.equals("void"))
-                    code.add(0xb1); //return
-
-                mInfo.setCodeAttribute(code.toCodeAttribute());
-                cf.addMethod2(mInfo);
-            }
-        }
+        compileMethods(clazz.methods, cf, path + "." + name);
 
         //static methods
-        for(String method:clazz.staticMethods.keySet()){
-            mInfo = new MethodInfo(cf.getConstPool(), method, toDesc(clazz.staticMethods.get(method)));
-            mInfo.setAccessFlags(clazz.staticMethods.get(method).getAccessFlag());
+        compileMethods(clazz.staticMethods, cf, path + "." + name);
 
-            code = new Bytecode(cf.getConstPool());
+        writeFile(cf);
+    }
 
-            AST[] astList = syntacticParser.parseAst(clazz.staticMethods.get(method).code);
-            OperandStack os = OperandStack.forMethod(clazz.staticMethods.get(method));
+    private void compileMethods(HashMap<String, XJLNMethod> methods, ClassFile cf, String clazzName){
+        for(String method:methods.keySet()){
+            MethodInfo mInfo = new MethodInfo(cf.getConstPool(), method, toDesc(methods.get(method)));
+            mInfo.setAccessFlags(methods.get(method).getAccessFlag());
+
+            Bytecode code = new Bytecode(cf.getConstPool());
+
+            AST[] astList = syntacticParser.parseAst(methods.get(method).code);
+            OperandStack os = OperandStack.forMethod(methods.get(method));
 
             for(int i = 0;i < astList.length;i++){
-                if(astList[i] instanceof AST.Return && !astList[i].type.equals(clazz.staticMethods.get(method).returnType))
-                    throw new RuntimeException("expected " + clazz.staticMethods.get(method).returnType + " got " + astList[i].type+ " in: " + path + " :" + (clazz.staticMethods.get(method).line + i));
+                if(astList[i] instanceof AST.Return && !astList[i].type.equals(methods.get(method).returnType))
+                    throw new RuntimeException("expected " + methods.get(method).returnType + " got " + astList[i].type+ " in: " + clazzName + " :" + (methods.get(method).line + i));
 
                 compileAST(astList[i], code, cf.getConstPool(), os);
             }
 
-            if(clazz.staticMethods.get(method).returnType.equals("void"))
+            if(methods.get(method).returnType.equals("void"))
                 code.add(0xb1); //return
 
             mInfo.setCodeAttribute(code.toCodeAttribute());
             cf.addMethod2(mInfo);
         }
-
-        writeFile(cf);
     }
 
     private void compileAST(AST ast, Bytecode code, ConstPool cp, OperandStack os){
@@ -470,7 +442,7 @@ public final class Compiler {
                         case "*" -> code.add(0x68); //imul
                         case "/" -> code.add(0x6c); //idiv
                     }
-                    os.pop(1);
+                    os.pop();
                 }
                 case "double" -> {
                     switch (calc.opp){
@@ -479,7 +451,7 @@ public final class Compiler {
                         case "*" -> code.add(0x6b); //dmul
                         case "/" -> code.add(0x6f); //ddiv
                     }
-                    os.pop(2);
+                    os.pop();
                 }
                 case "float" -> {
                     switch (calc.opp){
@@ -488,7 +460,7 @@ public final class Compiler {
                         case "*" -> code.add(0x6a); //fmul
                         case "/" -> code.add(0x6e); //fdiv
                     }
-                    os.pop(1);
+                    os.pop();
                 }
                 case "long" -> {
                     switch (calc.opp){
@@ -497,7 +469,7 @@ public final class Compiler {
                         case "*" -> code.add(0x69); //lmul
                         case "/" -> code.add(0x6d); //ldiv
                     }
-                    os.pop(2);
+                    os.pop();
                 }
             }
         }
@@ -509,12 +481,12 @@ public final class Compiler {
                 switch(cast.to){
                     case "double" -> {
                         code.add(0x87); //i2d
-                        String temp = os.pop(1);
+                        String temp = os.pop();
                         os.push(temp, 2);
                     }
                     case "long" -> {
                         code.add(0x85); //i2l
-                        String temp = os.pop(1);
+                        String temp = os.pop();
                         os.push(temp, 2);
                     }
                     case "float" -> code.add(0x86); //i2f
@@ -527,12 +499,12 @@ public final class Compiler {
                 switch(cast.to){
                     case "int" -> {
                         code.add(0x8e); //d2i
-                        String temp = os.pop(2);
+                        String temp = os.pop();
                         os.push(temp, 1);
                     }
                     case "long" -> {
                         code.add(0x8f); //d2l
-                        String temp = os.pop(2);
+                        String temp = os.pop();
                         os.push(temp, 1);
                     }
                     case "float" -> code.add(0x90); //d2f
@@ -543,12 +515,12 @@ public final class Compiler {
                     case "double" -> code.add(0x8a); //l2d
                     case "int" -> {
                         code.add(0x88); //l2i
-                        String temp = os.pop(2);
+                        String temp = os.pop();
                         os.push(temp, 1);
                     }
                     case "float" -> {
                         code.add(0x89); //l2f
-                        String temp = os.pop(2);
+                        String temp = os.pop();
                         os.push(temp, 1);
                     }
                 }
@@ -557,12 +529,12 @@ public final class Compiler {
                 switch(cast.to){
                     case "double" -> {
                         code.add(0x8d); //f2d
-                        String temp = os.pop(1);
+                        String temp = os.pop();
                         os.push(temp, 2);
                     }
                     case "long" -> {
                         code.add(0x8c); //f2l
-                        String temp = os.pop(1);
+                        String temp = os.pop();
                         os.push(temp, 2);
                     }
                     case "int" -> code.add(0x8b); //f2i
@@ -638,7 +610,7 @@ public final class Compiler {
         compileCalc(ast.calc, code, cp, os);
         compileStore(ast.name, ast.type, code, os);
         int length = (ast.type.equals("double") || ast.type.equals("long")) ? 2 : 1;
-        os.pop(length);
+        os.pop();
         os.push(ast.name, length);
     }
 
@@ -675,7 +647,7 @@ public final class Compiler {
             int where = os.get(name);
 
             if(where == -1) {
-                os.pop(Set.of("double", "long").contains(type) ? 2 : 1);
+                os.pop();
                 where = os.push(name, Set.of("double", "long").contains(type) ? 2 : 1);
             }
 

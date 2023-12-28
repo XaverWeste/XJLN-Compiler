@@ -25,11 +25,22 @@ final class OperandStack {
         push("&temp", length);
     }
 
-    String pop(int length){
+    String pop(){
         String temp = stack.getKey(stack.size());
+        int length = stack.getValue(stack.size() - 1);
+        length -= stack.getValue(stack.size() - 2);
         stack.remove(stack.size() - 1);
         size -= length;
         return temp;
+    }
+
+    int clearTemp(){
+        int i = 0;
+        while (stack.getKey(stack.size()).equals("&temp")){
+            pop();
+            i++;
+        }
+        return i;
     }
 
     int get(String name){
