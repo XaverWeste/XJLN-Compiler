@@ -32,6 +32,8 @@ public final class Compiler {
     private final SyntacticParser syntacticParser = new SyntacticParser();
     private final Parser parser = new Parser();
 
+    private XJLNClass current;
+
     /**
      * compiles all .xjln Files in the given Folders and runs the main method in the given Main class
      * @param mainClass the class that contains the main method
@@ -363,6 +365,8 @@ public final class Compiler {
         if(!clazz.methods.containsKey("init"))
             clazz.createDefaultInit();
 
+        current = clazz;
+
         //methods
         for(String method:clazz.methods.keySet()){
             if (clazz.methods.get(method).abstrakt) {
@@ -383,11 +387,11 @@ public final class Compiler {
                 AST[] astList = syntacticParser.parseAst(clazz.methods.get(method).code);
                 OperandStack os = OperandStack.forMethod(clazz.methods.get(method));
 
-                for(AST ast:astList) {
-                    if(ast instanceof AST.Return && !ast.type.equals(clazz.methods.get(method).returnType))
-                        throw new RuntimeException("illegal return type in Method " + method + " of class " + path + "." + name);
+                for(int i = 0;i < astList.length;i++){
+                    if(astList[i] instanceof AST.Return && !astList[i].type.equals(clazz.methods.get(method).returnType))
+                        throw new RuntimeException("expected " + clazz.methods.get(method).returnType + " got " + astList[i].type + " in: " + path + " :" + (clazz.methods.get(method).line + i));
 
-                    compileAST(ast, code, cf.getConstPool(), os);
+                    compileAST(astList[i], code, cf.getConstPool(), os);
                 }
 
                 if(clazz.methods.get(method).returnType.equals("void"))
@@ -408,11 +412,11 @@ public final class Compiler {
             AST[] astList = syntacticParser.parseAst(clazz.staticMethods.get(method).code);
             OperandStack os = OperandStack.forMethod(clazz.staticMethods.get(method));
 
-            for(AST ast:astList) {
-                if(ast instanceof AST.Return && !ast.type.equals(clazz.staticMethods.get(method).returnType))
-                    throw new RuntimeException("illegal return type in Method " + method + " of class " + path + "." + name);
+            for(int i = 0;i < astList.length;i++){
+                if(astList[i] instanceof AST.Return && !astList[i].type.equals(clazz.staticMethods.get(method).returnType))
+                    throw new RuntimeException("expected " + clazz.staticMethods.get(method).returnType + " got " + astList[i].type+ " in: " + path + " :" + (clazz.staticMethods.get(method).line + i));
 
-                compileAST(ast, code, cf.getConstPool(), os);
+                compileAST(astList[i], code, cf.getConstPool(), os);
             }
 
             if(clazz.staticMethods.get(method).returnType.equals("void"))
@@ -426,23 +430,30 @@ public final class Compiler {
     }
 
     private void compileAST(AST ast, Bytecode code, ConstPool cp, OperandStack os){
-        if(ast instanceof AST.Calc)
-            compileCalc((AST.Calc) ast, code, cp, os);
-        else if(ast instanceof  AST.Return)
+        if(ast instanceof  AST.Return)
             compileReturn((AST.Return) ast, code, cp, os);
+        else if(ast instanceof AST.VarInit)
+            compileVarInit((AST.VarInit) ast, code, cp, os);
     }
 
     private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp, OperandStack os){
         if(calc.left != null)
             compileCalc(calc.left, code, cp, os);
 
-        if(calc.right == null)
-            addValue(calc.value, code, cp, os);
-        else{
+        if(calc.right == null) {
+            if(calc.value.call != null)
+                compileCall(calc.value.call, code, cp, os);
+            else
+                addValue(calc.value, code, cp, os);
+        }else{
             compileCalc(calc.right, code, cp, os);
 
-            if(calc.left == null)
-                addValue(calc.value, code, cp, os);
+            if(calc.left == null) {
+                if(calc.value.call != null)
+                    compileCall(calc.value.call, code, cp, os);
+                else
+                    addValue(calc.value, code, cp, os);
+            }
 
             switch(calc.type){
                 case "int" -> {
@@ -609,6 +620,63 @@ public final class Compiler {
                 code.addLdc(index);
                 os.push(2);
             }
+        }
+    }
+
+    private void compileCall(AST.Call call, Bytecode code, ConstPool cp, OperandStack os){
+        compileLoad(call, code, os);
+    }
+
+    private void compileVarInit(AST.VarInit ast, Bytecode code, ConstPool cp, OperandStack os){
+        compileCalc(ast.calc, code, cp, os);
+        compileStore(ast.name, ast.type, code, os);
+        int length = (ast.type.equals("double") || ast.type.equals("long")) ? 2 : 1;
+        os.pop(length);
+        os.push(ast.name, length);
+    }
+
+    private void compileLoad(AST.Call ast, Bytecode code, OperandStack os){
+        if(os.contains(ast.call)) {
+            switch (ast.type) {
+                case "int", "boolean", "char", "byte", "short" -> {
+                    code.addIload(os.get(ast.call));
+                    os.push(1);
+                }
+                case "float" -> {
+                    code.addFload(os.get(ast.call));
+                    os.push(1);
+                }
+                case "double" -> {
+                    code.addDload(os.get(ast.call));
+                    os.push(2);
+                }
+                case "long" -> {
+                    code.addLload(os.get(ast.call));
+                    os.push(2);
+                }
+            }
+        }else{
+            throw new RuntimeException("Variable " + ast.call + " did not exist");
+        }
+    }
+
+    private void compileStore(String name, String type, Bytecode code, OperandStack os){
+        if(os.contains(name) || !current.fields.containsKey(name)) {
+            int where = os.get(name);
+
+            if(where == -1) {
+                os.pop(Set.of("double", "long").contains(type) ? 2 : 1);
+                where = os.push(name, Set.of("double", "long").contains(type) ? 2 : 1);
+            }
+
+            switch (type) {
+                case "int", "boolean", "char", "byte", "short" -> code.addIstore(where);
+                case "float" -> code.addFstore(where);
+                case "double" -> code.addDstore(where);
+                case "long" -> code.addLstore(where);
+            }
+        }else{
+            throw new RuntimeException("Variable " + name + " did not exist");
         }
     }
 

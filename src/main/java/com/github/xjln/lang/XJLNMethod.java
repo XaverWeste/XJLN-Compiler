@@ -9,8 +9,9 @@ public final class XJLNMethod extends Compilable{
     public final String returnType;
     public final String code;
     public final boolean statik, abstrakt, synchronise;
+    public final int line;
 
-    public XJLNMethod(AccessFlag accessFlag, String returnType, MatchedList<String, String> parameters, String code, boolean statik, boolean abstrakt, boolean synchronise) {
+    public XJLNMethod(AccessFlag accessFlag, String returnType, MatchedList<String, String> parameters, String code, boolean statik, boolean abstrakt, boolean synchronise, int line) {
         super(accessFlag);
         this.returnType = returnType;
         this.code = code;
@@ -18,6 +19,7 @@ public final class XJLNMethod extends Compilable{
         this.statik = statik;
         this.abstrakt = abstrakt;
         this.synchronise = synchronise;
+        this.line = line;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.github.xjln.compiler;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Set;
 
 final class SyntacticParser {
@@ -8,6 +9,7 @@ final class SyntacticParser {
     static final Set<String> BOOL_OPERATORS = Set.of("==", "!=", "|", "&");
     static final Set<String> NUMBER_OPERATORS = Set.of("+", "-", "*", "/"); //TODO
 
+    private HashMap<String, String> vars;
     private TokenHandler th;
     private String[] code;
     private int line;
@@ -19,10 +21,11 @@ final class SyntacticParser {
         return result;
     }
 
-    AST[] parseAst(String allCode){
+    AST[] parseAst(String allCode){ //TODO better exception messages
         if(allCode == null || allCode.trim().equals(""))
             return new AST[0];
 
+        vars = new HashMap<>();
         code = allCode.split("\n");
         line = 0;
         ArrayList<AST> ast = new ArrayList<>();
@@ -34,6 +37,34 @@ final class SyntacticParser {
                 statement.calc = parseCalc();
                 statement.type = statement.calc.type;
                 ast.add(statement);
+            }else{
+               if(th.next().equals(Token.Type.IDENTIFIER)){
+                   th.last();
+
+                   String type = th.current().s();
+                   String name = th.assertToken(Token.Type.IDENTIFIER).s();
+
+                   th.assertToken("=");
+                   th.assertHasNext();
+
+                   AST.Calc calc = parseCalc();
+
+                   if(!calc.type.equals(type))
+                       throw new RuntimeException("Expected " + type + " got " + calc.type);
+
+                   if(vars.containsKey(name))
+                       throw new RuntimeException("Variable " + name + " already exist");
+
+                   AST.VarInit varInit = new AST.VarInit();
+                   varInit.type = type;
+                   varInit.name = name;
+                   varInit.calc = calc;
+
+                   ast.add(varInit);
+                   vars.put(name, type);
+               }else{
+                   throw new RuntimeException("illegal argument");
+               }
             }
         }
 
@@ -101,7 +132,17 @@ final class SyntacticParser {
                 if(th.current().equals("true") || th.current().equals("false")){
                     value.token = th.current();
                     value.type = "boolean";
-                }else throw new RuntimeException("illegal argument");
+                }else{
+                    if(!vars.containsKey(th.current().s()))
+                        throw new RuntimeException("Variable " + th.current().s() + " does not exist");
+
+                    AST.Call call = new AST.Call();
+                    call.call = th.current().s();
+                    call.type = vars.get(th.current().s());
+
+                    value.call = call;
+                    value.type = call.type;
+                }
             }
             default -> throw new RuntimeException("illegal argument"); //TODO
         }

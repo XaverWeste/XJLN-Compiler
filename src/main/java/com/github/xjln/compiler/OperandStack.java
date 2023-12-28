@@ -15,18 +15,19 @@ final class OperandStack {
         push("this", 1);
     }
 
-    void push(String name, int length){
+    int push(String name, int length){
         stack.add(name, size);
         size += length;
+        return size - length;
     }
 
     void push(int length){
-        push("", length);
+        push("&temp", length);
     }
 
     String pop(int length){
         String temp = stack.getKey(stack.size());
-        stack.remove(stack.size());
+        stack.remove(stack.size() - 1);
         size -= length;
         return temp;
     }

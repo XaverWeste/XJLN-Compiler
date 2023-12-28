@@ -1,5 +1,7 @@
 def class Test{
-    def test() :: long
-        return 5l
+    def test() :: int
+        int i = 5
+        int j = 3
+        return i + j
     end
 }

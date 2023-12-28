@@ -68,7 +68,7 @@ public final class XJLNClass extends Compilable{
     }
 
     public void createDefaultInit(){
-        addMethod("init", new XJLNMethod(AccessFlag.ACC_PUBLIC, "void", new MatchedList<>(), "", false, false, false));
+        addMethod("init", new XJLNMethod(AccessFlag.ACC_PUBLIC, "void", new MatchedList<>(), "", false, false, false, -1));
     }
 
     @Override

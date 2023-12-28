@@ -415,6 +415,8 @@ final class Parser {
     private void parseMethod(AccessFlag accessFlag, boolean statik, boolean abstrakt, boolean synchronise){
         token.last();
 
+        int startingLine = line;
+
         String name = token.assertToken(Token.Type.IDENTIFIER).s();
         token.assertToken("(");
 
@@ -476,7 +478,7 @@ final class Parser {
                 throw new RuntimeException("method was not closed");
         }
 
-        XJLNMethod method = new XJLNMethod(accessFlag, returnType, parameters, code.toString(), statik, abstrakt, synchronise);
+        XJLNMethod method = new XJLNMethod(accessFlag, returnType, parameters, code.toString(), statik, abstrakt, synchronise, line);
 
         if(current == null)
             main.addStaticMethod(name, method);
