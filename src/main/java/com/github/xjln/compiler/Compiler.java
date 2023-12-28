@@ -343,7 +343,7 @@ public final class Compiler {
             XJLNField field = clazz.staticFields.get(fieldName);
             if(field.initValue() != null){
                 try {
-                    AST.Calc ast = syntacticParser.parseCalc();
+                    AST.Calc ast = syntacticParser.parseCalc(false);
 
                     if(!field.type().equals(ast.type))
                         throw new RuntimeException("illegal type " + ast.type);
@@ -432,20 +432,26 @@ public final class Compiler {
     private void compileAST(AST ast, Bytecode code, ConstPool cp, OperandStack os){
         if(ast instanceof  AST.Return)
             compileReturn((AST.Return) ast, code, cp, os);
-        else if(ast instanceof AST.VarInit)
-            compileVarInit((AST.VarInit) ast, code, cp, os);
+        else if(ast instanceof AST.Calc)
+            compileCalc((AST.Calc) ast, code, cp, os);
+        else if(ast instanceof AST.VarAssigment)
+            compileVarAssignment((AST.VarAssigment) ast, code, cp, os);
     }
 
     private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp, OperandStack os){
-        if(calc.left != null)
-            compileCalc(calc.left, code, cp, os);
-
         if(calc.right == null) {
             if(calc.value.call != null)
                 compileCall(calc.value.call, code, cp, os);
             else
                 addValue(calc.value, code, cp, os);
         }else{
+            if(calc.opp.equals("=")){
+                compileCalc(calc.left, code, cp, os);
+                code.add(0x59); // dup
+                compileStore(calc.right.value.call.call, calc.type, code, os);
+                return;
+            }
+
             compileCalc(calc.right, code, cp, os);
 
             if(calc.left == null) {
@@ -453,7 +459,8 @@ public final class Compiler {
                     compileCall(calc.value.call, code, cp, os);
                 else
                     addValue(calc.value, code, cp, os);
-            }
+            }else
+                compileCalc(calc.left, code, cp, os);
 
             switch(calc.type){
                 case "int" -> {
@@ -627,7 +634,7 @@ public final class Compiler {
         compileLoad(call, code, os);
     }
 
-    private void compileVarInit(AST.VarInit ast, Bytecode code, ConstPool cp, OperandStack os){
+    private void compileVarAssignment(AST.VarAssigment ast, Bytecode code, ConstPool cp, OperandStack os){
         compileCalc(ast.calc, code, cp, os);
         compileStore(ast.name, ast.type, code, os);
         int length = (ast.type.equals("double") || ast.type.equals("long")) ? 2 : 1;
@@ -636,6 +643,9 @@ public final class Compiler {
     }
 
     private void compileLoad(AST.Call ast, Bytecode code, OperandStack os){
+        if(ast.type == null)
+            return; //TODO
+
         if(os.contains(ast.call)) {
             switch (ast.type) {
                 case "int", "boolean", "char", "byte", "short" -> {
@@ -745,6 +755,12 @@ public final class Compiler {
     }
 
     static String getOperatorReturnType(String type1, String type2, String opp){
+        if(opp.equals("=") && type1 == null)
+            return type2;
+
+        if(opp.equals("=") && type1.equals(type2))
+            return type1;
+
         if(PRIMITIVES.contains(type1)){
             if(!type1.equals(type2))
                 return null;

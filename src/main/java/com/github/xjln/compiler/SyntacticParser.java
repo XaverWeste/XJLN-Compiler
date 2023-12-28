@@ -16,7 +16,7 @@ final class SyntacticParser {
 
     AST.Calc parseCalc(String calc){
         th = Lexer.lex(calc);
-        AST.Calc result = parseCalc();
+        AST.Calc result = parseCalc(false);
         th.assertNull();
         return result;
     }
@@ -32,54 +32,47 @@ final class SyntacticParser {
 
         while(line < code.length){
             nextLine();
-            if(th.next().equals("return")){
+            th.assertToken(Token.Type.IDENTIFIER);
+            if(th.current().equals("return")){
                 AST.Return statement = new AST.Return();
-                statement.calc = parseCalc();
+                statement.calc = parseCalc(false);
                 statement.type = statement.calc.type;
                 ast.add(statement);
             }else{
-               if(th.next().equals(Token.Type.IDENTIFIER)){
-                   th.last();
+                if(th.next().equals(Token.Type.IDENTIFIER)){
+                    th.assertToken("=");
+                    String name = th.last().s();
+                    String type = th.last().s();
 
-                   String type = th.current().s();
-                   String name = th.assertToken(Token.Type.IDENTIFIER).s();
+                    AST.Calc calc = parseCalc(true);
 
-                   th.assertToken("=");
-                   th.assertHasNext();
+                    if(vars.containsKey(name))
+                        throw new RuntimeException("Variable " + name + " already exists");
 
-                   AST.Calc calc = parseCalc();
+                    if(!calc.type.equals(type))
+                        throw new RuntimeException("Expected type " + type + " got " + calc.type);
 
-                   if(!calc.type.equals(type))
-                       throw new RuntimeException("Expected " + type + " got " + calc.type);
-
-                   if(vars.containsKey(name))
-                       throw new RuntimeException("Variable " + name + " already exist");
-
-                   AST.VarInit varInit = new AST.VarInit();
-                   varInit.type = type;
-                   varInit.name = name;
-                   varInit.calc = calc;
-
-                   ast.add(varInit);
-                   vars.put(name, type);
-               }else{
-                   throw new RuntimeException("illegal argument");
-               }
+                    vars.put(name, type);
+                    ast.add(calc);
+                }else if(th.current().equals("=")){
+                    th.toFirst();
+                    ast.add(parseCalc(true));
+                }else throw new RuntimeException(th.toString());
             }
         }
 
         return ast.toArray(new AST[0]);
     }
 
-    AST.Calc parseCalc(){
+    AST.Calc parseCalc(boolean assignment){
         AST.Calc calc;
         if(th.next().equals("(")){
-            calc = parseCalc();
+            calc = parseCalc(!assignment);
             th.assertToken(")");
         }else{
             th.last();
             calc = new AST.Calc();
-            calc.value = parseValue();
+            calc.value = parseValue(!assignment);
             calc.type = calc.value.type;
         }
 
@@ -94,8 +87,17 @@ final class SyntacticParser {
             calc.opp = th.current().s();
             th.assertHasNext();
 
-            if(th.next().equals("(")){
-                calc.left = parseCalc();
+            if(calc.opp.equals("=")){
+                calc.left = parseCalc(false);
+
+                String returnType = Compiler.getOperatorReturnType(calc.right.type, calc.left.type, calc.opp);
+
+                if(returnType == null)
+                    throw new RuntimeException("Operator " + calc.opp + " is not defined for " + calc.left.type + " and " + calc.value.type);
+
+                calc.type = returnType;
+            }else if(th.next().equals("(")){
+                calc.left = parseCalc(false);
                 th.assertToken(")");
 
                 String returnType = Compiler.getOperatorReturnType(calc.right.type, calc.left.type, calc.opp);
@@ -106,7 +108,7 @@ final class SyntacticParser {
                 calc.type = returnType;
             }else{
                 th.last();
-                calc.value = parseValue();
+                calc.value = parseValue(false);
 
                 String returnType = Compiler.getOperatorReturnType(calc.right.type, calc.value.type, calc.opp);
 
@@ -120,7 +122,7 @@ final class SyntacticParser {
         return calc;
     }
 
-    AST.Value parseValue() {
+    AST.Value parseValue(boolean checkVarExist) {
         AST.Value value = new AST.Value();
 
         switch (th.next().t()){
@@ -133,7 +135,7 @@ final class SyntacticParser {
                     value.token = th.current();
                     value.type = "boolean";
                 }else{
-                    if(!vars.containsKey(th.current().s()))
+                    if(checkVarExist && !vars.containsKey(th.current().s()))
                         throw new RuntimeException("Variable " + th.current().s() + " does not exist");
 
                     AST.Call call = new AST.Call();

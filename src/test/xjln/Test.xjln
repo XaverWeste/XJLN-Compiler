@@ -1,7 +1,7 @@
 def class Test{
     def test() :: int
-        int i = 5
-        int j = 3
-        return i + j
+        int i = 0
+        #i = i + 3
+        return (i = 3) + 2
     end
 }
