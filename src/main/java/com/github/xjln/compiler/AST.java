@@ -1,6 +1,6 @@
 package com.github.xjln.compiler;
 
-sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value, AST.Return, AST.VarAssigment {
+sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value, AST.Return, AST.VarAssigment, AST.While {
 
     String type = null;
 
@@ -62,5 +62,10 @@ sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value, AST.R
     static final class VarAssigment extends AST{
         Calc calc = null;
         String name = null;
+    }
+
+    static final class While extends AST{
+        Calc condition = null;
+        AST[] ast = null;
     }
 }

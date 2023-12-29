@@ -413,6 +413,40 @@ public final class Compiler {
             compileCalc((AST.Calc) ast, code, cp, os);
         else if(ast instanceof AST.VarAssigment)
             compileVarAssignment((AST.VarAssigment) ast, code, cp, os);
+        else if(ast instanceof AST.While)
+            compileWhile((AST.While) ast, code, cp, os);
+    }
+
+    private void compileWhile(AST.While ast, Bytecode code, ConstPool cp, OperandStack os){
+        /*
+        code.addOpcode(Opcode.GOTO);
+        int startLocation = code.getSize();
+        code.addIndex(0);
+        int branchStart = code.getSize();
+
+        for(AST statement: ast.ast)
+            compileAST(statement, code, cp, os);
+
+        code.write16bit(startLocation, code.getSize());
+
+        compileCalc(ast.condition, code, cp, os);
+        code.addIconst(1);
+        code.addOpcode(Opcode.IF_ICMPEQ);
+        code.addIndex(branchStart);
+         */
+        int start = code.getSize();
+        compileCalc(ast.condition, code, cp, os);
+        code.addIconst(0);
+        code.addOpcode(Opcode.IF_ICMPEQ);
+        int branch = code.getSize();
+        code.addIndex(0);
+
+        for(AST statement: ast.ast)
+            compileAST(statement, code, cp, os);
+
+        code.addOpcode(Opcode.GOTO);
+        code.addIndex(-(code.getSize() - start));
+        code.write16bit(branch, code.getSize() - branch + 1);
     }
 
     private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp, OperandStack os){

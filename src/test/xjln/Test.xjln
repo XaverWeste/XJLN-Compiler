@@ -1,5 +1,8 @@
 def class Test{
-    def test() :: boolean
-        return 5l >= -7l
+    def test()
+        int i = 0
+        while i < 10
+            i = i + 1
+        end
     end
 }

@@ -32,36 +32,65 @@ final class SyntacticParser {
 
         while(line < code.length){
             nextLine();
-            th.assertToken(Token.Type.IDENTIFIER);
-            if(th.current().equals("return")){
-                AST.Return statement = new AST.Return();
-                statement.calc = parseCalc(false);
-                statement.type = statement.calc.type;
-                ast.add(statement);
-            }else{
-                if(th.next().equals(Token.Type.IDENTIFIER)){
-                    th.assertToken("=");
-                    String name = th.last().s();
-                    String type = th.last().s();
-
-                    AST.Calc calc = parseCalc(true);
-
-                    if(vars.containsKey(name))
-                        throw new RuntimeException("Variable " + name + " already exists");
-
-                    if(!calc.type.equals(type))
-                        throw new RuntimeException("Expected type " + type + " got " + calc.type);
-
-                    vars.put(name, type);
-                    ast.add(calc);
-                }else if(th.current().equals("=")){
-                    th.toFirst();
-                    ast.add(parseCalc(true));
-                }else throw new RuntimeException(th.toString());
-            }
+            ast.add(parseNext());
         }
 
         return ast.toArray(new AST[0]);
+    }
+
+    private AST parseNext(){
+        th.assertToken(Token.Type.IDENTIFIER);
+        if(th.current().equals("return")){
+            AST.Return statement = new AST.Return();
+            statement.calc = parseCalc(false);
+            statement.type = statement.calc.type;
+            th.assertNull();
+            return statement;
+        }else if(th.current().equals("while")){
+            return parseWhile();
+        }else{
+            if (th.next().equals(Token.Type.IDENTIFIER)) {
+                th.assertToken("=");
+                String name = th.last().s();
+                String type = th.last().s();
+
+                AST.Calc calc = parseCalc(true);
+
+                if (vars.containsKey(name))
+                    throw new RuntimeException("Variable " + name + " already exists");
+
+                if (!calc.type.equals(type))
+                    throw new RuntimeException("Expected type " + type + " got " + calc.type);
+
+                th.assertNull();
+
+                vars.put(name, type);
+                return calc;
+            } else if (th.current().equals("=")) {
+                th.toFirst();
+                return parseCalc(true);
+            } else throw new RuntimeException(th.toString());
+        }
+    }
+
+    private AST.While parseWhile(){
+        AST.While statement = new AST.While();
+        statement.condition = parseCalc(false);
+
+        if(!statement.condition.type.equals("boolean"))
+            throw new RuntimeException("Expected boolean got " + statement.condition.type);
+
+        ArrayList<AST> ast = new ArrayList<>();
+
+        nextLine();
+        while (!th.toStringNonMarked().equals("end ")){
+            ast.add(parseNext());
+            nextLine();
+        }
+
+        statement.ast = ast.toArray(new AST[0]);
+
+        return statement;
     }
 
     AST.Calc parseCalc(boolean assignment){
@@ -122,7 +151,7 @@ final class SyntacticParser {
         return calc;
     }
 
-    AST.Value parseValue(boolean checkVarExist) {
+    private AST.Value parseValue(boolean checkVarExist) {
         AST.Value value = new AST.Value();
 
         switch (th.next().t()){
