@@ -6,8 +6,8 @@ import java.util.Set;
 
 final class SyntacticParser {
 
-    static final Set<String> BOOL_OPERATORS = Set.of("==", "!=", "|", "&");
-    static final Set<String> NUMBER_OPERATORS = Set.of("+", "-", "*", "/"); //TODO
+    static final Set<String> BOOL_OPERATORS = Set.of("==", "!=", "|", "&", ">", "<", ">=", "<=");
+    static final Set<String> NUMBER_OPERATORS = Set.of("+", "-", "*", "/");
 
     private HashMap<String, String> vars;
     private TokenHandler th;

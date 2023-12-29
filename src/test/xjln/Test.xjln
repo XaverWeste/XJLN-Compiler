@@ -1,7 +1,5 @@
 def class Test{
-    def test() :: int
-        int i = 0
-        #i = i + 3
-        return (i = 3) + 2
+    def test() :: boolean
+        return 5l >= -7l
     end
 }
