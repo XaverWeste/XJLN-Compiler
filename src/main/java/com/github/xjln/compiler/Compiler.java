@@ -401,6 +401,8 @@ public final class Compiler {
 
             if(methods.get(method).returnType.equals("void"))
                 code.add(Opcode.RETURN);
+            else if(!(astList[astList.length - 1] instanceof AST.Return))
+                throw new RuntimeException("Expected return");
 
             mInfo.setCodeAttribute(code.toCodeAttribute());
             cf.addMethod2(mInfo);
