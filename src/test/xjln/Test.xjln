@@ -1,7 +1,5 @@
 def class Test{
-    def test() :: int
-        int i = 0
-        i = (i = 6) + 7
-        return i
+    def test()
+        int i = int 0.3
     end
 }

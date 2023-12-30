@@ -614,10 +614,10 @@ public final class Compiler {
         code.write16bit(endLocation, code.getSize() - endLocation + 1);
     }
 
-    private void compileCast(AST.Cast cast, Bytecode code, OperandStack os){
-        switch(cast.value.type){
-            case "int" -> {
-                switch(cast.to){
+    private void compileCast(AST.Value value, Bytecode code, OperandStack os){
+        switch(value.type){
+            case "int", "short", "byte" -> {
+                switch(value.cast){
                     case "double" -> {
                         code.add(Opcode.I2D);
                         String temp = os.pop();
@@ -635,7 +635,7 @@ public final class Compiler {
                 }
             }
             case "double" -> {
-                switch(cast.to){
+                switch(value.cast){
                     case "int" -> {
                         code.add(Opcode.D2I);
                         String temp = os.pop();
@@ -650,7 +650,7 @@ public final class Compiler {
                 }
             }
             case "long" -> {
-                switch(cast.to){
+                switch(value.cast){
                     case "double" -> code.add(Opcode.L2D);
                     case "int" -> {
                         code.add(Opcode.L2I);
@@ -665,7 +665,7 @@ public final class Compiler {
                 }
             }
             case "float" -> {
-                switch(cast.to){
+                switch(value.cast){
                     case "double" -> {
                         code.add(Opcode.F2D);
                         String temp = os.pop();
@@ -683,7 +683,7 @@ public final class Compiler {
     }
 
     private void addValue(AST.Value value, Bytecode code, ConstPool cp, OperandStack os){
-        switch (value.type){
+        switch (value.token.t().toString()){
             case "int", "short", "byte", "char" -> {
                 int intValue;
                 if(value.type.equals("char"))
@@ -742,6 +742,9 @@ public final class Compiler {
                 os.push(2);
             }
         }
+
+        if(value.cast != null)
+            compileCast(value, code, os);
     }
 
     private void compileCall(AST.Call call, Bytecode code, ConstPool cp, OperandStack os){

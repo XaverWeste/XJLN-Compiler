@@ -244,15 +244,30 @@ final class SyntacticParser {
                     value.token = th.current();
                     value.type = "boolean";
                 }else{
-                    if(checkVarExist && !vars.containsKey(th.current().s()))
-                        throw new RuntimeException("Variable " + th.current().s() + " does not exist");
+                    if(th.hasNext() && !th.next().equals(Token.Type.OPERATOR)){
+                        th.last();
+                        String type = th.current().s();
 
-                    AST.Call call = new AST.Call();
-                    call.call = th.current().s();
-                    call.type = vars.get(th.current().s());
+                        value = parseValue(true);
+                        value.cast = type;
 
-                    value.call = call;
-                    value.type = call.type;
+                        if(!Compiler.PRIMITIVES.contains(type) || type.equals("boolean"))
+                            throw new RuntimeException("Unable to cast " + value.type + " to " + type);
+
+                        value.type = type;
+                    }else {
+                        th.last();
+
+                        if (checkVarExist && !vars.containsKey(th.current().s()))
+                            throw new RuntimeException("Variable " + th.current().s() + " does not exist");
+
+                        AST.Call call = new AST.Call();
+                        call.call = th.current().s();
+                        call.type = vars.get(th.current().s());
+
+                        value.call = call;
+                        value.type = call.type;
+                    }
                 }
             }
             default -> throw new RuntimeException("illegal argument"); //TODO
