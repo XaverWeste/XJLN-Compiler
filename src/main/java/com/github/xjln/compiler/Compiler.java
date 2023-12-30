@@ -475,9 +475,9 @@ public final class Compiler {
             else
                 addValue(calc.value, code, cp, os);
         }else{
-            if(calc.opp.equals("=")){
+            if(calc.opp.equals("=") || calc.opp.equals("#")){
                 compileCalc(calc.left, code, cp, os);
-                code.add(Opcode.DUP);
+                if(calc.opp.equals("=")) code.add(Opcode.DUP);
                 compileStore(calc.right.value.call.call, calc.type, code, os);
                 return;
             }

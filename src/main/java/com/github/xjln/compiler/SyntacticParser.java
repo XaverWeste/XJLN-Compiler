@@ -18,6 +18,10 @@ final class SyntacticParser {
         th = Lexer.lex(calc);
         AST.Calc result = parseCalc(false);
         th.assertNull();
+
+        if(result.opp != null && result.opp.equals("="))
+            result.opp = "#";
+
         return result;
     }
 
@@ -45,11 +49,29 @@ final class SyntacticParser {
             statement.calc = parseCalc(false);
             statement.type = statement.calc.type;
             th.assertNull();
+
+            if(statement.calc.opp != null && statement.calc.opp.equals("#"))
+                statement.calc.opp = "=";
+
             return statement;
         }else if(th.current().equals("while")){
-            return parseWhile();
+            AST.While ast = parseWhile();
+
+            if(ast.condition.opp.equals("#"))
+                ast.condition.opp = "=";
+
+            return ast;
         }else if(th.current().equals("if")) {
-            return parseIf();
+            AST.If ast = parseIf();
+
+            AST.If statement = ast;
+            while(statement != null){
+                if(statement.condition.opp.equals("#"))
+                    statement.condition.opp = "=";
+                statement = statement.elif;
+            }
+
+            return ast;
         }else{
             if (th.next().equals(Token.Type.IDENTIFIER)) {
                 th.assertToken("=");
@@ -67,10 +89,19 @@ final class SyntacticParser {
                 th.assertNull();
 
                 vars.put(name, type);
+
+                if(calc.opp != null && calc.opp.equals("="))
+                    calc.opp = "#";
+
                 return calc;
             } else if (th.current().equals("=")) {
                 th.toFirst();
-                return parseCalc(true);
+                AST.Calc calc = parseCalc(true);
+
+                if(calc.opp != null && calc.opp.equals("="))
+                    calc.opp = "#";
+
+                return calc;
             } else throw new RuntimeException(th.toString());
         }
     }
@@ -169,6 +200,11 @@ final class SyntacticParser {
                     throw new RuntimeException("Operator " + calc.opp + " is not defined for " + calc.left.type + " and " + calc.value.type);
 
                 calc.type = returnType;
+
+                if(assignment){
+                    calc.opp = "#";
+                    assignment = false;
+                }
             }else if(th.next().equals("(")){
                 calc.left = parseCalc(false);
                 th.assertToken(")");
@@ -181,7 +217,7 @@ final class SyntacticParser {
                 calc.type = returnType;
             }else{
                 th.last();
-                calc.value = parseValue(false);
+                calc.value = parseValue(true);
 
                 String returnType = Compiler.getOperatorReturnType(calc.right.type, calc.value.type, calc.opp);
 
