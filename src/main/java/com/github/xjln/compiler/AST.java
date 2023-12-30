@@ -1,6 +1,6 @@
 package com.github.xjln.compiler;
 
-sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value, AST.Return, AST.VarAssigment, AST.While {
+sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value, AST.Return, AST.VarAssigment, AST.While, AST.If {
 
     String type = null;
 
@@ -66,6 +66,12 @@ sealed abstract class AST permits AST.Calc, AST.Cast, AST.Call, AST.Value, AST.R
 
     static final class While extends AST{
         Calc condition = null;
+        AST[] ast = null;
+    }
+
+    static final class If extends AST{
+        Calc condition = null;
+        If elif = null;
         AST[] ast = null;
     }
 }

@@ -10,6 +10,7 @@ import javassist.bytecode.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.Set;
@@ -415,29 +416,14 @@ public final class Compiler {
             compileVarAssignment((AST.VarAssigment) ast, code, cp, os);
         else if(ast instanceof AST.While)
             compileWhile((AST.While) ast, code, cp, os);
+        else if(ast instanceof AST.If)
+            compileIf((AST.If) ast, code, cp, os);
     }
 
     private void compileWhile(AST.While ast, Bytecode code, ConstPool cp, OperandStack os){
-        /*
-        code.addOpcode(Opcode.GOTO);
-        int startLocation = code.getSize();
-        code.addIndex(0);
-        int branchStart = code.getSize();
-
-        for(AST statement: ast.ast)
-            compileAST(statement, code, cp, os);
-
-        code.write16bit(startLocation, code.getSize());
-
-        compileCalc(ast.condition, code, cp, os);
-        code.addIconst(1);
-        code.addOpcode(Opcode.IF_ICMPEQ);
-        code.addIndex(branchStart);
-         */
         int start = code.getSize();
         compileCalc(ast.condition, code, cp, os);
-        code.addIconst(0);
-        code.addOpcode(Opcode.IF_ICMPEQ);
+        code.addOpcode(Opcode.IFEQ);
         int branch = code.getSize();
         code.addIndex(0);
 
@@ -447,6 +433,37 @@ public final class Compiler {
         code.addOpcode(Opcode.GOTO);
         code.addIndex(-(code.getSize() - start));
         code.write16bit(branch, code.getSize() - branch + 1);
+    }
+
+    private void compileIf(AST.If ast, Bytecode code, ConstPool cp, OperandStack os){
+        ArrayList<Integer> gotos = new ArrayList<>();
+        int branch = 0;
+
+        while (ast != null){
+            if(ast.condition != null) {
+                compileCalc(ast.condition, code, cp, os);
+                code.addOpcode(Opcode.IFEQ);
+                branch = code.getSize();
+                code.addIndex(0);
+            }
+
+            for(AST statement:ast.ast)
+                compileAST(statement, code, cp, os);
+
+            if(ast.elif != null){
+                code.addOpcode(Opcode.GOTO);
+                gotos.add(code.getSize());
+                code.addIndex(0);
+            }
+
+            if(ast.condition != null)
+                code.write16bit(branch, code.getSize() - branch + 1);
+
+            ast = ast.elif;
+        }
+
+        for(int i:gotos)
+            code.write16bit(i, code.getSize() - i + 1);
     }
 
     private void compileCalc(AST.Calc calc, Bytecode code, ConstPool cp, OperandStack os){

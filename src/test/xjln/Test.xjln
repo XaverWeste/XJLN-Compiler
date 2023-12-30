@@ -1,8 +1,9 @@
 def class Test{
-    def test()
-        int i = 0
-        while i < 10
-            i = i + 1
+    def test() :: int
+        if 5 < 10
+            return 5
         end
+
+        return 0
     end
 }

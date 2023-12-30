@@ -48,6 +48,8 @@ final class SyntacticParser {
             return statement;
         }else if(th.current().equals("while")){
             return parseWhile();
+        }else if(th.current().equals("if")) {
+            return parseIf();
         }else{
             if (th.next().equals(Token.Type.IDENTIFIER)) {
                 th.assertToken("=");
@@ -89,6 +91,48 @@ final class SyntacticParser {
         }
 
         statement.ast = ast.toArray(new AST[0]);
+
+        return statement;
+    }
+
+    private AST.If parseIf(){
+        AST.If statement = new AST.If();
+
+        statement.condition = parseCalc(false);
+
+        if(!statement.condition.type.equals("boolean"))
+            throw new RuntimeException("Expected boolean got " + statement.condition.type);
+
+        ArrayList<AST> ast = new ArrayList<>();
+
+        nextLine();
+        while (!(th.toStringNonMarked().equals("end ") || th.toStringNonMarked().startsWith("else "))){
+            ast.add(parseNext());
+            nextLine();
+        }
+
+        statement.ast = ast.toArray(new AST[0]);
+
+        if(th.toStringNonMarked().startsWith("else ")){
+            th.assertToken("else");
+
+            if(!th.hasNext()){
+                ast = new ArrayList<>();
+                nextLine();
+                while (!(th.toStringNonMarked().equals("end "))){
+                    ast.add(parseNext());
+                    nextLine();
+                }
+
+                AST.If elseCase = new AST.If();
+                elseCase.ast = ast.toArray(new AST[0]);
+
+                statement.elif = elseCase;
+            }else{
+                th.assertToken("if");
+                statement.elif = parseIf();
+            }
+        }
 
         return statement;
     }
