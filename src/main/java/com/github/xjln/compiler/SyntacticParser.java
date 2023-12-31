@@ -200,11 +200,6 @@ final class SyntacticParser {
                     throw new RuntimeException("Operator " + calc.opp + " is not defined for " + calc.left.type + " and " + calc.value.type);
 
                 calc.type = returnType;
-
-                if(assignment){
-                    calc.opp = "#";
-                    assignment = false;
-                }
             }else if(th.next().equals("(")){
                 calc.left = parseCalc(false);
                 th.assertToken(")");
