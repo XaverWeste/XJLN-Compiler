@@ -615,9 +615,9 @@ public final class Compiler {
     }
 
     private void compileCast(AST.Value value, Bytecode code, OperandStack os){
-        switch(value.type){
+        switch(value.cast){
             case "int", "short", "byte" -> {
-                switch(value.cast){
+                switch(value.type){
                     case "double" -> {
                         code.add(Opcode.I2D);
                         String temp = os.pop();
@@ -635,7 +635,7 @@ public final class Compiler {
                 }
             }
             case "double" -> {
-                switch(value.cast){
+                switch(value.type){
                     case "int" -> {
                         code.add(Opcode.D2I);
                         String temp = os.pop();
@@ -650,7 +650,7 @@ public final class Compiler {
                 }
             }
             case "long" -> {
-                switch(value.cast){
+                switch(value.type){
                     case "double" -> code.add(Opcode.L2D);
                     case "int" -> {
                         code.add(Opcode.L2I);
@@ -665,7 +665,7 @@ public final class Compiler {
                 }
             }
             case "float" -> {
-                switch(value.cast){
+                switch(value.type){
                     case "double" -> {
                         code.add(Opcode.F2D);
                         String temp = os.pop();

@@ -249,11 +249,11 @@ final class SyntacticParser {
                         String type = th.current().s();
 
                         value = parseValue(true);
-                        value.cast = type;
 
                         if(!Compiler.PRIMITIVES.contains(type) || type.equals("boolean"))
                             throw new RuntimeException("Unable to cast " + value.type + " to " + type);
 
+                        value.cast = value.type;
                         value.type = type;
                     }else {
                         th.last();
