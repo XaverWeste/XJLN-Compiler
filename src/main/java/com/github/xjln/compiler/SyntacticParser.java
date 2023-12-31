@@ -6,11 +6,34 @@ import java.util.Set;
 
 final class SyntacticParser {
 
+    private final class Scope{
+        public final Scope last;
+        private final HashMap<String, String> vars = new HashMap<>();
+
+        public Scope(Scope current){
+            last = current;
+            if(current != null)
+                vars.putAll(current.vars);
+        }
+
+        String getType(String name){
+            if(vars.containsKey(name))
+                return vars.get(name);
+
+            return null;
+        }
+
+        void add(String name, String type){
+            if(!vars.containsKey(name))
+                vars.put(name, type);
+        }
+    }
+
     static final Set<String> BOOL_OPERATORS = Set.of("==", "!=", "|", "&", ">", "<", ">=", "<=");
     static final Set<String> NUMBER_OPERATORS = Set.of("+", "-", "*", "/");
 
-    private HashMap<String, String> vars;
     private TokenHandler th;
+    private Scope scope;
     private String[] code;
     private int line;
 
@@ -25,11 +48,12 @@ final class SyntacticParser {
         return result;
     }
 
-    AST[] parseAst(String allCode){ //TODO better exception messages
+    AST[] parseAst(String allCode, String type){ //TODO better exception messages
         if(allCode == null || allCode.trim().equals(""))
             return new AST[0];
 
-        vars = new HashMap<>();
+        scope = new Scope(null);
+        scope.add("this", type);
         code = allCode.split("\n");
         line = 0;
         ArrayList<AST> ast = new ArrayList<>();
@@ -55,11 +79,13 @@ final class SyntacticParser {
 
             return statement;
         }else if(th.current().equals("while")){
+            scope = new Scope(scope);
             AST.While ast = parseWhile();
 
             if(ast.condition.opp.equals("#"))
                 ast.condition.opp = "=";
 
+            scope = scope.last;
             return ast;
         }else if(th.current().equals("if")) {
             AST.If ast = parseIf();
@@ -70,7 +96,6 @@ final class SyntacticParser {
                     statement.condition.opp = "=";
                 statement = statement.elif;
             }
-
             return ast;
         }else{
             if (th.next().equals(Token.Type.IDENTIFIER)) {
@@ -80,7 +105,7 @@ final class SyntacticParser {
 
                 AST.Calc calc = parseCalc(true);
 
-                if (vars.containsKey(name))
+                if (scope.getType(name) != null)
                     throw new RuntimeException("Variable " + name + " already exists");
 
                 if (!calc.type.equals(type))
@@ -88,7 +113,7 @@ final class SyntacticParser {
 
                 th.assertNull();
 
-                vars.put(name, type);
+                scope.add(name, type);
 
                 if(calc.opp != null && calc.opp.equals("="))
                     calc.opp = "#";
@@ -135,6 +160,7 @@ final class SyntacticParser {
             throw new RuntimeException("Expected boolean got " + statement.condition.type);
 
         ArrayList<AST> ast = new ArrayList<>();
+        scope = new Scope(scope);
 
         nextLine();
         while (!(th.toStringNonMarked().equals("end ") || th.toStringNonMarked().startsWith("else "))){
@@ -142,6 +168,7 @@ final class SyntacticParser {
             nextLine();
         }
 
+        scope = scope.last;
         statement.ast = ast.toArray(new AST[0]);
 
         if(th.toStringNonMarked().startsWith("else ")){
@@ -149,6 +176,7 @@ final class SyntacticParser {
 
             if(!th.hasNext()){
                 ast = new ArrayList<>();
+                scope = new Scope(scope);
                 nextLine();
                 while (!(th.toStringNonMarked().equals("end "))){
                     ast.add(parseNext());
@@ -157,6 +185,7 @@ final class SyntacticParser {
 
                 AST.If elseCase = new AST.If();
                 elseCase.ast = ast.toArray(new AST[0]);
+                scope = scope.last;
 
                 statement.elif = elseCase;
             }else{
@@ -253,12 +282,12 @@ final class SyntacticParser {
                     }else {
                         th.last();
 
-                        if (checkVarExist && !vars.containsKey(th.current().s()))
+                        if (checkVarExist && scope.getType(th.current().s()) != null)
                             throw new RuntimeException("Variable " + th.current().s() + " does not exist");
 
                         AST.Call call = new AST.Call();
                         call.call = th.current().s();
-                        call.type = vars.get(th.current().s());
+                        call.type = scope.getType(th.current().s());
 
                         value.call = call;
                         value.type = call.type;

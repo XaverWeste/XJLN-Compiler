@@ -2,10 +2,15 @@ package com.github.xjln.compiler;
 
 import com.github.xjln.lang.XJLNMethod;
 import com.github.xjln.utility.MatchedList;
+import javassist.bytecode.Bytecode;
+import javassist.bytecode.Opcode;
+
+import java.util.ArrayList;
 
 final class OperandStack {
 
     private final MatchedList<String, Integer> stack;
+    private final ArrayList<Integer> scopes = new ArrayList<>();
     private int size;
 
     OperandStack(){
@@ -17,7 +22,9 @@ final class OperandStack {
 
     int push(String name, int length){
         stack.add(name, size);
+        System.out.println(name + " " + size);
         size += length;
+        System.out.println(stack);
         return size - length;
     }
 
@@ -26,12 +33,24 @@ final class OperandStack {
     }
 
     String pop(){
-        String temp = stack.getKey(stack.size());
+        String temp = stack.getKey(stack.size() - 1);
         int length = stack.getValue(stack.size() - 1);
         length -= stack.getValue(stack.size() - 2);
         stack.remove(stack.size() - 1);
         size -= length;
+        System.out.println(stack);
         return temp;
+    }
+
+    void clearScope(Bytecode code){
+        while (size > scopes.get(scopes.size() - 1)) {
+            //code.addOpcode(Opcode.POP);
+            pop();
+        }
+    }
+
+    void newScope(){
+        scopes.add(size);
     }
 
     int clearTemp(){

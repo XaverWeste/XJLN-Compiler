@@ -344,7 +344,7 @@ public final class Compiler {
             XJLNField field = clazz.staticFields.get(fieldName);
             if(field.initValue() != null){
                 try {
-                    AST.Calc ast = syntacticParser.parseCalc(false);
+                    AST.Calc ast = syntacticParser.parseCalc(field.initValue());
 
                     if(!field.type().equals(ast.type))
                         throw new RuntimeException("illegal type " + ast.type);
@@ -389,7 +389,7 @@ public final class Compiler {
                 code.addInvokespecial("java/lang/Object", "<init>", "()V");
             }
 
-            AST[] astList = syntacticParser.parseAst(methods.get(method).code);
+            AST[] astList = syntacticParser.parseAst(methods.get(method).code, clazzName);
             OperandStack os = OperandStack.forMethod(methods.get(method));
 
             for(int i = 0;i < astList.length;i++){
@@ -423,6 +423,7 @@ public final class Compiler {
     }
 
     private void compileWhile(AST.While ast, Bytecode code, ConstPool cp, OperandStack os){
+        os.newScope();
         int start = code.getSize();
         compileCalc(ast.condition, code, cp, os);
         code.addOpcode(Opcode.IFEQ);
@@ -435,6 +436,7 @@ public final class Compiler {
         code.addOpcode(Opcode.GOTO);
         code.addIndex(-(code.getSize() - start));
         code.write16bit(branch, code.getSize() - branch + 1);
+        os.clearScope(code);
     }
 
     private void compileIf(AST.If ast, Bytecode code, ConstPool cp, OperandStack os){
@@ -442,6 +444,7 @@ public final class Compiler {
         int branch = 0;
 
         while (ast != null){
+            os.newScope();
             if(ast.condition != null) {
                 compileCalc(ast.condition, code, cp, os);
                 code.addOpcode(Opcode.IFEQ);
@@ -462,6 +465,7 @@ public final class Compiler {
                 code.write16bit(branch, code.getSize() - branch + 1);
 
             ast = ast.elif;
+            os.clearScope(code);
         }
 
         for(int i:gotos)

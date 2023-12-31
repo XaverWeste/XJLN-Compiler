@@ -58,7 +58,7 @@ public class MatchedList<Key, Value> {
     }
 
     public void remove(int n){
-        if(keyList.size() <= n){
+        if(keyList.size() >= n && n >= 0){
             keyList.remove(n);
             valueList.remove(n);
         }
@@ -79,5 +79,15 @@ public class MatchedList<Key, Value> {
             matchedList.add(firsts[i], seconds[i]);
 
         return matchedList;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("{ ");
+
+        for(int i = 0;i < keyList.size();i++)
+            sb.append("(").append(keyList.get(i)).append(",").append(valueList.get(i)).append("), ");
+
+        return sb.deleteCharAt(sb.length() - 2).append("}").toString();
     }
 }
