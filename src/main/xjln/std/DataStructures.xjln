@@ -1,0 +1,69 @@
+def private class Node<Type T>{
+    public T content
+    public Node<T> next
+
+    init[T content, Node<T> next = null]
+        this:content = content
+        this:next = next
+    end
+
+    def ==(Node<T> node) :: boolean = (content == node:content) & (next == node:next)
+}
+
+def class Stack<Type T>{
+    private Node<T> top = null
+
+    def isEmpty() :: boolean = top == null
+
+    def top() :: T = top:content
+
+    def push(T t)
+        if top == null -> top = Node<T>[t]
+        else
+            Node<T> newTop = Node<T>[t]
+            newTop:next = top
+            top = newTop
+        end
+    end
+
+    def pop() :: T
+        if top == null -> return null
+
+        T result = top:content
+        top = top:next
+        return result
+    end
+}
+
+def class Queue<Type T>{
+    private Node<T> first = null
+    private Node<T> last = null
+
+    def isEmpty() :: boolean = first == null
+
+    def head() :: T = first:content
+
+    def queue(T t)
+        if first == null -> first = last = Node<T>[t]
+        else if first == last
+            first:next = Node<T>[t]
+            last = first:next
+        else
+            last:next = Node<T>[t]
+            last = last:next
+        end
+    end
+
+    def dequeue() :: T
+        if first == null -> return null
+        else if first == last
+            T content = first:content
+            first = last = null
+            return content
+        else
+            T content = first:content
+            first = first:next
+            return content
+        end
+    end
+}

@@ -1,0 +1,57 @@
+use java/lang/String as JString
+
+def class String{
+    private [char] string
+
+    init[] -> string = [char, 0]
+
+    init[char c] -> string = {c}
+
+    init[[char] c] -> string = c
+
+    init[String s] -> string = s:string
+
+    init[JString s] -> string = s:toCharArray()
+
+    def getLength() :: int = string:length
+
+    def toCharArray() :: [char] = string
+
+    def toString() :: JString = JString[string]
+
+    def +=([char] s) :: String
+        string = string + s
+
+        return this
+    end
+
+    def +([char] s) :: String
+        [char] result = [char, s:length + string:length]
+
+        int i = 0
+        while i < string:length
+            result:i = string:i
+            i++
+        end
+
+        int j = 0
+        while j < s:length
+            result:(i + j) = s:j
+            j++
+        end
+
+        return String[result]
+    end
+
+    def ==([char] s) :: boolean
+        if s:length != string:length -> return false
+
+        int i = 0
+        while i < s:length
+            if s:i != string:i -> return false
+            i++
+        end
+
+        return true
+    end
+}
