@@ -67,3 +67,17 @@ def class Queue<Type T>{
         end
     end
 }
+
+def class List<Type T>{
+    private{
+        Node<T> first = null
+        Node<T> last = null
+        Node<T> current = null
+    }
+
+    def isEmpty() :: boolean = first == null
+
+    def first() :: Node<T> = first
+    def last() :: Node<T> = last
+    def current() :: Node<T> = current
+}

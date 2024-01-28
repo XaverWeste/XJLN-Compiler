@@ -1,0 +1,36 @@
+use {System, Object, String} from java/lang
+
+def currentTimeMillis() :: long = System:currentTimeMillis()
+
+def arraycopy(Object src, int srcPos, Object dest, int destPos, int length) = System:arraycopy(src, srcPos, dest, destPos, length)
+
+def print(boolean b) = System:out:print(b)
+def print(char c) = System:out:print(c)
+def print(int i) = System:out:print(i)
+def print(long l) = System:out:print(l)
+def print(float f) = System:out:print(f)
+def print(double d) = System:out:print(d)
+def print([char] s) = System:out:print(s)
+def print(String s) = System:out:print(s)
+def print(Object obj) = System:out:print(obj)
+
+def println() = System:out:println()
+def println(boolean b) = System:out:println(b)
+def println(char c) = System:out:println(c)
+def println(int i) = System:out:println(i)
+def println(long l) = System:out:println(l)
+def println(float f) = System:out:println(f)
+def println(double d) = System:out:println(d)
+def println([char] s) = System:out:println(s)
+def println(String s) = System:out:println(s)
+def println(Object obj) = System:out:println(obj)
+
+def printErr(boolean b) = System:err:print(b)
+def printErr(char c) = System:err:print(c)
+def printErr(int i) = System:err:print(i)
+def printErr(long l) = System:err:print(l)
+def printErr(float f) = System:err:print(f)
+def printErr(double d) = System:err:print(d)
+def printErr([char] s) = System:err:print(s)
+def printErr(String s) = System:err:print(s)
+def printErr(Object obj) = System:err:print(obj)
