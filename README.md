@@ -9,3 +9,10 @@ XJLN Compiler for Java Virtual Machine
 
 ## XJLN IntelliJ Plugin
 https://github.com/XaverWeste/XJLN-IntelliJ-Plugin.git
+
+## XJLN "Hello World"
+```XJLN
+use System from std
+
+main -> println("Hello World!")
+```
