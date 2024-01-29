@@ -2,9 +2,9 @@ def private class Node<Type T>{
     public T content
     public Node<T> next
 
-    init[T content, Node<T> next = null]
+    init[T content]
         this:content = content
-        this:next = next
+        this:next = null
     end
 
     def ==(Node<T> node) :: boolean = (content == node:content) & (next == node:next)
@@ -44,7 +44,9 @@ def class Queue<Type T>{
     def head() :: T = first:content
 
     def queue(T t)
-        if first == null -> first = last = Node<T>[t]
+        if first == null
+            first = Node<T>[t]
+            last = first
         else if first == last
             first:next = Node<T>[t]
             last = first:next
@@ -58,7 +60,8 @@ def class Queue<Type T>{
         if first == null -> return null
         else if first == last
             T content = first:content
-            first = last = null
+            first = null
+            last = null
             return content
         else
             T content = first:content
@@ -80,4 +83,44 @@ def class List<Type T>{
     def first() :: Node<T> = first
     def last() :: Node<T> = last
     def current() :: Node<T> = current
+
+    def toFirst() -> current = first
+    def toLast() -> current = last
+    def next() -> if current != null -> current = current:next
+    def previous()
+        if current != null
+            Node<T> temp = current
+            current = first
+            while current:next != temp -> current = current:next
+        end
+    end
+
+    def insert(T t)
+        if first == null
+            Node<T> newNode = Node<T>[t]
+            first = newNode
+            last = newNode
+            current = newNode
+        else if first == last
+            last = Node<T>[t]
+            first:next = last
+            current = last
+        else
+            if current == last
+                last:next = Node<T>[t]
+                last = last:next
+                current = last
+            else
+                Node<T> newNode = Node<T>[t]
+                newNode:next = current:next
+                current:next = newNode
+                current = newNode
+            end
+        end
+    end
+
+    def remove() :: T
+        previous()
+        current:next = current:next:next
+    end
 }
