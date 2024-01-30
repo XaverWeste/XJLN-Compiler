@@ -1,0 +1,52 @@
+public const double E = 2.718281828459045
+public const double PI = 3.141592653589793
+
+def min(int a, int b) :: int
+    if a < b -> return a
+    else -> return b
+end
+
+def min(long a, long b) :: long
+    if a < b -> return a
+    else -> return b
+end
+
+def min(short a, short b) :: short
+    if a < b -> return a
+    else -> return b
+end
+
+def min(double a, double b) :: double
+    if a < b -> return a
+    else -> return b
+end
+
+def min(float a, float b) :: float
+    if a < b -> return a
+    else -> return b
+end
+
+def max(int a, int b) :: int
+    if a > b -> return a
+    else -> return b
+end
+
+def max(long a, long b) :: long
+    if a > b -> return a
+    else -> return b
+end
+
+def max(short a, short b) :: short
+    if a > b -> return a
+    else -> return b
+end
+
+def max(double a, double b) :: double
+    if a > b -> return a
+    else -> return b
+end
+
+def max(float a, float b) :: float
+    if a > b -> return a
+    else -> return b
+end
