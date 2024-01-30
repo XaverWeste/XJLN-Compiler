@@ -15,6 +15,20 @@ def class Stack<Type T>{
 
     def isEmpty() :: boolean = top == null
 
+    def size() :: int
+        if top == null -> return 0
+
+        int size = 1
+        Node<T> current = top
+
+        while current:next != null
+            size = size + 1
+            current = current:next
+        end
+
+        return size
+    end
+
     def top() :: T = top:content
 
     def push(T t)
@@ -33,6 +47,24 @@ def class Stack<Type T>{
         top = top:next
         return result
     end
+
+    def toArray() :: [T]
+        if top == null -> return [T, 0]
+
+        [T] arr = [T, size()]
+
+        Node<T> current = top
+        int i = 1
+        arr:0 = top:content
+
+        while current:next != null
+            current = current:next
+            arr:i = current:content
+            i = i + 1
+        end
+
+        return arr
+    end
 }
 
 def class Queue<Type T>{
@@ -40,6 +72,20 @@ def class Queue<Type T>{
     private Node<T> last = null
 
     def isEmpty() :: boolean = first == null
+
+    def size() :: int
+        if first == null -> return 0
+
+        int size = 1
+        Node<T> current = first
+
+        while current:next != null
+            size = size + 1
+            current = current:next
+        end
+
+        return size
+    end
 
     def head() :: T = first:content
 
@@ -69,6 +115,22 @@ def class Queue<Type T>{
             return content
         end
     end
+
+    def toArray() :: [T]
+        if first == null -> return [T, 0]
+
+        Node<T> current = first
+        int i = 1
+        arr:0 = first:content
+
+        while current:next != null
+            current = current:next
+            arr:i = current:content
+            i = i + 1
+        end
+
+        return arr
+    end
 }
 
 def class List<Type T>{
@@ -78,6 +140,20 @@ def class List<Type T>{
     private Node<T> current = null
 
     def isEmpty() :: boolean = first == null
+
+    def size() :: int
+        if first == null -> return 0
+
+        int size = 1
+        Node<T> current = first
+
+        while current:next != null
+            size = size + 1
+            urrent = current:next
+        end
+
+        return size
+    end
 
     def first() :: Node<T> = first
     def last() :: Node<T> = last
@@ -121,5 +197,21 @@ def class List<Type T>{
     def remove() :: T
         previous()
         current:next = current:next:next
+    end
+
+    def toArray() :: [T]
+        if first == null -> return [T, 0]
+
+        Node<T> current = first
+        int i = 1
+        arr:0 = first:content
+
+        while current:next != null
+            current = current:next
+            arr:i = current:content
+            i = i + 1
+        end
+
+        return arr
     end
 }

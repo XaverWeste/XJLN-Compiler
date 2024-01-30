@@ -53,4 +53,72 @@ def class String{
 
         return true
     end
+
+    def >([char] s) :: boolean
+        int i = 0
+        int max = s:length
+
+        if string:length < max -> max = string:length
+
+        while i < max
+            if string:i <= s:i -> return false
+
+            i = i + 1
+        end
+
+        if string:length <= s:length -> return false
+
+        return true
+    end
+
+    def <([char] s) :: boolean
+        int i = 0
+        int max = s:length
+
+        if string:length < max -> max = string:length
+
+        while i < max
+            if string:i >= s:i -> return false
+
+            i = i + 1
+        end
+
+        if string:length >= s:length -> return false
+
+        return true
+    end
+
+    def >=([char] s) :: boolean
+        int i = 0
+        int max = s:length
+
+        if string:length < max -> max = string:length
+
+        while i < max
+            if string:i < s:i -> return false
+
+            i = i + 1
+        end
+
+        if string:length < s:length -> return false
+
+        return true
+    end
+
+    def <=([char] s) :: boolean
+        int i = 0
+        int max = s:length
+
+        if string:length < max -> max = string:length
+
+        while i < max
+            if string:i > s:i -> return false
+
+            i = i + 1
+        end
+
+        if string:length > s:length -> return false
+
+        return true
+    end
 }
