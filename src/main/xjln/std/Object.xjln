@@ -1,0 +1,6 @@
+use Object from java/lang as JObject
+
+def class Object extends JObject{
+    def ==(Object o) :: boolean = JObject:equals(o)
+    def !=(Object o) :: boolean = JObject:equals(o)!
+}

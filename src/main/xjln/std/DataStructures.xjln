@@ -16,13 +16,13 @@ def class Stack<Type T>{
     def isEmpty() :: boolean = top == null
 
     def size() :: int
-        if top == null -> return 0
+        if top == null -> return 0i
 
-        int size = 1
+        int size = 1i
         Node<T> current = top
 
         while current:next != null
-            size = size + 1
+            size = size++
             current = current:next
         end
 
@@ -49,18 +49,18 @@ def class Stack<Type T>{
     end
 
     def toArray() :: [T]
-        if top == null -> return [T, 0]
+        if top == null -> return [T, 0i]
 
         [T] arr = [T, size()]
 
         Node<T> current = top
-        int i = 1
-        arr:0 = top:content
+        int i = 1i
+        arr:0i = top:content
 
         while current:next != null
             current = current:next
             arr:i = current:content
-            i = i + 1
+            i = i++
         end
 
         return arr
@@ -74,13 +74,13 @@ def class Queue<Type T>{
     def isEmpty() :: boolean = first == null
 
     def size() :: int
-        if first == null -> return 0
+        if first == null -> return 0i
 
-        int size = 1
+        int size = 1i
         Node<T> current = first
 
         while current:next != null
-            size = size + 1
+            size = size++
             current = current:next
         end
 
@@ -117,16 +117,16 @@ def class Queue<Type T>{
     end
 
     def toArray() :: [T]
-        if first == null -> return [T, 0]
+        if first == null -> return [T, 0i]
 
         Node<T> current = first
-        int i = 1
-        arr:0 = first:content
+        int i = 1i
+        arr:0i = first:content
 
         while current:next != null
             current = current:next
             arr:i = current:content
-            i = i + 1
+            i = i++
         end
 
         return arr
@@ -142,13 +142,13 @@ def class List<Type T>{
     def isEmpty() :: boolean = first == null
 
     def size() :: int
-        if first == null -> return 0
+        if first == null -> return 0i
 
-        int size = 1
+        int size = 1i
         Node<T> current = first
 
         while current:next != null
-            size = size + 1
+            size = size++
             urrent = current:next
         end
 
@@ -200,16 +200,16 @@ def class List<Type T>{
     end
 
     def toArray() :: [T]
-        if first == null -> return [T, 0]
+        if first == null -> return [T, 0i]
 
         Node<T> current = first
-        int i = 1
-        arr:0 = first:content
+        int i = 1i
+        arr:0i = first:content
 
         while current:next != null
             current = current:next
             arr:i = current:content
-            i = i + 1
+            i = i++
         end
 
         return arr

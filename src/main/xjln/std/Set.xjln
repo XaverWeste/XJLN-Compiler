@@ -1,0 +1,90 @@
+use List from std/DataStructures
+
+def class Set<Type T>{
+    private [T] arr
+
+    init[] -> arr = [T, 0i]
+
+    init[T t] -> arr = {t}
+
+    init[[T] t] -> arr = t
+
+    init[Set<T> t] -> arr = t:arr
+
+    def toArray() :: [T] = arr
+
+    def ==([T] t) :: boolean
+        if arr:length != t:length -> return false
+
+        int i = 0i
+        while i < arr:length
+            if arr:i != t:i -> return false
+            i = i++
+        end
+
+        return true
+    end
+
+    def !=([T] t) :: boolean
+        if arr:length != t:length -> return true
+
+        int i = 0i
+        while i < arr:length
+            if arr:i != t:i -> return true
+            i = i++
+        end
+
+        return false
+    end
+
+    def /([T] t) :: Set<T>
+        int i = 0i
+        int j = 0i
+        [T] temp = arr
+
+        while i < temp:length
+            while j < t:length
+                if temp:i == t:j -> temp:i = null
+                j++
+            end
+
+            i++
+            j = 0i
+        end
+
+        List<T> list = List<T>[]
+        i = 0i
+
+        while i < temp:length
+            if i != null -> list:insert(temp:i)
+            i++
+        end
+
+        return Set<T>[list:toArray()]
+    end
+
+    def /=([T] t)
+        int i = 0i
+        int j = 0i
+
+        while i < arr:length
+            while j < t:length
+                if arr:i == t:j -> arr:i = null
+                j++
+            end
+
+            i++
+            j = 0i
+        end
+
+        List<T> list = List<T>[]
+        i = 0i
+
+        while i < arr:length
+            if i != null -> list:insert(arr:i)
+            i++
+        end
+
+        arr = list:toArray()
+    end
+}
