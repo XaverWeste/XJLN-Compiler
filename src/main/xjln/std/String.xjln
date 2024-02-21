@@ -19,6 +19,11 @@ def class String{
 
     def toString() :: JString = JString[string]
 
+    def charAt(int i) :: char
+        if string:length < i -> return ' '
+        return string:i
+    end
+
     def +=([char] s) :: String
         string = string + s
         return this
@@ -52,6 +57,18 @@ def class String{
         end
 
         return true
+    end
+
+    def !=([char] s) :: boolean
+        if s:length != string:length -> return true
+
+        int i = 0i
+        while i < s:length
+            if s:i != string:i -> return true
+            i = i++
+        end
+
+        return false
     end
 
     def >([char] s) :: boolean

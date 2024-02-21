@@ -27,13 +27,15 @@ public final class Compiler {
 
     public static final Set<String> PRIMITIVES = Set.of("int", "double", "long", "float", "boolean", "char", "byte", "short");
 
+    private static final HashMap<String, XJLNFile> files = new HashMap<>();
+
     private static boolean debug;
 
-    private final HashMap<String, XJLNFile> files = new HashMap<>();
     private final SyntacticParser syntacticParser = new SyntacticParser();
     private final Parser parser = new Parser();
 
     private XJLNClass current;
+    private String currentName;
 
     /**
      * compiles all .xjln Files in the given Folders and runs the main method in the given Main class
@@ -356,7 +358,8 @@ public final class Compiler {
                     e.printStackTrace();
                     throw new RuntimeException(e.getMessage() + " in: " + path + " :" + field.lineInFile());
                 }
-            }
+            }else
+                throw new RuntimeException("expected value in: " + path + " :" + field.lineInFile());
         }
 
         code.add(Opcode.RETURN);
@@ -367,6 +370,7 @@ public final class Compiler {
             clazz.createDefaultInit();
 
         current = clazz;
+        currentName = path + "." + name;
 
         //methods
         compileMethods(clazz.methods, cf, path + "." + name);
@@ -752,15 +756,21 @@ public final class Compiler {
     }
 
     private void compileCall(AST.Call call, Bytecode code, ConstPool cp, OperandStack os){
-        compileLoad(call, code, os);
+        if(call instanceof AST.StaticCall){
+
+        }else compileLoad(call, code, os);
     }
 
     private void compileVarAssignment(AST.VarAssigment ast, Bytecode code, ConstPool cp, OperandStack os){
-        compileCalc(ast.calc, code, cp, os);
-        compileStore(ast.name, ast.type, code, os);
-        int length = (ast.type.equals("double") || ast.type.equals("long")) ? 2 : 1;
-        os.pop();
-        os.push(ast.name, length);
+        if(ast.call == null) {
+            compileCalc(ast.calc, code, cp, os);
+            compileStore(ast.name, ast.type, code, os);
+            int length = (ast.type.equals("double") || ast.type.equals("long")) ? 2 : 1;
+            os.pop();
+            os.push(ast.name, length);
+        }else{
+
+        }
     }
 
     private void compileLoad(AST.Call ast, Bytecode code, OperandStack os){
@@ -792,7 +802,8 @@ public final class Compiler {
     }
 
     private void compileStore(String name, String type, Bytecode code, OperandStack os){
-        if(os.contains(name) || !current.fields.containsKey(name)) {
+        short field = current.hasField(name);
+        if(os.contains(name) || field == 0) {
             int where = os.get(name);
 
             if(where == -1) {
@@ -807,7 +818,12 @@ public final class Compiler {
                 case "long" -> code.addLstore(where);
             }
         }else{
-            throw new RuntimeException("Variable " + name + " did not exist");
+            if(field == 1)
+                code.addPutfield(currentName, name, toDesc(type)); //TODO aload(0)
+            else
+                code.addPutstatic(currentName, name, toDesc(type));
+
+            os.pop();
         }
     }
 
@@ -895,10 +911,18 @@ public final class Compiler {
         return null; //TODO
     }
 
+    static String getFieldType(String clazz, String name){
+        return null;
+    }
+
     static String validateName(String name){
         name = name.replace("/", ".");
         name = name.replace("\\", ".");
         return name;
+    }
+
+    public static XJLNFile getFile(String name){
+        return files.get(name);
     }
 
     private static void printDebug(String message){

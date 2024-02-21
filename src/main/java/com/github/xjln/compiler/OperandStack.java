@@ -22,9 +22,9 @@ final class OperandStack {
 
     int push(String name, int length){
         stack.add(name, size);
-        System.out.println(name + " " + size);
+        //System.out.println(name + " " + size);
         size += length;
-        System.out.println(stack);
+        //System.out.println(stack);
         return size - length;
     }
 
@@ -38,7 +38,7 @@ final class OperandStack {
         length -= stack.getValue(stack.size() - 2);
         stack.remove(stack.size() - 1);
         size -= length;
-        System.out.println(stack);
+        //System.out.println(stack);
         return temp;
     }
 

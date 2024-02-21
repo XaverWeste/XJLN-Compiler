@@ -25,14 +25,14 @@ public final class XJLNClass extends Compilable{
     }
 
     public void addField(String name, XJLNField field){
-        if(fields.containsKey(name))
+        if(staticFields.containsKey(name) || fields.containsKey(name))
             throw new RuntimeException("Field " + name + " already exist");
 
         fields.put(name, field);
     }
 
     public void addStaticField(String name, XJLNField field){
-        if(staticFields.containsKey(name))
+        if(staticFields.containsKey(name) || fields.containsKey(name))
             throw new RuntimeException("Field " + name + " already exist");
 
         staticFields.put(name, field);
@@ -53,18 +53,18 @@ public final class XJLNClass extends Compilable{
     }
 
     public XJLNField getField(String name){
-        return fields.get(name);
+        if(fields.containsKey(name)) return fields.get(name);
+        else return staticFields.getOrDefault(name, null);
     }
 
-    public XJLNField getStaticField(String name){
-        return staticFields.get(name);
+    public short hasField(String name){
+        if(fields.containsKey(name)) return 1;
+        else if(staticFields.containsKey(name)) return -1;
+        else return 0;
     }
 
     public boolean isEmpty(){
-        if(fields.size() > 0)
-            return false;
-
-        return staticFields.size() == 0;
+        return fields.isEmpty() && staticFields.isEmpty();
     }
 
     public void createDefaultInit(){

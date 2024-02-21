@@ -214,4 +214,15 @@ def class List<Type T>{
 
         return arr
     end
+
+    def contains(T t) :: boolean
+        Node<T> help = first
+
+        while help:next != null
+            if help:content == t -> return true
+            help = help:next
+        end
+
+        return false
+    end
 }

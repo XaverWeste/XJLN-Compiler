@@ -44,10 +44,15 @@ sealed abstract class AST permits AST.Calc, AST.Call, AST.Value, AST.Return, AST
         Token token = null;
     }
 
-    static final class Call extends AST{
+    static sealed class Call extends AST permits StaticCall{
         String call = null;
         Call next = null;
         Calc[] argTypes;
+    }
+
+    static final class StaticCall extends Call{
+        String call = null;
+        Call next = null;
     }
 
     static final class Return extends AST{
@@ -57,6 +62,7 @@ sealed abstract class AST permits AST.Calc, AST.Call, AST.Value, AST.Return, AST
     static final class VarAssigment extends AST{
         Calc calc = null;
         String name = null;
+        Call call = null;
     }
 
     static final class While extends AST{

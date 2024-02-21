@@ -64,27 +64,36 @@ def class Set<Type T>{
     end
 
     def /=([T] t)
-        int i = 0i
-        int j = 0i
+        Set<T> temp = this / t
+        arr = temp:arr
+    end
 
-        while i < arr:length
-            while j < t:length
-                if arr:i == t:j -> arr:i = null
-                j++
-            end
-
-            i++
-            j = 0i
-        end
-
+    def |([T] t) :: Set<T>
         List<T> list = List<T>[]
-        i = 0i
 
-        while i < arr:length
-            if i != null -> list:insert(arr:i)
-            i++
-        end
+        for T current in arr -> if list:contains(current)! -> list.insert(current)
+        for T current in t -> if list:contains(current)! -> list.insert(current)
 
-        arr = list:toArray()
+        return list:toArray()
+    end
+
+    def |=([T] t)
+        Set<T> temp = this | t
+        arr = temp:arr
+    end
+
+    def &([T] t) :: Set<T>
+        List<T> list = List<T>[]
+        for T current in t -> if list:contains(current)! -> list.insert(current)
+
+        List<T> result = List<T>[]
+        for T current in arr -> if list:contains(current) & result:contains(current)! -> result:insert(current)
+
+        return result:toArray()
+    end
+
+    def &=([T] t)
+        Set<T> temp = this & t
+        arr = temp:arr
     end
 }

@@ -1,8 +1,9 @@
 def class Test{
 
-    static const int i = 5
+    int i
 
     def test()
+        i = 10
         #int j = i
     end
 }

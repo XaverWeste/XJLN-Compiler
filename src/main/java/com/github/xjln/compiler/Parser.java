@@ -52,11 +52,11 @@ final class Parser {
                         }
                     }
                     case "def" -> {
-                        //try {
+                        try {
                             parseDef();
-                        //}catch (RuntimeException e){
-                        //    error(e);
-                        //}
+                        }catch (RuntimeException e){
+                            error(e);
+                        }
                     }
                     default -> {
                         try {
@@ -69,7 +69,7 @@ final class Parser {
             }
         }
 
-        return new XJLNFile(main, classes, uses);
+        return new XJLNFile(file, main, classes, uses);
     }
 
     private void parseUse(){
